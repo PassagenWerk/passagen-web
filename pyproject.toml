@@ -1,0 +1,65 @@
+[project]
+name = "passagen-web"
+version = "0.1.0"
+description = "Local web interface for Passagen paper libraries"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.116,<1",
+    "pydantic>=2.11,<3",
+    "uvicorn>=0.35,<1",
+]
+
+[project.scripts]
+passagen-web = "passagen_web.cli:main"
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.31,<2",
+    "httpx>=0.28,<1",
+    "mypy>=1.18,<2",
+    "pre-commit>=4.2,<5",
+    "pytest>=8.4,<9",
+    "pytest-cov>=6,<8",
+    "ruff>=0.12,<1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/passagen_web"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--import-mode=importlib", "--cov=passagen_web", "--cov-report=term-missing"]
+
+[tool.coverage.run]
+branch = true
+source = ["passagen_web"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.basedpyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+include = ["src", "tests"]
+extraPaths = ["src"]
+venvPath = "."
+venv = ".venv"
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+files = ["src", "tests"]
+explicit_package_bases = true
+check_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
+no_implicit_optional = true
