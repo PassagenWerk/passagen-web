@@ -10,6 +10,7 @@ interface PaperListProps {
   pending: boolean;
   error: Error | null;
   onPage: (offset: number) => void;
+  onFocusPaper: (paperId: string) => void;
 }
 
 const statusLabels: Record<string, string> = {
@@ -28,6 +29,7 @@ export function PaperList({
   pending,
   error,
   onPage,
+  onFocusPaper,
 }: PaperListProps) {
   const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
 
@@ -54,10 +56,17 @@ export function PaperList({
             to={{ pathname: `/papers/${paper.id}`, search }}
             className={`paper-row ${paper.id === selectedId ? "is-selected" : ""}`}
             aria-current={paper.id === selectedId ? "page" : undefined}
+            title="Double-click to focus reading"
+            onDoubleClick={(event) => {
+              event.preventDefault();
+              onFocusPaper(paper.id);
+            }}
           >
             <span className="paper-order">{String((page.offset ?? 0) + index + 1).padStart(2, "0")}</span>
             <div className="paper-row-content">
-              <h3>{paper.title ?? paper.original_filename}</h3>
+              <h3 title={paper.title ?? paper.original_filename}>
+                {paper.title ?? paper.original_filename}
+              </h3>
               <p className="paper-authors">
                 {paper.authors.length > 0 ? paper.authors.join(", ") : "Unknown authors"}
               </p>

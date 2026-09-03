@@ -58,7 +58,10 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  window.localStorage.clear();
+});
 
 function response(body: unknown): Promise<Response> {
   return Promise.resolve(
@@ -109,4 +112,15 @@ test("renders Markdown outline without executing raw HTML", async () => {
   expect(await screen.findByRole("heading", { name: "Technical outline" })).toBeInTheDocument();
   expect(document.querySelector("script")).not.toBeInTheDocument();
   expect(screen.queryByText("unsafe()")).not.toBeInTheDocument();
+});
+
+test("double-click focuses reading and the back control restores three columns", async () => {
+  const { container } = renderApp();
+  const paperLink = await screen.findByTitle("Double-click to focus reading");
+
+  fireEvent.doubleClick(paperLink);
+  await screen.findByText("A useful research problem");
+  expect(container.querySelector(".library-grid")).toHaveClass("is-focus");
+  fireEvent.click(screen.getByRole("button", { name: "Back to three columns" }));
+  expect(container.querySelector(".library-grid")).not.toHaveClass("is-focus");
 });

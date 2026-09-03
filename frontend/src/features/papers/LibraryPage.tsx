@@ -7,7 +7,17 @@ import { PaperDetail } from "./PaperDetail";
 import { PaperFilters } from "./PaperFilters";
 import { PaperList } from "./PaperList";
 
-export function LibraryPage() {
+interface LibraryPageProps {
+  readingFocused: boolean;
+  onFocusReading: () => void;
+  onExitReading: () => void;
+}
+
+export function LibraryPage({
+  readingFocused,
+  onFocusReading,
+  onExitReading,
+}: LibraryPageProps) {
   const { paperId } = useParams();
   const navigate = useNavigate();
   const [search, setSearch] = useSearchParams();
@@ -43,6 +53,11 @@ export function LibraryPage() {
     startTransition(() => setSearch(next));
   }
 
+  function focusPaper(nextPaperId: string) {
+    onFocusReading();
+    void navigate({ pathname: `/papers/${nextPaperId}`, search: search.toString() });
+  }
+
   useEffect(() => {
     function handleNavigation(event: KeyboardEvent) {
       const target = event.target;
@@ -65,7 +80,9 @@ export function LibraryPage() {
   }, [navigate, paperId, papers.data?.items, search]);
 
   return (
-    <div className={`library-grid ${paperId ? "has-selection" : ""}`}>
+    <div
+      className={`library-grid ${paperId ? "has-selection" : ""} ${readingFocused && paperId ? "is-focus" : ""}`}
+    >
       <PaperFilters
         search={search}
         tags={tags.data ?? []}
@@ -80,6 +97,7 @@ export function LibraryPage() {
         pending={papers.isPending}
         error={papers.error}
         onPage={(offset) => changeSearch("offset", String(offset))}
+        onFocusPaper={focusPaper}
       />
       <PaperDetail
         paper={selectedPaper}
@@ -88,6 +106,8 @@ export function LibraryPage() {
         pending={Boolean(paperId && !listedPaper && detail.isPending)}
         error={detail.error}
         onView={(view) => changeSearch("view", view)}
+        focused={readingFocused && Boolean(paperId)}
+        onExitFocus={onExitReading}
       />
     </div>
   );

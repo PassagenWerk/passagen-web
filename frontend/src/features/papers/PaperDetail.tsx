@@ -12,9 +12,20 @@ interface PaperDetailProps {
   pending: boolean;
   error: Error | null;
   onView: (view: "summary" | "outline") => void;
+  focused: boolean;
+  onExitFocus: () => void;
 }
 
-export function PaperDetail({ paper, tags, search, pending, error, onView }: PaperDetailProps) {
+export function PaperDetail({
+  paper,
+  tags,
+  search,
+  pending,
+  error,
+  onView,
+  focused,
+  onExitFocus,
+}: PaperDetailProps) {
   const requestedView = search.get("view") === "outline" ? "outline" : "summary";
   const view = requestedView === "summary" && !paper?.artifacts.summary && paper?.artifacts.outline
     ? "outline"
@@ -35,6 +46,16 @@ export function PaperDetail({ paper, tags, search, pending, error, onView }: Pap
 
   return (
     <article className="detail-panel" aria-labelledby="detail-heading">
+      {focused ? (
+        <button
+          className="focus-back"
+          type="button"
+          aria-label="Back to three columns"
+          onClick={onExitFocus}
+        >
+          &lt;
+        </button>
+      ) : null}
       <div className="panel-heading detail-heading">
         <span className="index-number">03</span>
         <h2 id="detail-heading">Read</h2>

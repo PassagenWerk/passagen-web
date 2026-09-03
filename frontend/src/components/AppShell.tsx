@@ -3,7 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchHealth } from "../api/health";
 import { LibraryPage } from "../features/papers/LibraryPage";
 
-export function AppShell() {
+interface AppShellProps {
+  readingFocused: boolean;
+  onFocusReading: () => void;
+  onExitReading: () => void;
+}
+
+export function AppShell({
+  readingFocused,
+  onFocusReading,
+  onExitReading,
+}: AppShellProps) {
   const health = useQuery({ queryKey: ["health"], queryFn: fetchHealth, retry: false });
   const connectionLabel = health.isPending
     ? "Connecting"
@@ -24,7 +34,11 @@ export function AppShell() {
         </div>
       </header>
 
-      <LibraryPage />
+      <LibraryPage
+        readingFocused={readingFocused}
+        onFocusReading={onFocusReading}
+        onExitReading={onExitReading}
+      />
 
       <footer>
         <span>PRIVATE BY DEFAULT</span>
