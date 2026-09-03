@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 import type { PaperPage, Tag } from "../../api/papers";
+import type { CollectionSummary } from "../../api/collections";
 
 interface PaperListProps {
   page: PaperPage | undefined;
@@ -11,6 +12,18 @@ interface PaperListProps {
   error: Error | null;
   onPage: (offset: number) => void;
   onFocusPaper: (paperId: string) => void;
+  collections: CollectionSummary[];
+  selectionMode: boolean;
+  selectedIds: Set<string>;
+  destination: string;
+  addedTo: string;
+  adding: boolean;
+  addError: Error | null;
+  onStartSelection: () => void;
+  onCancelSelection: () => void;
+  onToggleSelection: (paperId: string) => void;
+  onDestination: (collectionId: string) => void;
+  onAdd: () => void;
 }
 
 const statusLabels: Record<string, string> = {
@@ -30,6 +43,18 @@ export function PaperList({
   error,
   onPage,
   onFocusPaper,
+  collections,
+  selectionMode,
+  selectedIds,
+  destination,
+  addedTo,
+  adding,
+  addError,
+  onStartSelection,
+  onCancelSelection,
+  onToggleSelection,
+  onDestination,
+  onAdd,
 }: PaperListProps) {
   const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
 
@@ -39,7 +64,29 @@ export function PaperList({
         <span className="index-number">02</span>
         <h2 id="papers-heading">Papers</h2>
         <span className="result-count">{page ? `${page.total} indexed` : "..."}</span>
+        <button className="list-action" type="button" onClick={selectionMode ? onCancelSelection : onStartSelection}>
+          {selectionMode ? "Cancel" : "Select"}
+        </button>
       </div>
+
+      {selectionMode ? (
+        <div className="bulk-bar">
+          <strong>{selectedIds.size} selected</strong>
+          <select aria-label="Destination collection" value={destination} onChange={(event) => onDestination(event.target.value)}>
+            <option value="">Choose collection...</option>
+            {collections.map((collection) => <option key={collection.id} value={collection.id}>{collection.name}</option>)}
+          </select>
+          <button aria-label="Add selected papers" type="button" disabled={!destination || selectedIds.size === 0 || adding} onClick={onAdd}>
+            {adding ? "Adding..." : "Add"}
+          </button>
+          {addError ? <span className="form-status is-error">{addError.message}</span> : null}
+        </div>
+      ) : null}
+      {addedTo ? (
+        <div className="bulk-notice" role="status">
+          Papers added. <Link to={`/collections/${addedTo}`}>View collection</Link>
+        </div>
+      ) : null}
 
       <div className="paper-list" aria-live="polite" aria-busy={pending}>
         {pending && !page ? <div className="panel-message">Opening the local index...</div> : null}
@@ -50,18 +97,8 @@ export function PaperList({
             <span>Try broadening the current filters.</span>
           </div>
         ) : null}
-        {page?.items.map((paper, index) => (
-          <Link
-            key={paper.id}
-            to={{ pathname: `/papers/${paper.id}`, search }}
-            className={`paper-row ${paper.id === selectedId ? "is-selected" : ""}`}
-            aria-current={paper.id === selectedId ? "page" : undefined}
-            title="Double-click to focus reading"
-            onDoubleClick={(event) => {
-              event.preventDefault();
-              onFocusPaper(paper.id);
-            }}
-          >
+        {page?.items.map((paper, index) => {
+          const content = <>
             <span className="paper-order">{String((page.offset ?? 0) + index + 1).padStart(2, "0")}</span>
             <div className="paper-row-content">
               <h3 title={paper.title ?? paper.original_filename}>
@@ -89,8 +126,33 @@ export function PaperList({
               ) : null}
             </div>
             <span className="paper-arrow" aria-hidden="true">↗</span>
-          </Link>
-        ))}
+          </>;
+          return selectionMode ? (
+            <label key={paper.id} className={`paper-row selection-row ${selectedIds.has(paper.id) ? "is-checked" : ""}`}>
+              <input
+                type="checkbox"
+                aria-label={`Select ${paper.title ?? paper.original_filename}`}
+                checked={selectedIds.has(paper.id)}
+                onChange={() => onToggleSelection(paper.id)}
+              />
+              {content}
+            </label>
+          ) : (
+            <Link
+              key={paper.id}
+              to={{ pathname: `/papers/${paper.id}`, search }}
+              className={`paper-row ${paper.id === selectedId ? "is-selected" : ""}`}
+              aria-current={paper.id === selectedId ? "page" : undefined}
+              title="Double-click to focus reading"
+              onDoubleClick={(event) => {
+                event.preventDefault();
+                onFocusPaper(paper.id);
+              }}
+            >
+              {content}
+            </Link>
+          );
+        })}
       </div>
 
       {page && page.total > page.limit ? (

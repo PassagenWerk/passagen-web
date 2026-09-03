@@ -23,12 +23,56 @@ const paper = {
   artifacts: { summary: true, outline: true, pdf: true },
 };
 
+const secondPaper = {
+  ...paper,
+  id: "paper-2",
+  title: "A Second Paper",
+  original_filename: "second.pdf",
+  tag_ids: [],
+};
+
+const collection = {
+  id: "collection-1",
+  name: "Database Survey",
+  description: "Core reading",
+  created_at: "2026-01-01 10:00:00",
+  updated_at: "2026-01-01 10:00:00",
+  paper_count: 2,
+  papers: [paper, secondPaper].map((item, position) => ({
+    paper: item,
+    position,
+    note: null,
+    added_at: "2026-01-01 10:00:00",
+  })),
+};
+
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === "/api/health") return response({ status: "ok", database: "available" });
+      if (url === "/api/collections" && init?.method === "POST") return response(collection);
+      if (url === "/api/collections") {
+        return response([{
+          id: collection.id,
+          name: collection.name,
+          description: collection.description,
+          created_at: collection.created_at,
+          updated_at: collection.updated_at,
+          paper_count: collection.paper_count,
+        }]);
+      }
+      if (url === "/api/collections/collection-1/papers/order" && init?.method === "PATCH") {
+        return response({ ...collection, papers: [...collection.papers].reverse() });
+      }
+      if (url === "/api/collections/collection-1/papers" && init?.method === "POST") {
+        return response(collection);
+      }
+      if (url === "/api/collections/collection-1" && init?.method === "PATCH") {
+        return response(collection);
+      }
+      if (url === "/api/collections/collection-1") return response(collection);
       if (url === "/api/tags" && init?.method === "POST") {
         return response({ id: "tag-2", name: "Priority", color: "#6b705c", created_at: "2026-01-02" });
       }
@@ -254,4 +298,67 @@ test("creates a Library Tag and saves user metadata", async () => {
       expect.objectContaining({ method: "PUT" }),
     );
   });
+});
+
+test("browses all, collection, and unfiled papers from the Library", async () => {
+  renderApp("/?collection=collection-1");
+  await screen.findByRole("option", { name: "Database Survey" });
+  const browse = screen.getByRole("combobox", { name: "Collection" });
+
+  expect(browse).toHaveValue("collection-1");
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(expect.stringContaining("collection=collection-1"));
+  });
+
+  cleanup();
+  renderApp("/?unfiled=true");
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(expect.stringContaining("unfiled=true"));
+  });
+});
+
+test("selects filtered Library papers and adds them to a collection", async () => {
+  renderApp("/?addToCollection=collection-1");
+
+  fireEvent.click(await screen.findByRole("checkbox", { name: "Select A Useful Paper" }));
+  fireEvent.click(screen.getByRole("button", { name: "Add selected papers" }));
+
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/collections/collection-1/papers",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ paper_ids: ["paper-1"] }) }),
+    );
+  });
+  expect(await screen.findByRole("link", { name: "View collection" })).toHaveAttribute(
+    "href",
+    "/collections/collection-1",
+  );
+});
+
+test("manages ordered collection members and opens collection-context reading", async () => {
+  renderApp("/collections/collection-1");
+
+  expect(await screen.findByRole("heading", { name: "Database Survey" })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Add papers" })).toHaveAttribute(
+    "href",
+    "/?addToCollection=collection-1",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Move A Useful Paper down" }));
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/collections/collection-1/papers/order",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ paper_ids: ["paper-2", "paper-1"] }),
+      }),
+    );
+  });
+
+  fireEvent.click(screen.getByRole("link", { name: "A Useful Paper" }));
+  expect(await screen.findByRole("link", { name: "Back to Database Survey" })).toBeInTheDocument();
+  expect(screen.getByText("2 / 2")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Previous" })).toHaveAttribute(
+    "href",
+    "/collections/collection-1/papers/paper-2",
+  );
 });

@@ -19,6 +19,7 @@ interface PaperDetailProps {
   onOpenPdf: () => void;
   focused: boolean;
   onExitFocus: () => void;
+  paperPath?: string;
 }
 
 export function PaperDetail({
@@ -33,6 +34,7 @@ export function PaperDetail({
   onOpenPdf,
   focused,
   onExitFocus,
+  paperPath,
 }: PaperDetailProps) {
   const requestedView = search.get("view") === "outline" ? "outline" : "summary";
   const view = requestedView === "summary" && !paper?.artifacts.summary && paper?.artifacts.outline
@@ -51,6 +53,7 @@ export function PaperDetail({
     retry: false,
   });
   const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
+  const currentPaperPath = paperPath ?? (paper ? `/papers/${encodeURIComponent(paper.id)}` : "");
 
   return (
     <article className={`detail-panel ${pdfView ? "has-pdf" : ""}`} aria-labelledby="detail-heading">
@@ -134,6 +137,7 @@ export function PaperDetail({
                 {summary.data ? (
                   <StructuredSummary
                     paperId={paper.id}
+                    paperPath={currentPaperPath}
                     content={summary.data.content}
                     onOpenPdf={onOpenPdf}
                   />
@@ -151,12 +155,12 @@ export function PaperDetail({
                   <div className="markdown">
                     <ReactMarkdown
                       components={{
-                        a: ({ href, children }) => href?.startsWith(`/papers/${encodeURIComponent(paper.id)}/pdf`)
+                        a: ({ href, children }) => href?.startsWith(`${currentPaperPath}/pdf`)
                           ? <Link to={href} onClick={onOpenPdf}>{children}</Link>
                           : <a href={href}>{children}</a>,
                       }}
                     >
-                      {linkOutlineEvidence(outline.data.content, paper.id)}
+                      {linkOutlineEvidence(outline.data.content, currentPaperPath)}
                     </ReactMarkdown>
                   </div>
                 ) : null}
@@ -198,14 +202,14 @@ export function PaperDetail({
   );
 }
 
-function linkOutlineEvidence(content: string, paperId: string): string {
+function linkOutlineEvidence(content: string, paperPath: string): string {
   return content.replace(
     /(Evidence pages:\s*)(\d+(?:\s*,\s*\d+)*)/gi,
     (_match, label: string, pages: string) => {
       const links = pages
         .split(",")
         .map((page) => page.trim())
-        .map((page) => `[${page}](/papers/${encodeURIComponent(paperId)}/pdf?view=outline&page=${page})`)
+        .map((page) => `[${page}](${paperPath}/pdf?view=outline&page=${page})`)
         .join(", ");
       return `${label}${links}`;
     },

@@ -16,12 +16,14 @@ function isEmpty(value: unknown): boolean {
 
 function SummaryValue({
   paperId,
+  paperPath,
   onOpenPdf,
   name,
   value,
   depth = 0,
 }: {
   paperId: string;
+  paperPath: string;
   onOpenPdf: () => void;
   name: string;
   value: unknown;
@@ -37,7 +39,7 @@ function SummaryValue({
           {value.map((page, index) => (
             <Link
               key={`${page}-${index}`}
-              to={`/papers/${encodeURIComponent(paperId)}/pdf?page=${page}`}
+              to={`${paperPath}/pdf?page=${page}`}
               onClick={onOpenPdf}
             >
               {String(page)}
@@ -58,7 +60,7 @@ function SummaryValue({
               {typeof item === "object" && item !== null ? (
                 <div className="summary-object">
                   {Object.entries(item).map(([key, nested]) => (
-                    <SummaryValue key={key} paperId={paperId} onOpenPdf={onOpenPdf} name={key} value={nested} depth={depth + 1} />
+                    <SummaryValue key={key} paperId={paperId} paperPath={paperPath} onOpenPdf={onOpenPdf} name={key} value={nested} depth={depth + 1} />
                   ))}
                 </div>
               ) : (
@@ -77,7 +79,7 @@ function SummaryValue({
         <h3>{labelFor(name)}</h3>
         <div className="summary-object">
           {Object.entries(value).map(([key, nested]) => (
-            <SummaryValue key={key} paperId={paperId} onOpenPdf={onOpenPdf} name={key} value={nested} depth={depth + 1} />
+            <SummaryValue key={key} paperId={paperId} paperPath={paperPath} onOpenPdf={onOpenPdf} name={key} value={nested} depth={depth + 1} />
           ))}
         </div>
       </section>
@@ -94,17 +96,19 @@ function SummaryValue({
 
 export function StructuredSummary({
   paperId,
+  paperPath = `/papers/${encodeURIComponent(paperId)}`,
   content,
   onOpenPdf,
 }: {
   paperId: string;
+  paperPath?: string;
   content: Record<string, unknown>;
   onOpenPdf: () => void;
 }) {
   return (
     <div className="structured-summary">
       {Object.entries(content).map(([key, value]) => (
-        <SummaryValue key={key} paperId={paperId} onOpenPdf={onOpenPdf} name={key} value={value} />
+        <SummaryValue key={key} paperId={paperId} paperPath={paperPath} onOpenPdf={onOpenPdf} name={key} value={value} />
       ))}
     </div>
   );

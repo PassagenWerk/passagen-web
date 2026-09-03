@@ -1,7 +1,8 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { startTransition, useDeferredValue, useEffect } from "react";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { startTransition, useDeferredValue, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
+import { addCollectionPapers, fetchCollections } from "../../api/collections";
 import { fetchPaper, fetchPapers, fetchTags } from "../../api/papers";
 import { PaperDetail } from "./PaperDetail";
 import { PaperFilters } from "./PaperFilters";
@@ -32,6 +33,30 @@ export function LibraryPage({
     retry: false,
   });
   const tags = useQuery({ queryKey: ["tags"], queryFn: fetchTags, retry: false });
+  const collections = useQuery({
+    queryKey: ["collections"],
+    queryFn: fetchCollections,
+    retry: false,
+  });
+  const queryClient = useQueryClient();
+  const [selecting, setSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [destination, setDestination] = useState("");
+  const [addedTo, setAddedTo] = useState("");
+  const targetCollection = search.get("addToCollection") ?? "";
+  const addPapers = useMutation({
+    mutationFn: () => addCollectionPapers(destination, [...selectedIds]),
+    onSuccess: async () => {
+      setAddedTo(destination);
+      setSelectedIds(new Set());
+      setSelecting(false);
+      const next = new URLSearchParams(search);
+      next.delete("addToCollection");
+      setSearch(next);
+      await queryClient.invalidateQueries({ queryKey: ["collections"] });
+      await queryClient.invalidateQueries({ queryKey: ["collection", destination] });
+    },
+  });
   const listedPaper = papers.data?.items.find((paper) => paper.id === paperId);
   const detail = useQuery({
     queryKey: ["paper", paperId],
@@ -53,8 +78,35 @@ export function LibraryPage({
     const next = new URLSearchParams();
     const view = search.get("view");
     if (view) next.set("view", view);
-    startTransition(() => setSearch(next));
+    if (targetCollection) next.set("addToCollection", targetCollection);
+    setSearch(next);
   }
+
+  function changeBrowse(value: string) {
+    const next = new URLSearchParams(search);
+    next.delete("collection");
+    next.delete("unfiled");
+    next.delete("offset");
+    if (search.get("sort") === "collection_order" && !value) next.delete("sort");
+    if (search.get("sort") === "collection_order" && value === "unfiled") next.delete("sort");
+    if (value === "unfiled") next.set("unfiled", "true");
+    else if (value) next.set("collection", value);
+    setSearch(next);
+  }
+
+  function cancelSelection() {
+    setSelecting(false);
+    setSelectedIds(new Set());
+    const next = new URLSearchParams(search);
+    next.delete("addToCollection");
+    setSearch(next);
+  }
+
+  useEffect(() => {
+    if (!targetCollection) return;
+    setSelecting(true);
+    setDestination(targetCollection);
+  }, [targetCollection]);
 
   function focusPaper(nextPaperId: string) {
     onFocusReading();
@@ -108,7 +160,9 @@ export function LibraryPage({
       <PaperFilters
         search={search}
         tags={tags.data ?? []}
+        collections={collections.data ?? []}
         onChange={changeSearch}
+        onBrowse={changeBrowse}
         onClear={clearFilters}
       />
       <PaperList
@@ -120,6 +174,26 @@ export function LibraryPage({
         error={papers.error}
         onPage={(offset) => changeSearch("offset", String(offset))}
         onFocusPaper={focusPaper}
+        collections={collections.data ?? []}
+        selectionMode={selecting}
+        selectedIds={selectedIds}
+        destination={destination}
+        addedTo={addedTo}
+        adding={addPapers.isPending}
+        addError={addPapers.error}
+        onStartSelection={() => {
+          setAddedTo("");
+          setSelecting(true);
+        }}
+        onCancelSelection={cancelSelection}
+        onToggleSelection={(id) => {
+          const next = new Set(selectedIds);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          setSelectedIds(next);
+        }}
+        onDestination={setDestination}
+        onAdd={() => addPapers.mutate()}
       />
       <PaperDetail
         paper={selectedPaper}

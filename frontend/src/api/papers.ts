@@ -62,6 +62,7 @@ export async function fetchPapers(search: URLSearchParams): Promise<PaperPage> {
     "venue",
     "year",
     "collection",
+    "unfiled",
     "sort",
     "direction",
     "limit",
@@ -141,7 +142,7 @@ export async function checkPdf(paperId: string): Promise<boolean> {
   return true;
 }
 
-async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+export async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = init ? await fetch(url, init) : await fetch(url);
   if (!response.ok) {
     throw await responseError(response);
@@ -149,7 +150,7 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-async function responseError(response: Response): Promise<Error> {
+export async function responseError(response: Response): Promise<Error> {
   const body = (await response.json().catch(() => null)) as
     | { error?: { message?: string } }
     | null;

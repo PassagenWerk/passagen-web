@@ -1,19 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link, NavLink, useLocation } from "react-router-dom";
 
 import { fetchHealth } from "../api/health";
-import { LibraryPage } from "../features/papers/LibraryPage";
 
 interface AppShellProps {
-  readingFocused: boolean;
-  onFocusReading: () => void;
-  onExitReading: () => void;
+  children: React.ReactNode;
 }
 
-export function AppShell({
-  readingFocused,
-  onFocusReading,
-  onExitReading,
-}: AppShellProps) {
+export function AppShell({ children }: AppShellProps) {
+  const location = useLocation();
   const health = useQuery({ queryKey: ["health"], queryFn: fetchHealth, retry: false });
   const connectionLabel = health.isPending
     ? "Connecting"
@@ -28,17 +23,23 @@ export function AppShell({
           <span className="wordmark-mark">P</span>
           <span>PASSAGEN</span>
         </a>
-        <div className={`connection ${health.isSuccess ? "is-online" : ""}`} role="status">
-          <span className="connection-dot" />
-          {connectionLabel}
+        <div className="masthead-actions">
+          <nav className="primary-nav" aria-label="Primary navigation">
+            <Link
+              to="/"
+              className={location.pathname.startsWith("/collections") ? "" : "active"}
+              aria-current={location.pathname.startsWith("/collections") ? undefined : "page"}
+            >Library</Link>
+            <NavLink to="/collections">Collections</NavLink>
+          </nav>
+          <div className={`connection ${health.isSuccess ? "is-online" : ""}`} role="status">
+            <span className="connection-dot" />
+            {connectionLabel}
+          </div>
         </div>
       </header>
 
-      <LibraryPage
-        readingFocused={readingFocused}
-        onFocusReading={onFocusReading}
-        onExitReading={onExitReading}
-      />
+      {children}
 
       <footer>
         <span>PRIVATE BY DEFAULT</span>

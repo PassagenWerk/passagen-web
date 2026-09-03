@@ -1,15 +1,20 @@
+import type { CollectionSummary } from "../../api/collections";
 import type { Tag } from "../../api/papers";
 import { LibraryTagManager } from "../tags/LibraryTagManager";
+import { Link } from "react-router-dom";
 
 interface PaperFiltersProps {
   search: URLSearchParams;
   tags: Tag[];
+  collections: CollectionSummary[];
   onChange: (key: string, value: string) => void;
+  onBrowse: (value: string) => void;
   onClear: () => void;
 }
 
-export function PaperFilters({ search, tags, onChange, onClear }: PaperFiltersProps) {
-  const hasFilters = ["q", "status", "tag", "venue", "year"].some((key) => search.has(key));
+export function PaperFilters({ search, tags, collections, onChange, onBrowse, onClear }: PaperFiltersProps) {
+  const hasFilters = ["q", "status", "tag", "venue", "year", "collection", "unfiled"].some((key) => search.has(key));
+  const browseValue = search.has("unfiled") ? "unfiled" : search.get("collection") ?? "";
 
   return (
     <aside className="filter-panel" aria-label="Library filters">
@@ -29,6 +34,18 @@ export function PaperFilters({ search, tags, onChange, onClear }: PaperFiltersPr
       </label>
 
       <LibraryTagManager tags={tags} />
+
+      <label className="field">
+        <span>Collection</span>
+        <select aria-label="Collection" key={collections.length} value={browseValue} onChange={(event) => onBrowse(event.target.value)}>
+          <option value="">All papers</option>
+          <option value="unfiled">Not in any collection</option>
+          {collections.map((collection) => (
+            <option key={collection.id} value={collection.id}>{collection.name}</option>
+          ))}
+        </select>
+        {search.get("collection") ? <Link className="filter-manage-link" to={`/collections/${search.get("collection")}`}>Manage selected collection</Link> : null}
+      </label>
 
       <label className="field">
         <span>Status</span>
@@ -86,6 +103,7 @@ export function PaperFilters({ search, tags, onChange, onClear }: PaperFiltersPr
             value={search.get("sort") ?? "imported_at"}
             onChange={(event) => onChange("sort", event.target.value)}
           >
+            {search.has("collection") ? <option value="collection_order">Collection order</option> : null}
             <option value="imported_at">Imported</option>
             <option value="updated_at">Updated</option>
             <option value="title">Title</option>
