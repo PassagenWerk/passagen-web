@@ -1,66 +1,59 @@
-# Passagen Web Development Roadmap
+# Passagen Web 开发路线图
 
-This document defines the implementation plan for a local web interface over the paper library
-managed by Passagen. It covers repository boundaries, technical choices, milestones, acceptance
-criteria, and deferred work.
+本文档定义 Passagen 论文库本地 Web 界面的实现计划，包括仓库边界、技术选型、里程碑、验收条件和延期事项。
 
-## Product Goal
+## 产品目标
 
-The first usable release should complete this workflow:
+首个可用版本应完成以下工作流：
 
 ```text
-Open local library
-  -> search, filter, and sort papers
-  -> inspect metadata, summary, and outline
-  -> open the managed PDF at a relevant page
-  -> add or edit tags
-  -> select papers into an ordered collection
+打开本地论文库
+  -> 搜索、筛选和排序论文
+  -> 查看元数据、摘要和提纲
+  -> 在相关页打开受管理的 PDF
+  -> 添加或编辑标签
+  -> 将论文加入有序集合
 ```
 
-The first release is a local, single-user application. It does not provide user accounts, remote
-hosting, collaborative editing, PDF annotation, vector search, or collection synthesis.
+首个版本是本地单用户应用，不提供用户账号、远程托管、协作编辑、PDF 标注、向量搜索或集合综合。
 
-## Repository Boundary
+## 仓库边界
 
-Passagen and Passagen Web remain separate repositories with different responsibilities.
+Passagen 与 Passagen Web 保持为职责不同的独立仓库。
 
-| Repository | Responsibility |
+| 仓库 | 职责 |
 | --- | --- |
-| `Passagen` | Domain models, SQLite schema and migrations, repositories, catalog application services, artifact validation, pipeline, and CLI |
-| `Passagen-web` | FastAPI adapter, HTTP schemas, PDF streaming, React UI, local server lifecycle, and browser-facing tests |
+| `Passagen` | 领域模型、SQLite Schema 与迁移、Repository、Catalog 应用服务、artifact 校验、处理流程和 CLI |
+| `Passagen-web` | FastAPI 适配层、HTTP Schema、PDF 流式传输、React UI、本地服务生命周期和浏览器端测试 |
 
-The dependency direction is one way:
+依赖方向是单向的：
 
 ```text
-passagen_web -> passagen public API -> storage and artifacts
+passagen_web -> passagen 公开 API -> 存储和 artifact
 ```
 
-Passagen must not import `passagen_web`. Passagen Web must not copy SQLAlchemy rows, execute ad-hoc
-SQL against `passagen.db`, or infer artifact paths by scanning the data directory.
+Passagen 不得导入 `passagen_web`。Passagen Web 不得复制 SQLAlchemy Row、针对 `passagen.db` 执行临时 SQL，也不得通过扫描数据目录推断 artifact 路径。
 
-Tags and collections are durable paper-library concepts used by future CLI and synthesis flows.
-Their tables, migrations, invariants, and application services therefore belong to Passagen. Pure
-UI preferences such as theme and panel width stay in browser storage.
+标签和集合是持久化的论文库概念，未来也会用于 CLI 和综合流程，因此其数据表、迁移、不变量和应用服务属于 Passagen。主题、面板宽度等纯 UI 偏好保存在浏览器存储中。
 
-## Technical Baseline
+## 技术基线
 
 - Python 3.12+
-- `uv` for Python dependency and environment management
-- FastAPI and Uvicorn for the local HTTP application
-- Pydantic for request and response schemas
-- React, TypeScript, and Vite for the frontend
-- A lightweight client-side router and query cache selected during M1
-- Browser-native PDF viewing initially, with PDF.js introduced when reliable page linking requires it
-- pytest for backend tests
-- Vitest and Testing Library for frontend tests
-- Playwright for a small set of end-to-end workflows
-- Ruff, basedpyright, and mypy for Python checks
-- ESLint and TypeScript for frontend checks
+- 使用 `uv` 管理 Python 依赖和环境
+- 使用 FastAPI 和 Uvicorn 构建本地 HTTP 应用
+- 使用 Pydantic 定义请求和响应 Schema
+- 前端使用 React、TypeScript 和 Vite
+- 使用轻量客户端 Router 和查询缓存
+- 初期使用浏览器原生 PDF 阅读能力；需要可靠页面跳转时引入 PDF.js
+- 后端测试使用 pytest
+- 前端测试使用 Vitest 和 Testing Library
+- 少量端到端工作流使用 Playwright
+- Python 检查使用 Ruff、basedpyright 和 mypy
+- 前端检查使用 ESLint 和 TypeScript
 
-The production application serves the compiled React assets and API from one Uvicorn process. The
-default listener is `127.0.0.1`; exposing the service to a LAN is outside the first release.
+生产应用通过一个 Uvicorn 进程同时提供编译后的 React 资源和 API。默认监听 `127.0.0.1`，首个版本不支持向局域网公开服务。
 
-## Target Repository Layout
+## 目标仓库结构
 
 ```text
 Passagen-web/
@@ -106,16 +99,13 @@ Passagen-web/
     └── e2e/
 ```
 
-The Python distribution is named `passagen-web` and the import package is `passagen_web`. The CLI
-entry point is `passagen-web`.
+Python distribution 名称为 `passagen-web`，import package 为 `passagen_web`，CLI 入口为 `passagen-web`。
 
-## Data Contracts
+## 数据契约
 
-The existing Passagen database is the source of truth for paper identity, metadata, status, import
-time, and artifact references. The Web API resolves artifacts through Passagen services and never
-returns local filesystem paths to the browser.
+现有 Passagen 数据库是论文身份、元数据、状态、导入时间及 artifact 引用的唯一事实来源。Web API 通过 Passagen 服务解析 artifact，绝不向浏览器返回本地文件系统路径。
 
-Passagen needs durable models equivalent to:
+Passagen 需要提供以下持久化模型：
 
 ```text
 tags
@@ -145,20 +135,20 @@ collection_papers
 - added_at
 ```
 
-Required invariants:
+必须满足以下不变量：
 
-- Tag normalized names are unique.
-- A tag can be assigned to a paper only once.
-- A paper can occur in a collection only once.
-- Collection positions are deterministic and can be reordered atomically.
-- Deleting a paper removes its tag assignments and collection memberships.
-- Deleting a collection never deletes papers.
-- User-edited bibliographic fields retain source `user` when the Passagen pipeline is rerun.
-- Generated summary and outline artifacts remain immutable from the Web UI.
+- 标签规范化名称唯一。
+- 同一标签只能分配给同一论文一次。
+- 同一论文在一个集合中只能出现一次。
+- 集合位置确定且可以原子重排。
+- 删除论文时一并删除其标签分配和集合成员关系。
+- 删除集合不会删除论文。
+- 再次运行 Passagen 处理流程时，用户编辑的书目字段继续保留 `user` 来源。
+- Web UI 不得修改生成的摘要和提纲 artifact。
 
-## HTTP Contract
+## HTTP 契约
 
-The initial API is rooted at `/api` and includes:
+初始 API 以 `/api` 为根路径，包括：
 
 ```text
 GET    /api/health
@@ -185,300 +175,289 @@ PATCH  /api/collections/{collection_id}/papers/order
 DELETE /api/collections/{collection_id}/papers/{paper_id}
 ```
 
-Paper listing supports query text, status, tag, venue, year, collection, sort field, sort direction,
-and pagination. List responses contain metadata and artifact availability flags but not full summary
-or outline content.
+论文列表支持查询文本、状态、标签、期刊或会议、年份、集合、排序字段、排序方向和分页。列表响应包含元数据及 artifact 可用性标志，但不包含完整摘要或提纲内容。
 
-HTTP schemas are owned by Passagen Web and are distinct from Passagen storage records. This keeps
-filesystem paths and storage implementation details out of the public response contract.
+HTTP Schema 由 Passagen Web 所有，与 Passagen 存储记录相互独立，避免文件系统路径和存储实现细节进入公开响应契约。
 
-## M0: Project Foundation
+## M0：项目基础
 
-### Work
+### 工作内容
 
-- Configure the Python project, `src/passagen_web` package, and CLI entry point.
-- Add FastAPI, Uvicorn, Pydantic, test, lint, and type-check dependencies.
-- Add the Vite React and TypeScript frontend.
-- Configure Vite to proxy `/api` to the development FastAPI server.
-- Add shared check commands and CI for Python and frontend code.
-- Document local development commands and the two-repository checkout requirement.
+- 配置 Python 项目、`src/passagen_web` package 和 CLI 入口。
+- 添加 FastAPI、Uvicorn、Pydantic、测试、lint 和类型检查依赖。
+- 添加基于 Vite、React 和 TypeScript 的前端。
+- 配置 Vite，将 `/api` 代理到开发环境的 FastAPI 服务。
+- 添加 Python 与前端的统一检查命令和 CI。
+- 记录本地开发命令及双仓库 checkout 要求。
 
-### Deliverables
+### 交付物
 
 - `uv run passagen-web --help`
 - `uv run passagen-web serve --data-dir PATH`
-- FastAPI `/api/health` endpoint
-- React application shell
-- Automated lint, type-check, unit-test, and build jobs
+- FastAPI `/api/health` 端点
+- React 应用外壳
+- 自动化 lint、类型检查、单元测试和构建任务
 
-### Acceptance Criteria
+### 验收条件
 
-- A clean checkout can install both Python and frontend dependencies using documented commands.
-- The development server loads the React application and proxies health requests successfully.
-- The command rejects a missing or invalid Passagen data directory with a concise error.
-- The server listens only on `127.0.0.1` unless explicitly configured otherwise.
-- Python and frontend checks run without requiring external services.
+- 全新 checkout 可以使用文档中的命令安装 Python 和前端依赖。
+- 开发服务器可以加载 React 应用，并成功代理健康检查请求。
+- 数据目录缺失或无效时，命令返回简洁错误。
+- 除非显式配置，否则服务只监听 `127.0.0.1`。
+- Python 和前端检查不依赖外部服务。
 
-## M1: Passagen Catalog Contract
+## M1：Passagen Catalog 契约
 
-This milestone is implemented primarily in the Passagen repository and blocks writable Web
-features.
+该里程碑主要在 Passagen 仓库中实现，是 Web 写入功能的前置条件。
 
-### Work
+**状态：已完成。** Passagen Schema v2 和公开的 `passagen.catalog` 服务已经提供后续 Web 里程碑所需的类型化论文查询、标签、有序集合、用户元数据保护、artifact 解析及稳定领域错误。
 
-- Add a public `passagen.catalog` application-service boundary.
-- Add typed paper filters, sort options, pagination results, and detail projections.
-- Add forward migrations and storage models for tags and collections.
-- Add services for tag lifecycle, paper tag assignment, collection lifecycle, membership, and order.
-- Add a user metadata update service that records field source `user` and preserves overrides during
-  subsequent pipeline updates.
-- Add safe artifact resolution that verifies relative paths remain under `data_dir`.
-- Define the supported Passagen package and database schema compatibility range.
+### 工作内容
 
-### Deliverables
+- 添加公开的 `passagen.catalog` 应用服务边界。
+- 添加类型化论文筛选、排序选项、分页结果和详情投影。
+- 添加标签与集合的前向迁移和存储模型。
+- 添加标签生命周期、论文标签分配、集合生命周期、成员关系及排序服务。
+- 添加用户元数据更新服务，将字段来源记录为 `user`，并在后续处理流程更新时保留覆盖值。
+- 添加安全 artifact 解析，确保相对路径始终位于 `data_dir` 下。
+- 定义支持的 Passagen package 和数据库 Schema 兼容范围。
 
-- Public `CatalogService` or equivalent facade
-- Tag and collection migration
-- Catalog unit and SQLite integration tests
-- Passagen package version consumable by Passagen Web
+### 交付物
 
-### Acceptance Criteria
+- 公开的 `CatalogService` 或等价 Facade
+- 标签和集合迁移
+- Catalog 单元测试与 SQLite 集成测试
+- 可供 Passagen Web 使用的 Passagen package 版本
 
-- Passagen Web can implement all catalog operations without importing ORM rows or opening a Session.
-- Duplicate tags and memberships fail with typed, user-facing domain errors.
-- Collection reorder commits atomically and rejects unknown or duplicate member IDs.
-- Forced metadata processing does not overwrite fields whose source is `user`.
-- Artifact resolution rejects absolute paths, path traversal, and missing files.
-- Existing Passagen databases upgrade without losing papers or artifacts.
+### 验收条件
 
-## M2: Read-Only Paper API
+- Passagen Web 无需导入 ORM Row 或打开 Session 即可实现所有 Catalog 操作。
+- 重复标签和成员关系通过类型化、面向用户的领域错误返回。
+- 集合重排原子提交，并拒绝未知或重复的成员 ID。
+- 强制元数据处理不会覆盖来源为 `user` 的字段。
+- artifact 解析拒绝绝对路径、路径穿越和缺失文件。
+- 现有 Passagen 数据库升级时不会丢失论文或 artifact。
 
-### Work
+## M2：只读论文 API
 
-- Construct one catalog dependency from configured `database_path` and `data_dir`.
-- Implement health, paper list, paper detail, summary, and outline endpoints.
-- Validate structured summary JSON with the Passagen summary schema before returning it.
-- Render outline Markdown in the browser rather than converting it to trusted HTML on the server.
-- Map not-found, invalid-artifact, incompatible-schema, and database-busy failures to stable errors.
-- Add pagination and deterministic sorting.
+### 工作内容
 
-### Deliverables
+- 根据配置的 `database_path` 和 `data_dir` 构造唯一 Catalog 依赖。
+- 实现健康检查、论文列表、论文详情、摘要和提纲端点。
+- 返回结构化摘要 JSON 前，使用 Passagen Summary Schema 校验。
+- 在浏览器中渲染 Outline Markdown，不在服务端转换为受信任 HTML。
+- 将不存在、artifact 无效、Schema 不兼容和数据库繁忙等失败映射为稳定错误。
+- 添加分页及确定性排序。
 
-- Read-only `/api/papers` endpoints
-- OpenAPI schema
-- API component tests against a temporary Passagen library
+### 交付物
 
-### Acceptance Criteria
+- 只读 `/api/papers` 端点
+- OpenAPI Schema
+- 基于临时 Passagen 论文库的 API 组件测试
 
-- Papers can be filtered by title query, venue, year, status, tag, and collection.
-- Papers can be sorted by title, venue, year, import time, and update time.
-- A list request does not read every summary or outline artifact.
-- Missing artifacts produce an availability state or a stable 404 response, not a traceback.
-- API responses never contain absolute or relative local artifact paths.
-- Unsupported database versions fail during startup with an actionable message.
+### 验收条件
 
-## M3: Library Browsing UI
+- 可以按标题查询、期刊或会议、年份、状态、标签和集合筛选论文。
+- 可以按标题、期刊或会议、年份、导入时间和更新时间排序。
+- 列表请求不会读取每一份摘要或提纲 artifact。
+- artifact 缺失时返回可用性状态或稳定的 404，而不是 traceback。
+- API 响应绝不包含绝对或相对本地 artifact 路径。
+- 不支持的数据库版本会在启动时失败，并提供可操作的错误信息。
 
-### Work
+## M3：论文库浏览 UI
 
-- Build responsive paper list and paper detail routes.
-- Add text search, filters, sort controls, and pagination or incremental loading.
-- Persist search, filter, sort, and selected paper state in the URL.
-- Present metadata, processing state, tags, and artifact availability.
-- Add Summary and Outline readers with loading, empty, and invalid-artifact states.
-- Use a three-pane desktop layout and separate list/detail navigation on narrow screens.
-- Add keyboard navigation for moving through the visible paper list.
+### 工作内容
 
-### Deliverables
+- 构建响应式论文列表和论文详情路由。
+- 添加文本搜索、筛选、排序控件及分页或增量加载。
+- 在 URL 中持久化搜索、筛选、排序及已选论文状态。
+- 展示元数据、处理状态、标签及 artifact 可用性。
+- 添加 Summary 和 Outline 阅读器及其加载、空内容和 artifact 无效状态。
+- 桌面端使用三栏布局，窄屏使用独立的列表与详情导航。
+- 添加键盘导航，在当前可见论文列表中移动。
 
-- Searchable paper library screen
-- Paper detail screen
-- Structured Summary reader
-- Markdown Outline reader
-- Responsive desktop and mobile layouts
+### 交付物
 
-### Acceptance Criteria
+- 可搜索的论文库界面
+- 论文详情界面
+- Structured Summary 阅读器
+- Markdown Outline 阅读器
+- 响应式桌面端和移动端布局
 
-- A user can find a paper by title and narrow results by venue, year, status, or tag.
-- Browser refresh and back/forward navigation preserve the current library view.
-- Selecting a paper shows Summary first and allows switching to Outline.
-- Missing Summary or Outline is explained using the paper processing status.
-- The principal browsing workflow is usable by keyboard.
-- The page loads correctly at supported desktop and mobile widths.
+### 验收条件
 
-## M4: PDF Reading
+- 用户可以按标题查找论文，并按期刊或会议、年份、状态或标签缩小结果范围。
+- 刷新页面及浏览器前进、后退操作会保留当前论文库视图。
+- 选择论文后首先显示 Summary，并可切换至 Outline。
+- Summary 或 Outline 缺失时，根据论文处理状态说明原因。
+- 主要浏览工作流可以使用键盘完成。
+- 页面在支持的桌面端和移动端宽度下均能正确加载。
 
-### Work
+## M4：PDF 阅读
 
-- Add a PDF endpoint resolved from the `original_pdf` artifact.
-- Implement `Content-Type`, inline disposition, content length, cache validators, and byte ranges.
-- Start with a browser-native embedded or new-tab reader.
-- Evaluate PDF.js for consistent embedded reading and direct page navigation.
-- Link summary and outline evidence page references to the PDF reader.
-- Handle missing, replaced, or integrity-invalid PDF artifacts explicitly.
+### 工作内容
 
-### Deliverables
+- 添加通过 `original_pdf` artifact 解析的 PDF 端点。
+- 实现 `Content-Type`、inline disposition、内容长度、缓存校验及字节范围请求。
+- 初期使用浏览器原生嵌入式或新标签页阅读器。
+- 评估 PDF.js，以实现一致的嵌入式阅读和直接页面跳转。
+- 将摘要和提纲中的证据页引用链接到 PDF 阅读器。
+- 明确处理缺失、已替换或完整性无效的 PDF artifact。
 
-- `/api/papers/{paper_id}/pdf` with Range support
-- PDF reader route
-- Evidence-page links
+### 交付物
 
-### Acceptance Criteria
+- 支持 Range 请求的 `/api/papers/{paper_id}/pdf`
+- PDF 阅读器路由
+- 证据页链接
 
-- Large PDFs start rendering without being loaded completely into API memory.
-- Refreshing or seeking in a PDF works through HTTP Range requests.
-- A crafted paper ID or URL cannot read files outside the configured data directory.
-- Selecting an evidence page opens the same paper near the requested page.
-- Missing and corrupt PDFs produce a readable application error.
+### 验收条件
 
-## M5: Tags and User Metadata
+- 大型 PDF 无需全部载入 API 内存即可开始渲染。
+- PDF 刷新或跳转可以通过 HTTP Range 请求正常工作。
+- 构造的论文 ID 或 URL 无法读取配置数据目录外的文件。
+- 选择证据页后，可以在相应页面附近打开同一篇论文。
+- PDF 缺失或损坏时显示可读的应用错误。
 
-### Work
+## M5：标签与用户元数据
 
-- Implement tag list, create, rename, recolor, delete, and assignment endpoints.
-- Add an inline tag editor to paper details and multi-select tag assignment to the paper list.
-- Add optional editing for approved bibliographic fields such as title, venue, and year.
-- Use `updated_at` or an explicit revision as an optimistic concurrency token.
-- Show pending, saved, conflict, and failed states without optimistic data loss.
-- Confirm destructive tag deletion when it affects existing papers.
+### 工作内容
 
-### Deliverables
+- 实现标签列表、创建、重命名、改色、删除及分配端点。
+- 在论文详情中添加行内标签编辑器，在论文列表中添加多选标签分配。
+- 支持编辑标题、期刊或会议、年份等获准的书目字段。
+- 使用 `updated_at` 或显式 revision 作为乐观并发 token。
+- 展示等待、已保存、冲突和失败状态，且乐观更新失败时不丢失数据。
+- 删除已用于论文的标签前进行破坏性操作确认。
 
-- Tag management UI
-- Inline paper tag editing
-- Controlled user metadata editor
-- Concurrency conflict handling
+### 交付物
 
-### Acceptance Criteria
+- 标签管理 UI
+- 论文标签行内编辑
+- 受控的用户元数据编辑器
+- 并发冲突处理
 
-- Creating tags that differ only by normalization does not create duplicates.
-- Tag edits remain after restarting both Passagen Web and Passagen CLI.
-- Metadata edits are marked with source `user` and survive a Passagen metadata refresh.
-- Concurrent changes receive a conflict response instead of silently overwriting newer data.
-- Failed writes restore or clearly mark unsaved frontend state.
+### 验收条件
 
-## M6: Paper Collections
+- 仅规范化形式不同的标签不会产生重复记录。
+- 重启 Passagen Web 和 Passagen CLI 后，标签编辑仍然保留。
+- 元数据编辑被标记为 `user` 来源，并能经受 Passagen 元数据刷新。
+- 并发修改会收到冲突响应，而不是静默覆盖较新的数据。
+- 写入失败时恢复前端状态，或明确标记未保存状态。
 
-### Work
+## M6：论文集合
 
-- Implement collection create, rename, description edit, and delete endpoints.
-- Add single-paper and multi-select actions for adding papers to a collection.
-- Add collection detail with deterministic manual ordering and paper removal.
-- Persist collection order in one atomic request after drag, keyboard, or button reordering.
-- Add optional per-membership notes if they are required by the synthesis workflow.
-- Make collection filters available from the main library screen.
+### 工作内容
 
-### Deliverables
+- 实现集合创建、重命名、描述编辑及删除端点。
+- 添加将单篇或多选论文加入集合的操作。
+- 添加支持确定性手动排序和移除论文的集合详情。
+- 拖拽、键盘或按钮重排后，通过单个原子请求持久化集合顺序。
+- 如果综合工作流需要，为每个成员关系添加可选备注。
+- 在论文库主界面提供集合筛选。
 
-- Collection navigation and management UI
-- Multi-select paper organization workflow
-- Ordered collection detail screen
+### 交付物
 
-### Acceptance Criteria
+- 集合导航与管理 UI
+- 多选论文整理工作流
+- 有序集合详情界面
 
-- A user can create a collection and add selected papers from filtered search results.
-- Adding the same paper twice is idempotent or returns a clear domain error.
-- Reordering survives restart and cannot leave duplicate or missing positions.
-- Removing a paper from a collection does not delete the paper or its artifacts.
-- Collection membership can be used as a paper-list filter.
+### 验收条件
 
-## M7: Local Distribution and Release Quality
+- 用户可以创建集合，并从筛选后的搜索结果中加入所选论文。
+- 重复加入同一论文时操作幂等，或返回明确的领域错误。
+- 重排结果在重启后保留，且不会产生重复或缺失位置。
+- 从集合移除论文不会删除论文或其 artifact。
+- 论文列表可以按集合成员关系筛选。
 
-### Work
+## M7：本地分发与发布质量
 
-- Build the React application into packaged Python static assets.
-- Serve the SPA and API from one process with correct fallback routing.
-- Add automatic browser opening with an opt-out flag.
-- Detect port conflicts and avoid starting duplicate servers for the same data directory.
-- Add origin or startup-token protection for local write endpoints.
-- Add structured logs without exposing paper content or local secrets by default.
-- Add end-to-end tests for browse, read, tag, and collection workflows.
-- Document installation, upgrade, backup, compatibility, and recovery procedures.
+### 工作内容
 
-### Deliverables
+- 将 React 应用构建为 Python package 中的静态资源。
+- 由同一进程提供 SPA 和 API，并正确处理 fallback 路由。
+- 自动打开浏览器，并提供禁用选项。
+- 检测端口冲突，避免为同一数据目录启动重复服务。
+- 为本地写入端点添加 Origin 或启动 token 保护。
+- 添加结构化日志，默认不暴露论文内容或本地 secret。
+- 为浏览、阅读、标签和集合工作流添加端到端测试。
+- 编写安装、升级、备份、兼容性和恢复文档。
 
-- Installable `passagen-web` Python package
-- Single-command local startup
-- Version compatibility checks
-- Release checklist and user documentation
+### 交付物
 
-### Acceptance Criteria
+- 可安装的 `passagen-web` Python package
+- 单命令本地启动
+- 版本兼容性检查
+- 发布检查清单和用户文档
 
-- `uv tool install` or the documented equivalent installs a runnable application.
-- One command starts the API, serves the UI, and optionally opens the browser.
-- Production startup does not require Node.js or a frontend development server.
-- Another website cannot perform unauthenticated write requests to the local application.
-- Core end-to-end workflows pass against a temporary real SQLite database and fixture artifacts.
-- Upgrade instructions preserve Passagen papers, tags, and collections.
+### 验收条件
 
-## M8: Collection Synthesis
+- `uv tool install` 或文档中的等价方式可以安装可运行应用。
+- 一个命令即可启动 API、提供 UI，并可选择打开浏览器。
+- 生产启动不需要 Node.js 或前端开发服务器。
+- 其他网站无法向本地应用发起未经认证的写入请求。
+- 核心端到端工作流可以在临时真实 SQLite 数据库和 fixture artifact 上通过。
+- 按升级说明操作会保留 Passagen 论文、标签和集合。
 
-This milestone is deliberately deferred until collection organization is stable. The synthesis
-pipeline belongs to Passagen; Passagen Web provides configuration, progress, and result views.
+## M8：集合综合
 
-### Proposed Work
+该里程碑有意推迟到集合整理功能稳定之后。综合流程属于 Passagen；Passagen Web 负责配置、进度和结果视图。
 
-- Define synthesis runs and synthesis artifact schemas in Passagen.
-- Snapshot collection membership, order, paper summary artifact hashes, prompt version, and model at
-  run creation.
-- Execute synthesis outside the HTTP request lifecycle and persist progress.
-- Show generated narrative, provenance, failures, and historical runs in Passagen Web.
-- Allow reruns without mutating previous synthesis artifacts.
+### 拟定工作
 
-### Proposed Acceptance Criteria
+- 在 Passagen 中定义综合运行记录和综合 artifact Schema。
+- 创建运行记录时，对集合成员、顺序、论文摘要 artifact hash、Prompt 版本和模型创建快照。
+- 在 HTTP 请求生命周期外执行综合并持久化进度。
+- 在 Passagen Web 中展示生成内容、来源、失败信息和历史运行记录。
+- 允许重新运行且不修改之前的综合 artifact。
 
-- A historical synthesis remains reproducible after collection membership changes.
-- Regenerated paper summaries do not silently change the inputs of an existing run.
-- Each narrative section can identify its contributing papers.
-- Browser disconnection does not cancel or lose a running synthesis job.
+### 拟定验收条件
 
-## Search Evolution
+- 集合成员发生变化后，历史综合结果仍然可复现。
+- 重新生成论文摘要不会静默改变已有运行记录的输入。
+- 每个叙述章节都能标识其来源论文。
+- 浏览器断开连接不会取消或丢失正在运行的综合任务。
 
-The first implementation uses indexed SQL filters and case-insensitive title matching. This is
-appropriate for a local library of hundreds or a few thousand papers.
+## 搜索演进
 
-SQLite FTS5 should be added only after measuring a real need. Its index may include title, authors,
-venue, selected structured-summary fields, and outline text. The FTS index is derived data and must
-be rebuildable from canonical metadata and artifacts. Vector search remains out of scope until a
-separate retrieval use case and embedding lifecycle are defined.
+初始实现使用带索引的 SQL 筛选和不区分大小写的标题匹配，适用于包含数百至数千篇论文的本地论文库。
 
-## Security Requirements
+只有实际测量证明有需要时才添加 SQLite FTS5。索引可以包含标题、作者、期刊或会议、选定的结构化摘要字段和提纲文本。FTS 索引属于派生数据，必须能够从规范元数据及 artifact 重建。在定义独立检索用例和 embedding 生命周期之前，向量搜索仍不在范围内。
 
-- Listen on loopback by default.
-- Do not expose arbitrary filesystem endpoints.
-- Resolve every artifact through a paper and artifact kind known to Passagen.
-- Verify resolved paths remain inside `data_dir` before opening them.
-- Use parameterized application services rather than route-level SQL.
-- Protect write requests from cross-origin attacks even on localhost.
-- Escape user metadata and sanitize rendered Markdown; do not enable raw HTML by default.
-- Never place API keys, provider credentials, or full Passagen configuration in browser responses.
-- Return concise errors to the browser and keep sensitive diagnostics in local logs.
+## 安全要求
 
-## Testing Strategy
+- 默认只监听 loopback 地址。
+- 不提供任意文件系统端点。
+- 每个 artifact 都通过 Passagen 已知的论文和 artifact 类型解析。
+- 打开文件前验证解析后的路径仍位于 `data_dir` 中。
+- 使用参数化应用服务，不在路由层直接执行 SQL。
+- 即使运行在 localhost，也要保护写入请求免受跨域攻击。
+- 转义用户元数据并清理渲染后的 Markdown，默认不启用原始 HTML。
+- 绝不在浏览器响应中放置 API key、Provider 凭据或完整 Passagen 配置。
+- 向浏览器返回简洁错误，将敏感诊断信息保留在本地日志中。
 
-| Layer | Coverage |
+## 测试策略
+
+| 层级 | 覆盖范围 |
 | --- | --- |
-| Passagen unit | Catalog invariants, normalization, ordering, user metadata precedence |
-| Passagen integration | Migrations, SQLite transactions, artifact path safety |
-| Web API | HTTP validation, response schemas, errors, Range requests, write conflicts |
-| Frontend unit | Filter state, tag editor, collection actions, readers |
-| End-to-end | Browse, search, read Summary/Outline/PDF, edit tags, organize a collection |
+| Passagen 单元测试 | Catalog 不变量、规范化、排序和用户元数据优先级 |
+| Passagen 集成测试 | 迁移、SQLite 事务和 artifact 路径安全 |
+| Web API | HTTP 校验、响应 Schema、错误、Range 请求和写入冲突 |
+| 前端单元测试 | 筛选状态、标签编辑器、集合操作和阅读器 |
+| 端到端测试 | 浏览、搜索、阅读 Summary/Outline/PDF、编辑标签和整理集合 |
 
-Tests use temporary databases and generated fixture artifacts. They must not read or modify a
-developer's real `data/` directory or call external metadata and LLM services.
+测试使用临时数据库和生成的 fixture artifact，不得读取或修改开发者的真实 `data/` 目录，也不得调用外部元数据或 LLM 服务。
 
-## First Release Definition
+## 首个版本定义
 
-The first release is complete when M0 through M7 are accepted and a user can reliably:
+M0 至 M7 全部通过验收，并且用户可以可靠完成以下操作时，首个版本即视为完成：
 
-- Start Passagen Web against an existing Passagen data directory.
-- Browse papers without exposing storage implementation details.
-- Search, filter, sort, and navigate the library.
-- Read validated Summary and Outline artifacts.
-- Open the managed PDF and follow evidence-page links.
-- Create and edit tags with durable storage.
-- Create ordered paper collections and manage their membership.
-- Restart or upgrade the application without losing user organization data.
+- 使用现有 Passagen 数据目录启动 Passagen Web。
+- 浏览论文且不暴露存储实现细节。
+- 搜索、筛选、排序和导航论文库。
+- 阅读经过校验的 Summary 和 Outline artifact。
+- 打开受管理的 PDF 并跟随证据页链接。
+- 创建和编辑持久化标签。
+- 创建有序论文集合并管理其成员。
+- 重启或升级应用且不丢失用户整理数据。
 
-M8 collection synthesis is a subsequent release and is not required for the initial browsing and
-organization product.
+M8 集合综合属于后续版本，不是首个论文浏览与整理版本的必要条件。

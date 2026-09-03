@@ -14,8 +14,8 @@ services. Passagen Web owns browser-facing schemas, HTTP behavior, PDF streaming
 and the local server lifecycle.
 
 The Web application must not import Passagen ORM models, open its SQLite database directly, scan the
-data directory for artifacts, or return filesystem paths. Until the `passagen.catalog` boundary is
-available in M1, the foundation only verifies that the configured `passagen.db` exists.
+data directory for artifacts, or return filesystem paths. The adjacent Passagen checkout provides
+the `passagen.catalog` boundary used by read and write milestones.
 
 ## Runtime
 

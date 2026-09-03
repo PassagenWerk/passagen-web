@@ -1,29 +1,25 @@
 # Passagen Web
 
-Passagen Web is a local web interface for browsing and organizing papers managed by
-[Passagen](../Passagen). It provides paper search and filtering, structured summary and outline
-reading, inline user metadata editing, PDF reading, tags, and ordered paper collections.
+Passagen Web 是一个本地 Web 界面，用于浏览和整理由 [Passagen](../passagen-cli) 管理的论文。它提供论文搜索与筛选、结构化摘要与提纲阅读、用户元数据行内编辑、PDF 阅读、标签以及有序论文集合等功能。
 
-The application is designed as a local single-user service:
+应用采用本地单用户服务设计：
 
 ```text
-Browser -> Passagen Web API -> Passagen application services -> SQLite and artifacts
+浏览器 -> Passagen Web API -> Passagen 应用服务 -> SQLite 和 artifact
 ```
 
-Passagen remains responsible for the database schema, migrations, paper processing, and artifact
-semantics. This repository owns the HTTP API, browser UI, and local server lifecycle.
+Passagen 负责数据库 Schema、迁移、论文处理及 artifact 语义；本仓库负责 HTTP API、浏览器 UI 和本地服务生命周期。
 
-The M0 project foundation is in place. See [`docs/roadmap.md`](docs/roadmap.md) for scope and
-milestones, and [`docs/architecture.md`](docs/architecture.md) for repository boundaries.
+M0 项目基础和 M1 Catalog 契约已经完成。范围与里程碑参见 [`docs/roadmap.md`](docs/roadmap.md)，仓库边界参见 [`docs/architecture.md`](docs/architecture.md)。
 
-## Prerequisites
+## 环境要求
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/)
-- Node.js `>=24 <25` and npm `>=11 <12`
-- A Passagen checkout alongside this repository and an initialized Passagen data directory
+- Node.js `>=24 <25` 和 npm `>=11 <12`
+- 与本仓库相邻的 Passagen checkout，以及已经初始化的 Passagen 数据目录
 
-The expected development checkout is:
+开发目录结构应为：
 
 ```text
 Passagen/
@@ -31,10 +27,9 @@ Passagen/
 └── passagen-web/
 ```
 
-M0 does not import Passagen internals. The adjacent checkout becomes a package dependency when the
-public `passagen.catalog` service planned in M1 is available.
+Passagen Web 通过公开的 `passagen.catalog` 应用服务使用相邻 checkout，不会导入 Passagen 的存储层内部实现。
 
-## Setup
+## 安装
 
 ```bash
 uv sync
@@ -42,45 +37,37 @@ npm --prefix frontend ci
 uv run pre-commit install
 ```
 
-The frontend declares the same runtime range in `frontend/package.json`. npm strict engine checking
-rejects unsupported Node.js or npm versions during dependency installation.
+前端在 `frontend/package.json` 中声明了相同的运行时版本范围。安装依赖时，npm 的严格 engine 检查会拒绝不受支持的 Node.js 或 npm 版本。
 
-The pre-commit configuration installs both `pre-commit` and `pre-push` hooks by default. Commit
-hooks format and lint changed code; push hooks run basedpyright, mypy, Python tests, and the complete
-frontend check when their respective files changed. Re-run the install command after cloning the
-repository or recreating `.git`.
+pre-commit 配置默认同时安装 `pre-commit` 和 `pre-push` hook。Commit hook 会格式化并检查发生变更的代码；Push hook 会根据变更文件运行 basedpyright、mypy、Python 测试及完整前端检查。克隆仓库或重新创建 `.git` 后，请再次执行安装命令。
 
-## Development
+## 开发
 
-Start the API against a data directory containing `passagen.db`:
+使用包含 `passagen.db` 的数据目录启动 API：
 
 ```bash
 uv run passagen-web serve --data-dir ../passagen-cli/data
 ```
 
-In a second terminal, start Vite:
+在另一个终端中启动 Vite：
 
 ```bash
 npm --prefix frontend run dev
 ```
 
-Open `http://127.0.0.1:5173`. Vite proxies `/api` to the FastAPI process. API documentation is at
-`http://127.0.0.1:8765/api/docs`.
+打开 `http://127.0.0.1:5173`。Vite 会将 `/api` 代理到 FastAPI 进程，API 文档位于 `http://127.0.0.1:8765/api/docs`。
 
-The listen address defaults to `127.0.0.1`. Passing `--host` is an explicit opt-in to another
-interface.
+监听地址默认为 `127.0.0.1`。只有显式传入 `--host` 才会监听其他网络接口。
 
-## Checks
+## 检查
 
-Run all checks with `make check`, or run each side independently:
+使用 `make check` 运行全部检查，也可以分别检查两端：
 
 ```bash
 make check-python
 make check-frontend
 ```
 
-Frontend production assets are written to `src/passagen_web/static` by
-`npm --prefix frontend run build`. Serving those assets from the Python package is planned for M7.
+执行 `npm --prefix frontend run build` 后，前端生产资源会写入 `src/passagen_web/static`。由 Python 包提供这些静态资源的功能计划在 M7 实现。
 
-GitLab CI runs equivalent Python and frontend lint, test, and build jobs from
-`.gitlab-ci.yml`. Test results and Python coverage are published through GitLab reports.
+GitLab CI 会通过 `.gitlab-ci.yml` 运行等价的 Python 与前端 lint、测试和构建任务，并通过 GitLab reports 发布测试结果及 Python 覆盖率。
