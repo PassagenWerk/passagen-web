@@ -268,6 +268,8 @@ HTTP Schema 由 Passagen Web 所有，与 Passagen 存储记录相互独立，�
 
 ## M3：论文库浏览 UI
 
+**状态：已完成。** React 应用现在提供 URL 驱动的搜索、筛选、排序、分页和论文选择，支持 Structured Summary 与安全 Markdown Outline 阅读，并具备桌面三栏、窄屏独立导航及键盘移动能力。
+
 ### 工作内容
 
 - 构建响应式论文列表和论文详情路由。

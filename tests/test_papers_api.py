@@ -166,3 +166,21 @@ def test_query_validation_is_reported_by_fastapi(data_dir: Path) -> None:
         response = client.get("/api/papers", params={"limit": 0, "status": "unknown"})
 
     assert response.status_code == 422
+
+
+def test_tags_are_available_for_library_filters(data_dir: Path) -> None:
+    catalog = CatalogService(data_dir / "passagen.db", data_dir)
+    tag = catalog.create_tag("Distributed systems", "#395b64")
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        response = client.get("/api/tags")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": tag.id,
+            "name": "Distributed systems",
+            "color": "#395b64",
+            "created_at": tag.created_at,
+        }
+    ]

@@ -14,6 +14,7 @@ from passagen.catalog import (
 from passagen_web import __version__
 from passagen_web.api.health import router as health_router
 from passagen_web.api.papers import router as papers_router
+from passagen_web.api.tags import router as tags_router
 from passagen_web.config import Settings
 from passagen_web.schemas.errors import ErrorDetail, ErrorResponse
 
@@ -29,6 +30,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.state.catalog = CatalogService(settings.database_path, settings.data_dir)
     app.include_router(health_router, prefix="/api")
     app.include_router(papers_router, prefix="/api")
+    app.include_router(tags_router, prefix="/api")
     _install_error_handlers(app)
     return app
 

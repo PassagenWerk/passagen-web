@@ -10,7 +10,7 @@ Passagen Web 是一个本地 Web 界面，用于浏览和整理由 [Passagen](..
 
 Passagen 负责数据库 Schema、迁移、论文处理及 artifact 语义；本仓库负责 HTTP API、浏览器 UI 和本地服务生命周期。
 
-M0 项目基础、M1 Catalog 契约和 M2 只读论文 API 已经完成。范围与里程碑参见 [`docs/roadmap.md`](docs/roadmap.md)，仓库边界参见 [`docs/architecture.md`](docs/architecture.md)。
+M0 项目基础、M1 Catalog 契约、M2 只读论文 API 和 M3 论文库浏览 UI 已经完成。范围与里程碑参见 [`docs/roadmap.md`](docs/roadmap.md)，仓库边界参见 [`docs/architecture.md`](docs/architecture.md)。
 
 ## 环境要求
 
@@ -69,6 +69,8 @@ GET /api/papers/{paper_id}/outline
 ```
 
 论文列表支持 `q`、`status`、`tag`、`venue`、`year`、`collection`、`sort`、`direction`、`limit` 和 `offset` 查询参数。
+
+浏览界面的搜索、筛选、排序、分页、阅读视图和已选论文都保存在 URL 中。可以使用方向键或 `J`/`K` 在当前论文列表中移动。桌面端采用筛选、论文列表、阅读器三栏布局；窄屏设备会在列表与详情页面之间导航。
 
 ## 检查
 
