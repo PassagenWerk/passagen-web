@@ -1,10 +1,19 @@
+from importlib.metadata import version
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
-from passagen_web.cli import main
+from passagen_web.cli import build_parser, main
 from passagen_web.config import ConfigurationError
+
+
+def test_version_uses_package_metadata(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as error:
+        build_parser().parse_args(["--version"])
+
+    assert error.value.code == 0
+    assert capsys.readouterr().out.strip() == version("passagen-web")
 
 
 def test_serve_starts_on_loopback_by_default(data_dir: Path) -> None:

@@ -3,6 +3,8 @@ name = "passagen-web"
 version = "0.1.0"
 description = "Local web interface for Passagen paper libraries"
 readme = "README.md"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.116,<1",

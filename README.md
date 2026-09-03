@@ -37,11 +37,16 @@ npm --prefix frontend ci
 uv run pre-commit install
 ```
 
-正式发布的 wheel 已包含 React 资源，可以直接安装并运行，不需要 Node.js：
+从源码构建 wheel：
 
 ```bash
-uv tool install passagen-web
-passagen-web serve --data-dir ~/passagen-data
+uv build
+```
+
+使用源码启动服务：
+
+```bash
+uv run passagen-web serve --data-dir ../passagen-cli/data
 ```
 
 服务默认监听 `127.0.0.1:8765` 并自动打开浏览器。使用 `--no-open` 禁止自动打开；同一数据目录只能由一个 Passagen Web 进程使用，端口冲突会在启动前返回可操作的错误。
@@ -115,3 +120,7 @@ make check-frontend
 执行 `npm --prefix frontend run build` 后，前端生产资源会写入 `src/passagen_web/static`。发布构建通过 Hatch hook 自动执行该步骤并将资源收入 wheel；FastAPI 同一进程提供 UI、API 和 SPA fallback。
 
 GitLab CI 会通过 `.gitlab-ci.yml` 运行等价的 Python 与前端 lint、测试和构建任务，并通过 GitLab reports 发布测试结果及 Python 覆盖率。
+
+## 许可证
+
+Passagen Web 仅按照 [GNU Affero General Public License v3.0](LICENSE) 发布，SPDX 标识为 `AGPL-3.0-only`。

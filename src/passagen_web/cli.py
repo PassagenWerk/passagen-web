@@ -8,6 +8,7 @@ from pathlib import Path
 import uvicorn
 from passagen.catalog import IncompatibleSchemaError
 
+from passagen_web import __version__
 from passagen_web.app import create_app
 from passagen_web.config import ConfigurationError, Settings
 from passagen_web.runtime import LibraryLock, configure_logging, ensure_port_available
@@ -15,6 +16,7 @@ from passagen_web.runtime import LibraryLock, configure_logging, ensure_port_ava
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="passagen-web", description="Browse a Passagen library")
+    parser.add_argument("--version", action="version", version=__version__)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     serve = subparsers.add_parser("serve", help="start the local web server")

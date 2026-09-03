@@ -132,3 +132,21 @@ wheel-build:
   artifacts:
     paths:
       - dist/*.whl
+
+build-package:
+  extends: .frontend-job
+  stage: build
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends curl
+    - curl -LsSf https://astral.sh/uv/install.sh | sh
+    - npm ci --prefix frontend --prefer-offline
+    - $HOME/.local/bin/uv sync --frozen
+  script:
+    - test "v$($HOME/.local/bin/uv run passagen-web --version)" = "$CI_COMMIT_TAG"
+    - $HOME/.local/bin/uv build
+  artifacts:
+    expire_in: never
+    paths:
+      - dist/
+  rules:
+    - if: $CI_COMMIT_TAG
