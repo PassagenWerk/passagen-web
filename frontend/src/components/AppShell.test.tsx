@@ -216,6 +216,7 @@ test("opens evidence pages in the PDF reader", async () => {
   renderApp("/papers/paper-1");
 
   const evidence = await screen.findByRole("link", { name: "12" });
+  expect(evidence).toHaveClass("evidence-page-link");
   fireEvent.click(evidence);
 
   const reader = await screen.findByTitle("A Useful Paper PDF");
@@ -239,6 +240,7 @@ test("links outline evidence pages to the same paper PDF", async () => {
   renderApp("/papers/paper-1?view=outline");
 
   const evidence = await screen.findByRole("link", { name: "7" });
+  expect(evidence).toHaveClass("evidence-page-link");
   expect(evidence).toHaveAttribute(
     "href",
     "/papers/paper-1/pdf?view=outline&page=7",

@@ -39,6 +39,7 @@ function SummaryValue({
           {value.map((page, index) => (
             <Link
               key={`${page}-${index}`}
+              className="evidence-page-link"
               to={`${paperPath}/pdf?page=${page}`}
               onClick={onOpenPdf}
             >

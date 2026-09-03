@@ -156,7 +156,7 @@ export function PaperDetail({
                     <ReactMarkdown
                       components={{
                         a: ({ href, children }) => href?.startsWith(`${currentPaperPath}/pdf`)
-                          ? <Link to={href} onClick={onOpenPdf}>{children}</Link>
+                          ? <Link className="evidence-page-link" to={href} onClick={onOpenPdf}>{children}</Link>
                           : <a href={href}>{children}</a>,
                       }}
                     >

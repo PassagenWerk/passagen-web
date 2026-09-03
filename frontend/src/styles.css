@@ -190,8 +190,8 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); font: 9px var(--font-mono
 .summary-field { display: grid; grid-template-columns: minmax(90px, .25fr) 1fr; gap: 15px; }
 .summary-field dd { margin: 0; font: 15px/1.42 var(--font-paper); }
 .evidence-pages dd { display: flex; flex-wrap: wrap; gap: 6px; }
-.evidence-pages a { display: grid; place-items: center; min-width: 25px; height: 25px; border: 1px solid var(--line); color: var(--accent); font: 600 11px var(--font-sans); text-decoration: none; }
-.evidence-pages a:hover { border-color: var(--accent); }
+.evidence-page-link { display: inline-grid; place-items: center; min-width: 25px; height: 25px; border: 1px solid var(--line); color: var(--accent); font: 600 11px var(--font-sans); text-decoration: none; }
+.evidence-page-link:hover { border-color: var(--accent); }
 .summary-list { display: grid; gap: 9px; margin: 0; padding-left: 18px; }
 .summary-list > li { padding-left: 4px; font: 15px/1.42 var(--font-paper); }
 .summary-list .summary-object { padding: 12px 14px; border-left: 2px solid var(--soft-line); background: rgb(255 255 255 / 22%); }

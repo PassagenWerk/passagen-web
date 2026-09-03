@@ -405,6 +405,8 @@ HTTP Schema 由 Passagen Web 所有，与 Passagen 存储记录相互独立，�
 
 ## M7：本地分发与发布质量
 
+**状态：已完成。** React 生产资源现在随 wheel 构建并由 FastAPI 提供，深层 SPA 路由支持刷新；CLI 提供浏览器自动打开、`--no-open`、端口预检和数据目录实例锁；浏览器写请求执行 Origin 校验，运行时使用不记录论文内容的结构化日志。基于临时真实论文库的 Playwright 测试覆盖浏览、标签、集合整理和阅读，并提供发布、兼容性、备份和恢复说明。
+
 ### 工作内容
 
 - 将 React 应用构建为 Python package 中的静态资源。

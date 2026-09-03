@@ -12,6 +12,9 @@ check-python:
 check-frontend:
 	npm --prefix frontend run check
 
+check-e2e:
+	npm --prefix frontend run test:e2e
+
 dev-api:
 	uv run passagen-web serve --data-dir "$(DATA_DIR)"
 

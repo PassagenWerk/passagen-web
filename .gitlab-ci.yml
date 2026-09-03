@@ -94,6 +94,22 @@ frontend-test:
     paths:
       - reports/vitest/junit.xml
 
+e2e:
+  extends: .frontend-job
+  stage: test
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends curl
+    - curl -LsSf https://astral.sh/uv/install.sh | sh
+    - npm ci --prefix frontend --prefer-offline
+    - $HOME/.local/bin/uv sync --frozen
+    - npm --prefix frontend exec -- playwright install --with-deps chromium
+  script:
+    - PATH="$HOME/.local/bin:$PATH" npm --prefix frontend run test:e2e
+  artifacts:
+    when: on_failure
+    paths:
+      - frontend/test-results/
+
 frontend-build:
   extends: .frontend-job
   stage: build
@@ -102,3 +118,17 @@ frontend-build:
   artifacts:
     paths:
       - src/passagen_web/static/
+
+wheel-build:
+  extends: .frontend-job
+  stage: build
+  before_script:
+    - apt-get update && apt-get install -y --no-install-recommends curl
+    - curl -LsSf https://astral.sh/uv/install.sh | sh
+    - npm ci --prefix frontend --prefer-offline
+  script:
+    - $HOME/.local/bin/uv build --wheel
+    - $HOME/.local/bin/uv run python -c "import glob, zipfile; p=glob.glob('dist/*.whl')[0]; assert 'passagen_web/static/index.html' in zipfile.ZipFile(p).namelist()"
+  artifacts:
+    paths:
+      - dist/*.whl

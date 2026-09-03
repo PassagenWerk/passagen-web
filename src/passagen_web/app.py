@@ -1,5 +1,10 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+import logging
+from collections.abc import Awaitable, Callable
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from passagen.catalog import (
     CatalogBusyError,
     CatalogConflictError,
@@ -19,8 +24,10 @@ from passagen_web.api.tags import router as tags_router
 from passagen_web.config import Settings
 from passagen_web.schemas.errors import ErrorDetail, ErrorResponse
 
+logger = logging.getLogger("passagen_web.api")
 
-def create_app(settings: Settings) -> FastAPI:
+
+def create_app(settings: Settings, *, static_dir: Path | None = None) -> FastAPI:
     app = FastAPI(
         title="Passagen Web API",
         version=__version__,
@@ -34,7 +41,59 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(tags_router, prefix="/api")
     app.include_router(collections_router, prefix="/api")
     _install_error_handlers(app)
+    _install_origin_protection(app, settings)
+    _install_static_routes(app, static_dir or Path(__file__).with_name("static"))
     return app
+
+
+def _install_origin_protection(app: FastAPI, settings: Settings) -> None:
+    allowed = {settings.app_url, *settings.allowed_origins}
+
+    @app.middleware("http")
+    async def protect_local_writes(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        is_write = request.method in {"POST", "PUT", "PATCH", "DELETE"}
+        origin = request.headers.get("origin", "").rstrip("/")
+        if request.url.path.startswith("/api/") and is_write and origin and origin not in allowed:
+            logger.warning(
+                "write_rejected",
+                extra={"method": request.method, "path": request.url.path},
+            )
+            error_response = ErrorResponse(
+                error=ErrorDetail(
+                    code="forbidden_origin",
+                    message="The request origin is not allowed to modify this library",
+                )
+            )
+            return JSONResponse(status_code=403, content=error_response.model_dump())
+        response = await call_next(request)
+        if request.url.path.startswith("/api/") and is_write:
+            logger.info(
+                "write_completed",
+                extra={
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status_code": response.status_code,
+                },
+            )
+        return response
+
+
+def _install_static_routes(app: FastAPI, static_dir: Path) -> None:
+    index = static_dir / "index.html"
+    assets = static_dir / "assets"
+    if not index.is_file():
+        return
+    if assets.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets), name="assets")
+
+    @app.get("/{frontend_path:path}", include_in_schema=False, response_class=FileResponse)
+    def frontend(frontend_path: str) -> FileResponse:
+        first_segment = frontend_path.partition("/")[0]
+        if first_segment not in {"", "papers", "collections"}:
+            raise HTTPException(status_code=404)
+        return FileResponse(index, media_type="text/html", headers={"Cache-Control": "no-cache"})
 
 
 def _install_error_handlers(app: FastAPI) -> None:
@@ -56,6 +115,7 @@ def _install_error_handlers(app: FastAPI) -> None:
 
 def _error_handler(status_code: int, code: str):
     async def handler(_request: Request, exc: Exception) -> JSONResponse:
+        logger.warning("catalog_error", extra={"error_code": code})
         response = ErrorResponse(error=ErrorDetail(code=code, message=str(exc)))
         return JSONResponse(status_code=status_code, content=response.model_dump())
 

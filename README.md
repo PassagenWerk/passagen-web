@@ -10,7 +10,7 @@ Passagen Web 是一个本地 Web 界面，用于浏览和整理由 [Passagen](..
 
 Passagen 负责数据库 Schema、迁移、论文处理及 artifact 语义；本仓库负责 HTTP API、浏览器 UI 和本地服务生命周期。
 
-M0 项目基础至 M6 论文集合已经完成。范围与里程碑参见 [`docs/roadmap.md`](docs/roadmap.md)，仓库边界参见 [`docs/architecture.md`](docs/architecture.md)。
+M0 项目基础至 M7 本地分发与发布质量已经完成。范围与里程碑参见 [`docs/roadmap.md`](docs/roadmap.md)，仓库边界参见 [`docs/architecture.md`](docs/architecture.md)。发布、升级、备份与恢复参见 [`docs/release.md`](docs/release.md)。
 
 ## 环境要求
 
@@ -37,6 +37,15 @@ npm --prefix frontend ci
 uv run pre-commit install
 ```
 
+正式发布的 wheel 已包含 React 资源，可以直接安装并运行，不需要 Node.js：
+
+```bash
+uv tool install passagen-web
+passagen-web serve --data-dir ~/passagen-data
+```
+
+服务默认监听 `127.0.0.1:8765` 并自动打开浏览器。使用 `--no-open` 禁止自动打开；同一数据目录只能由一个 Passagen Web 进程使用，端口冲突会在启动前返回可操作的错误。
+
 前端在 `frontend/package.json` 中声明了相同的运行时版本范围。安装依赖时，npm 的严格 engine 检查会拒绝不受支持的 Node.js 或 npm 版本。
 
 pre-commit 配置默认同时安装 `pre-commit` 和 `pre-push` hook。Commit hook 会格式化并检查发生变更的代码；Push hook 会根据变更文件运行 basedpyright、mypy、Python 测试及完整前端检查。克隆仓库或重新创建 `.git` 后，请再次执行安装命令。
@@ -46,7 +55,8 @@ pre-commit 配置默认同时安装 `pre-commit` 和 `pre-push` hook。Commit ho
 使用包含 `passagen.db` 的数据目录启动 API：
 
 ```bash
-uv run passagen-web serve --data-dir ../passagen-cli/data
+uv run passagen-web serve --data-dir ../passagen-cli/data \
+  --allow-origin http://127.0.0.1:5173
 ```
 
 在另一个终端中启动 Vite：
@@ -57,7 +67,7 @@ npm --prefix frontend run dev
 
 打开 `http://127.0.0.1:5173`。Vite 会将 `/api` 代理到 FastAPI 进程，API 文档位于 `http://127.0.0.1:8765/api/docs`。
 
-监听地址默认为 `127.0.0.1`。只有显式传入 `--host` 才会监听其他网络接口。
+监听地址默认为 `127.0.0.1`。只有显式传入 `--host` 才会监听其他网络接口。浏览器写请求只接受应用自身 Origin；开发环境通过 `--allow-origin` 显式允许 Vite，非浏览器本地客户端可以继续调用 API。
 
 当前 API 提供论文读取、artifact 阅读、Library Tags、用户元数据和有序论文集合：
 
@@ -102,6 +112,6 @@ make check-python
 make check-frontend
 ```
 
-执行 `npm --prefix frontend run build` 后，前端生产资源会写入 `src/passagen_web/static`。由 Python 包提供这些静态资源的功能计划在 M7 实现。
+执行 `npm --prefix frontend run build` 后，前端生产资源会写入 `src/passagen_web/static`。发布构建通过 Hatch hook 自动执行该步骤并将资源收入 wheel；FastAPI 同一进程提供 UI、API 和 SPA fallback。
 
 GitLab CI 会通过 `.gitlab-ci.yml` 运行等价的 Python 与前端 lint、测试和构建任务，并通过 GitLab reports 发布测试结果及 Python 覆盖率。
