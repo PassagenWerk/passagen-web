@@ -12,6 +12,8 @@ stages:
     paths:
       - .uv-cache/
   before_script:
+    - apt-get update && apt-get install -y --no-install-recommends git
+    - git clone --depth 1 "${CI_SERVER_PROTOCOL}://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_NAMESPACE}/passagen-cli.git" ../passagen-cli
     - uv sync --frozen
 
 .frontend-job:
@@ -98,9 +100,10 @@ e2e:
   extends: .frontend-job
   stage: test
   before_script:
-    - apt-get update && apt-get install -y --no-install-recommends curl
+    - apt-get update && apt-get install -y --no-install-recommends curl git
     - curl -LsSf https://astral.sh/uv/install.sh | sh
     - npm ci --prefix frontend --prefer-offline
+    - git clone --depth 1 "${CI_SERVER_PROTOCOL}://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_NAMESPACE}/passagen-cli.git" ../passagen-cli
     - $HOME/.local/bin/uv sync --frozen
     - npm --prefix frontend exec -- playwright install --with-deps chromium
   script:
@@ -128,7 +131,7 @@ wheel-build:
     - npm ci --prefix frontend --prefer-offline
   script:
     - $HOME/.local/bin/uv build --wheel
-    - $HOME/.local/bin/uv run python -c "import glob, zipfile; p=glob.glob('dist/*.whl')[0]; assert 'passagen_web/static/index.html' in zipfile.ZipFile(p).namelist()"
+    - $HOME/.local/bin/uv run --no-project python -c "import glob, zipfile; p=glob.glob('dist/*.whl')[0]; assert 'passagen_web/static/index.html' in zipfile.ZipFile(p).namelist()"
   artifacts:
     paths:
       - dist/*.whl
@@ -137,9 +140,10 @@ build-package:
   extends: .frontend-job
   stage: build
   before_script:
-    - apt-get update && apt-get install -y --no-install-recommends curl
+    - apt-get update && apt-get install -y --no-install-recommends curl git
     - curl -LsSf https://astral.sh/uv/install.sh | sh
     - npm ci --prefix frontend --prefer-offline
+    - git clone --depth 1 "${CI_SERVER_PROTOCOL}://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_NAMESPACE}/passagen-cli.git" ../passagen-cli
     - $HOME/.local/bin/uv sync --frozen
   script:
     - test "v$($HOME/.local/bin/uv run passagen-web --version)" = "$CI_COMMIT_TAG"
