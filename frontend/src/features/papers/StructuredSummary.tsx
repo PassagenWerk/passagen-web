@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 
 function labelFor(key: string) {
+  if (key === "keywords") return "Paper keywords (generated)";
   return key.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
 }
 

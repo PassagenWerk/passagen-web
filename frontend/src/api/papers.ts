@@ -46,6 +46,13 @@ export interface OutlineResponse {
   content: string;
 }
 
+export interface MetadataUpdate {
+  title?: string;
+  venue?: string;
+  year?: number;
+  expected_updated_at: string;
+}
+
 export async function fetchPapers(search: URLSearchParams): Promise<PaperPage> {
   const query = new URLSearchParams();
   for (const key of [
@@ -82,6 +89,43 @@ export function fetchOutline(paperId: string): Promise<OutlineResponse> {
   return requestJson<OutlineResponse>(`/api/papers/${encodeURIComponent(paperId)}/outline`);
 }
 
+export function updatePaperMetadata(paperId: string, update: MetadataUpdate): Promise<Paper> {
+  return requestJson<Paper>(`/api/papers/${encodeURIComponent(paperId)}/metadata`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(update),
+  });
+}
+
+export function updatePaperTags(paperId: string, tagIds: string[]): Promise<Paper> {
+  return requestJson<Paper>(`/api/papers/${encodeURIComponent(paperId)}/tags`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tag_ids: tagIds }),
+  });
+}
+
+export function createTag(name: string, color: string): Promise<Tag> {
+  return requestJson<Tag>("/api/tags", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, color }),
+  });
+}
+
+export function updateTag(tagId: string, name: string, color: string): Promise<Tag> {
+  return requestJson<Tag>(`/api/tags/${encodeURIComponent(tagId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, color }),
+  });
+}
+
+export async function deleteTag(tagId: string): Promise<void> {
+  const response = await fetch(`/api/tags/${encodeURIComponent(tagId)}`, { method: "DELETE" });
+  if (!response.ok) throw await responseError(response);
+}
+
 export function pdfUrl(paperId: string): string {
   return `/api/papers/${encodeURIComponent(paperId)}/pdf`;
 }
@@ -97,13 +141,17 @@ export async function checkPdf(paperId: string): Promise<boolean> {
   return true;
 }
 
-async function requestJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = init ? await fetch(url, init) : await fetch(url);
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as
-      | { error?: { message?: string } }
-      | null;
-    throw new Error(body?.error?.message ?? `Request failed with status ${response.status}`);
+    throw await responseError(response);
   }
   return response.json() as Promise<T>;
+}
+
+async function responseError(response: Response): Promise<Error> {
+  const body = (await response.json().catch(() => null)) as
+    | { error?: { message?: string } }
+    | null;
+  return new Error(body?.error?.message ?? `Request failed with status ${response.status}`);
 }

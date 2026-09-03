@@ -16,8 +16,10 @@ from passagen_web.dependencies import CatalogDependency
 from passagen_web.schemas.papers import (
     ArtifactAvailability,
     OutlineResponse,
+    PaperMetadataUpdateRequest,
     PaperPageResponse,
     PaperResponse,
+    PaperTagsUpdateRequest,
     SummaryResponse,
 )
 
@@ -62,6 +64,29 @@ def list_papers(
 
 @router.get("/{paper_id}", response_model=PaperResponse)
 def get_paper(paper_id: str, catalog: CatalogDependency) -> PaperResponse:
+    return _paper_response(catalog.get_paper(paper_id))
+
+
+@router.patch("/{paper_id}/metadata", response_model=PaperResponse)
+def update_paper_metadata(
+    paper_id: str, payload: PaperMetadataUpdateRequest, catalog: CatalogDependency
+) -> PaperResponse:
+    return _paper_response(
+        catalog.update_user_metadata(
+            paper_id,
+            title=payload.title,
+            venue=payload.venue,
+            year=payload.year,
+            expected_updated_at=payload.expected_updated_at,
+        )
+    )
+
+
+@router.put("/{paper_id}/tags", response_model=PaperResponse)
+def update_paper_tags(
+    paper_id: str, payload: PaperTagsUpdateRequest, catalog: CatalogDependency
+) -> PaperResponse:
+    catalog.set_paper_tags(paper_id, payload.tag_ids)
     return _paper_response(catalog.get_paper(paper_id))
 
 

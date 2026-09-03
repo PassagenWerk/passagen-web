@@ -22,3 +22,6 @@ def test_openapi_is_rooted_under_api(data_dir: Path) -> None:
     assert "/api/health" in response.json()["paths"]
     assert "/api/papers" in response.json()["paths"]
     assert "/api/papers/{paper_id}/pdf" in response.json()["paths"]
+    assert "/api/papers/{paper_id}/metadata" in response.json()["paths"]
+    assert "/api/papers/{paper_id}/tags" in response.json()["paths"]
+    assert "/api/tags/{tag_id}" in response.json()["paths"]

@@ -1,4 +1,5 @@
 import type { Tag } from "../../api/papers";
+import { LibraryTagManager } from "../tags/LibraryTagManager";
 
 interface PaperFiltersProps {
   search: URLSearchParams;
@@ -26,6 +27,8 @@ export function PaperFilters({ search, tags, onChange, onClear }: PaperFiltersPr
           placeholder="Keywords..."
         />
       </label>
+
+      <LibraryTagManager tags={tags} />
 
       <label className="field">
         <span>Status</span>

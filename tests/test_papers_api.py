@@ -246,3 +246,74 @@ def test_tags_are_available_for_library_filters(data_dir: Path) -> None:
             "created_at": tag.created_at,
         }
     ]
+
+
+def test_library_tag_lifecycle_and_paper_assignment(data_dir: Path) -> None:
+    _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        created = client.post("/api/tags", json={"name": "  Deep   Reading ", "color": "#395b64"})
+        duplicate = client.post("/api/tags", json={"name": "deep reading"})
+        tag_id = created.json()["id"]
+        renamed = client.patch(f"/api/tags/{tag_id}", json={"name": "Important"})
+        assigned = client.put("/api/papers/paper-a/tags", json={"tag_ids": [tag_id]})
+        deleted = client.delete(f"/api/tags/{tag_id}")
+        detail = client.get("/api/papers/paper-a")
+
+    assert created.status_code == 201
+    assert created.json()["name"] == "Deep Reading"
+    assert duplicate.status_code == 409
+    assert renamed.json()["name"] == "Important"
+    assert renamed.json()["color"] == "#395b64"
+    assert assigned.json()["tag_ids"] == [tag_id]
+    assert deleted.status_code == 204
+    assert detail.json()["tag_ids"] == []
+
+
+def test_user_metadata_update_uses_optimistic_concurrency(data_dir: Path) -> None:
+    _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        original = client.get("/api/papers/paper-a").json()
+        updated = client.patch(
+            "/api/papers/paper-a/metadata",
+            json={
+                "title": "User title",
+                "venue": "OSDI",
+                "year": 2025,
+                "expected_updated_at": original["updated_at"],
+            },
+        )
+        stale = client.patch(
+            "/api/papers/paper-a/metadata",
+            json={
+                "title": "Stale title",
+                "expected_updated_at": original["updated_at"],
+            },
+        )
+
+    assert updated.status_code == 200
+    assert updated.json()["title"] == "User title"
+    assert updated.json()["metadata_sources"] == {
+        "title": "user",
+        "venue": "user",
+        "year": "user",
+    }
+    assert stale.status_code == 409
+    assert stale.json()["error"]["code"] == "conflict"
+
+
+def test_tag_and_metadata_payloads_are_validated(data_dir: Path) -> None:
+    _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        color = client.post("/api/tags", json={"name": "Reading", "color": "red"})
+        empty_patch = client.patch("/api/tags/missing", json={})
+        invalid_year = client.patch(
+            "/api/papers/paper-a/metadata",
+            json={"year": 10000, "expected_updated_at": "stale"},
+        )
+
+    assert color.status_code == 422
+    assert empty_patch.status_code == 422
+    assert invalid_year.status_code == 422

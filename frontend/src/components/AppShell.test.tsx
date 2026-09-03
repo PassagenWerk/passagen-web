@@ -26,9 +26,12 @@ const paper = {
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
-    vi.fn((input: RequestInfo | URL) => {
+    vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === "/api/health") return response({ status: "ok", database: "available" });
+      if (url === "/api/tags" && init?.method === "POST") {
+        return response({ id: "tag-2", name: "Priority", color: "#6b705c", created_at: "2026-01-02" });
+      }
       if (url === "/api/tags") {
         return response([
           { id: "tag-1", name: "Systems", color: "#395b64", created_at: "2026-01-01" },
@@ -39,6 +42,7 @@ beforeEach(() => {
           paper_id: "paper-1",
           content: {
             schema_version: "2",
+            classification: { keywords: ["generated-keyword"] },
             problem: { problem_statement: "A useful research problem" },
             contributions: [{ statement: "A useful contribution", evidence_pages: [12, 19] }],
           },
@@ -60,6 +64,18 @@ beforeEach(() => {
       }
       if (url.startsWith("/api/papers?")) {
         return response({ items: [paper], total: 1, limit: 50, offset: 0 });
+      }
+      if (url.endsWith("/metadata") && init?.method === "PATCH") {
+        const update = JSON.parse(String(init.body)) as Partial<typeof paper>;
+        return response({
+          ...paper,
+          ...update,
+          updated_at: "2026-01-02 10:00:00",
+          metadata_sources: { title: "user" },
+        });
+      }
+      if (url.endsWith("/tags") && init?.method === "PUT") {
+        return response({ ...paper, tag_ids: [] });
       }
       if (url === "/api/papers/paper-1") return response(paper);
       return Promise.resolve(new Response(null, { status: 404 }));
@@ -193,4 +209,49 @@ test("links outline evidence pages to the same paper PDF", async () => {
     "/api/papers/paper-1/pdf#page=7&view=FitH",
   );
   expect(screen.getByRole("tab", { name: "Outline" })).toHaveAttribute("aria-selected", "true");
+});
+
+test("keeps generated keywords distinct from editable Library Tags", async () => {
+  renderApp("/papers/paper-1");
+
+  expect(await screen.findByText("Paper keywords (generated)")).toBeInTheDocument();
+  expect(screen.getByText("generated-keyword")).toBeInTheDocument();
+  expect(screen.getByText("Personal labels; separate from read-only Paper Keywords.")).toBeInTheDocument();
+});
+
+test("creates a Library Tag and saves user metadata", async () => {
+  renderApp("/papers/paper-1");
+  await screen.findByText("A useful research problem");
+
+  fireEvent.click(screen.getByText("Manage Library Tags"));
+  fireEvent.change(screen.getByRole("textbox", { name: "New Library Tag" }), {
+    target: { value: "Priority" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Add" }));
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/tags",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  fireEvent.click(screen.getByText("Edit Library Data"));
+  fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
+    target: { value: "A User Title" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Save metadata" }));
+  expect(await screen.findByText("Saved")).toBeInTheDocument();
+  expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+    "/api/papers/paper-1/metadata",
+    expect.objectContaining({ method: "PATCH" }),
+  );
+
+  fireEvent.click(screen.getByRole("checkbox", { name: /Systems/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Save tags" }));
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/papers/paper-1/tags",
+      expect.objectContaining({ method: "PUT" }),
+    );
+  });
 });

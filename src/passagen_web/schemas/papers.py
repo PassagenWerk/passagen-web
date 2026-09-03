@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -42,3 +44,14 @@ class SummaryResponse(BaseModel):
 class OutlineResponse(BaseModel):
     paper_id: str
     content: str = Field(description="Generated Markdown outline")
+
+
+class PaperMetadataUpdateRequest(BaseModel):
+    title: Annotated[str, Field(min_length=1, max_length=1000)] | None = None
+    venue: Annotated[str, Field(min_length=1, max_length=500)] | None = None
+    year: Annotated[int, Field(ge=1, le=9999)] | None = None
+    expected_updated_at: str
+
+
+class PaperTagsUpdateRequest(BaseModel):
+    tag_ids: list[str]

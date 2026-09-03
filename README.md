@@ -10,7 +10,7 @@ Passagen Web 是一个本地 Web 界面，用于浏览和整理由 [Passagen](..
 
 Passagen 负责数据库 Schema、迁移、论文处理及 artifact 语义；本仓库负责 HTTP API、浏览器 UI 和本地服务生命周期。
 
-M0 项目基础至 M4 PDF 阅读已经完成。范围与里程碑参见 [`docs/roadmap.md`](docs/roadmap.md)，仓库边界参见 [`docs/architecture.md`](docs/architecture.md)。
+M0 项目基础至 M5 标签与用户元数据已经完成。范围与里程碑参见 [`docs/roadmap.md`](docs/roadmap.md)，仓库边界参见 [`docs/architecture.md`](docs/architecture.md)。
 
 ## 环境要求
 
@@ -59,7 +59,7 @@ npm --prefix frontend run dev
 
 监听地址默认为 `127.0.0.1`。只有显式传入 `--host` 才会监听其他网络接口。
 
-当前只读 API 提供论文列表、详情、结构化摘要和 Markdown 提纲：
+当前 API 提供论文读取、artifact 阅读，以及 Library Tags 和用户元数据写入：
 
 ```text
 GET /api/papers
@@ -67,11 +67,19 @@ GET /api/papers/{paper_id}
 GET /api/papers/{paper_id}/summary
 GET /api/papers/{paper_id}/outline
 GET /api/papers/{paper_id}/pdf
+PATCH /api/papers/{paper_id}/metadata
+PUT /api/papers/{paper_id}/tags
+GET /api/tags
+POST /api/tags
+PATCH /api/tags/{tag_id}
+DELETE /api/tags/{tag_id}
 ```
 
 PDF 端点以内联方式流式传输受管理的原始论文，支持字节范围请求、`ETag` 和 `Last-Modified`。PDF 仅在聚焦 Read 模式通过右侧开关显示，打开后与左侧 Summary 或 Outline 构成双栏；其 URL 为 `/papers/{paper_id}/pdf?page={page}`。Summary 和 Outline 中的 evidence page 会自动打开 PDF 侧栏并跳转到对应页面，也可从阅读器在新标签页打开原始 PDF。
 
 论文列表支持 `q`、`status`、`tag`、`venue`、`year`、`collection`、`sort`、`direction`、`limit` 和 `offset` 查询参数。
+
+Library Tags 是用户维护的持久化标签，可通过 Find 面板创建、重命名、改色、删除，并在论文详情页的编辑器中分配；多选论文的批量分配将在 M6 集合工作流中实现。Summary 中生成的 `Paper Keywords` 保持只读，与 Library Tags 不自动合并。元数据编辑器允许修改标题、Venue 和年份，请求携带 `updated_at` 进行乐观并发校验，被其他流程更新的值不会静默覆盖。
 
 浏览界面的搜索、筛选、排序、分页、阅读视图和已选论文都保存在 URL 中。可以使用方向键或 `J`/`K` 在当前论文列表中移动。桌面端采用筛选、论文列表、阅读器三栏布局；窄屏设备会在列表与详情页面之间导航。
 
