@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 function labelFor(key: string) {
   return key.replaceAll("_", " ").replace(/^./, (letter) => letter.toUpperCase());
 }
@@ -11,8 +13,39 @@ function isEmpty(value: unknown): boolean {
   );
 }
 
-function SummaryValue({ name, value, depth = 0 }: { name: string; value: unknown; depth?: number }) {
+function SummaryValue({
+  paperId,
+  onOpenPdf,
+  name,
+  value,
+  depth = 0,
+}: {
+  paperId: string;
+  onOpenPdf: () => void;
+  name: string;
+  value: unknown;
+  depth?: number;
+}) {
   if (isEmpty(value) || name === "schema_version") return null;
+
+  if (name === "evidence_pages" && Array.isArray(value)) {
+    return (
+      <div className="summary-field evidence-pages">
+        <dt>{labelFor(name)}</dt>
+        <dd>
+          {value.map((page, index) => (
+            <Link
+              key={`${page}-${index}`}
+              to={`/papers/${encodeURIComponent(paperId)}/pdf?page=${page}`}
+              onClick={onOpenPdf}
+            >
+              {String(page)}
+            </Link>
+          ))}
+        </dd>
+      </div>
+    );
+  }
 
   if (Array.isArray(value)) {
     return (
@@ -24,7 +57,7 @@ function SummaryValue({ name, value, depth = 0 }: { name: string; value: unknown
               {typeof item === "object" && item !== null ? (
                 <div className="summary-object">
                   {Object.entries(item).map(([key, nested]) => (
-                    <SummaryValue key={key} name={key} value={nested} depth={depth + 1} />
+                    <SummaryValue key={key} paperId={paperId} onOpenPdf={onOpenPdf} name={key} value={nested} depth={depth + 1} />
                   ))}
                 </div>
               ) : (
@@ -43,7 +76,7 @@ function SummaryValue({ name, value, depth = 0 }: { name: string; value: unknown
         <h3>{labelFor(name)}</h3>
         <div className="summary-object">
           {Object.entries(value).map(([key, nested]) => (
-            <SummaryValue key={key} name={key} value={nested} depth={depth + 1} />
+            <SummaryValue key={key} paperId={paperId} onOpenPdf={onOpenPdf} name={key} value={nested} depth={depth + 1} />
           ))}
         </div>
       </section>
@@ -58,11 +91,19 @@ function SummaryValue({ name, value, depth = 0 }: { name: string; value: unknown
   );
 }
 
-export function StructuredSummary({ content }: { content: Record<string, unknown> }) {
+export function StructuredSummary({
+  paperId,
+  content,
+  onOpenPdf,
+}: {
+  paperId: string;
+  content: Record<string, unknown>;
+  onOpenPdf: () => void;
+}) {
   return (
     <div className="structured-summary">
       {Object.entries(content).map(([key, value]) => (
-        <SummaryValue key={key} name={key} value={value} />
+        <SummaryValue key={key} paperId={paperId} onOpenPdf={onOpenPdf} name={key} value={value} />
       ))}
     </div>
   );

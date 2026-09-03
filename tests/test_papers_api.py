@@ -161,6 +161,68 @@ def test_missing_artifact_returns_404(data_dir: Path) -> None:
     assert response.json()["error"]["code"] == "not_found"
 
 
+def test_pdf_supports_inline_streaming_ranges_and_cache_validation(data_dir: Path) -> None:
+    _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
+    pdf = b"%PDF-1.7\n" + (b"paper data\n" * 200) + b"%%EOF\n"
+    _insert_artifact(data_dir, "paper-a", "original_pdf", "objects/a.pdf", pdf)
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        full = client.get("/api/papers/paper-a/pdf")
+        partial = client.get("/api/papers/paper-a/pdf", headers={"Range": "bytes=9-18"})
+        head = client.head("/api/papers/paper-a/pdf")
+        cached = client.get(
+            "/api/papers/paper-a/pdf", headers={"If-None-Match": full.headers["etag"]}
+        )
+
+    assert full.status_code == 200
+    assert full.content == pdf
+    assert full.headers["content-type"] == "application/pdf"
+    assert full.headers["content-disposition"] == 'inline; filename="a.pdf"'
+    assert full.headers["accept-ranges"] == "bytes"
+    assert full.headers["content-length"] == str(len(pdf))
+    assert full.headers["cache-control"] == "private, no-cache"
+    assert partial.status_code == 206
+    assert partial.content == pdf[9:19]
+    assert partial.headers["content-range"] == f"bytes 9-18/{len(pdf)}"
+    assert head.status_code == 200
+    assert head.content == b""
+    assert head.headers["content-length"] == str(len(pdf))
+    assert cached.status_code == 304
+    assert cached.content == b""
+
+
+def test_invalid_pdf_and_escaping_artifact_return_stable_errors(data_dir: Path) -> None:
+    _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
+    _insert_artifact(data_dir, "paper-a", "original_pdf", "objects/a.pdf", b"not a pdf")
+
+    with connect_database(data_dir / "passagen.db") as connection:
+        connection.execute(
+            """
+            INSERT INTO artifacts (id, paper_id, kind, path, size_bytes)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            ("zzz-paper-a-escape", "paper-a", "original_pdf", "../outside.pdf", 10),
+        )
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        escaping = client.get("/api/papers/paper-a/pdf")
+
+    assert escaping.status_code == 422
+    assert escaping.json()["error"]["code"] == "invalid_artifact"
+
+    with connect_database(data_dir / "passagen.db") as connection:
+        connection.execute("DELETE FROM artifacts WHERE id = ?", ("zzz-paper-a-escape",))
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        invalid = client.get("/api/papers/paper-a/pdf")
+
+    assert invalid.status_code == 422
+    assert invalid.json()["error"] == {
+        "code": "invalid_artifact",
+        "message": "PDF artifact is not a complete PDF document",
+    }
+
+
 def test_query_validation_is_reported_by_fastapi(data_dir: Path) -> None:
     with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
         response = client.get("/api/papers", params={"limit": 0, "status": "unknown"})

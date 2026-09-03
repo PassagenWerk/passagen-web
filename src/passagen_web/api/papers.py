@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request, Response
+from fastapi.responses import FileResponse
 from passagen.catalog import (
     InvalidArtifactError,
     PaperFilters,
@@ -82,6 +83,46 @@ def get_outline(paper_id: str, catalog: CatalogDependency) -> OutlineResponse:
     except (OSError, UnicodeError) as exc:
         raise InvalidArtifactError("Outline artifact is not readable UTF-8 text") from exc
     return OutlineResponse(paper_id=paper_id, content=content)
+
+
+@router.get("/{paper_id}/pdf", response_class=FileResponse)
+@router.head("/{paper_id}/pdf", include_in_schema=False)
+def get_pdf(paper_id: str, request: Request, catalog: CatalogDependency) -> Response:
+    path = catalog.resolve_artifact(paper_id, "original_pdf")
+    try:
+        stat_result = path.stat()
+        with path.open("rb") as artifact:
+            header = artifact.read(min(1024, stat_result.st_size))
+            artifact.seek(max(0, stat_result.st_size - 1024))
+            trailer = artifact.read(1024)
+    except OSError as exc:
+        raise InvalidArtifactError("PDF artifact could not be read") from exc
+    if b"%PDF-" not in header or b"%%EOF" not in trailer:
+        raise InvalidArtifactError("PDF artifact is not a complete PDF document")
+
+    response = FileResponse(
+        path,
+        media_type="application/pdf",
+        filename=path.name,
+        content_disposition_type="inline",
+        stat_result=stat_result,
+        headers={"Cache-Control": "private, no-cache"},
+    )
+    etag = response.headers["etag"]
+    candidates = {
+        candidate.strip().removeprefix("W/")
+        for candidate in request.headers.get("if-none-match", "").split(",")
+    }
+    if "*" in candidates or etag in candidates:
+        return Response(
+            status_code=304,
+            headers={
+                "Cache-Control": response.headers["cache-control"],
+                "ETag": etag,
+                "Last-Modified": response.headers["last-modified"],
+            },
+        )
+    return response
 
 
 def _paper_response(paper: PaperView) -> PaperResponse:

@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { startTransition, useDeferredValue, useEffect } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { fetchPaper, fetchPapers, fetchTags } from "../../api/papers";
 import { PaperDetail } from "./PaperDetail";
@@ -19,6 +19,9 @@ export function LibraryPage({
   onExitReading,
 }: LibraryPageProps) {
   const { paperId } = useParams();
+  const location = useLocation();
+  const pdfView = location.pathname.endsWith("/pdf");
+  const focused = Boolean(paperId) && (readingFocused || pdfView);
   const navigate = useNavigate();
   const [search, setSearch] = useSearchParams();
   const deferredSearch = useDeferredValue(search.toString());
@@ -58,6 +61,25 @@ export function LibraryPage({
     void navigate({ pathname: `/papers/${nextPaperId}`, search: search.toString() });
   }
 
+  function togglePdf() {
+    if (!paperId) return;
+    const next = new URLSearchParams(search);
+    if (pdfView) next.delete("page");
+    else onFocusReading();
+    void navigate({
+      pathname: pdfView ? `/papers/${paperId}` : `/papers/${paperId}/pdf`,
+      search: next.toString(),
+    });
+  }
+
+  function exitFocus() {
+    onExitReading();
+    if (!paperId || !pdfView) return;
+    const next = new URLSearchParams(search);
+    next.delete("page");
+    void navigate({ pathname: `/papers/${paperId}`, search: next.toString() });
+  }
+
   useEffect(() => {
     function handleNavigation(event: KeyboardEvent) {
       const target = event.target;
@@ -81,7 +103,7 @@ export function LibraryPage({
 
   return (
     <div
-      className={`library-grid ${paperId ? "has-selection" : ""} ${readingFocused && paperId ? "is-focus" : ""}`}
+      className={`library-grid ${paperId ? "has-selection" : ""} ${focused ? "is-focus" : ""}`}
     >
       <PaperFilters
         search={search}
@@ -105,9 +127,12 @@ export function LibraryPage({
         search={search}
         pending={Boolean(paperId && !listedPaper && detail.isPending)}
         error={detail.error}
-        onView={(view) => changeSearch("view", view)}
-        focused={readingFocused && Boolean(paperId)}
-        onExitFocus={onExitReading}
+        pdfView={pdfView}
+        onView={(view) => changeSearch("view", view === "summary" ? "" : view)}
+        onTogglePdf={togglePdf}
+        onOpenPdf={onFocusReading}
+        focused={focused}
+        onExitFocus={exitFocus}
       />
     </div>
   );

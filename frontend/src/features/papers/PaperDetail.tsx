@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import { Link } from "react-router-dom";
 
 import { fetchOutline, fetchSummary, type Paper, type Tag } from "../../api/papers";
+import { PdfReader } from "../reader/PdfReader";
 import { StructuredSummary } from "./StructuredSummary";
 
 interface PaperDetailProps {
@@ -11,7 +12,10 @@ interface PaperDetailProps {
   search: URLSearchParams;
   pending: boolean;
   error: Error | null;
+  pdfView: boolean;
   onView: (view: "summary" | "outline") => void;
+  onTogglePdf: () => void;
+  onOpenPdf: () => void;
   focused: boolean;
   onExitFocus: () => void;
 }
@@ -22,7 +26,10 @@ export function PaperDetail({
   search,
   pending,
   error,
+  pdfView,
   onView,
+  onTogglePdf,
+  onOpenPdf,
   focused,
   onExitFocus,
 }: PaperDetailProps) {
@@ -45,7 +52,7 @@ export function PaperDetail({
   const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
 
   return (
-    <article className="detail-panel" aria-labelledby="detail-heading">
+    <article className={`detail-panel ${pdfView ? "has-pdf" : ""}`} aria-labelledby="detail-heading">
       {focused ? (
         <button
           className="focus-back"
@@ -53,14 +60,16 @@ export function PaperDetail({
           aria-label="Back to three columns"
           onClick={onExitFocus}
         >
-          &lt;
+          <span aria-hidden="true">&lt;</span>
+          <span>Index</span>
         </button>
       ) : null}
-      <div className="panel-heading detail-heading">
-        <span className="index-number">03</span>
-        <h2 id="detail-heading">Read</h2>
-        <Link className="mobile-back" to={{ pathname: "/", search: search.toString() }}>Back to index</Link>
-      </div>
+      <div className="detail-document">
+        <div className="panel-heading detail-heading">
+          <span className="index-number">03</span>
+          <h2 id="detail-heading">Read</h2>
+          <Link className="mobile-back" to={{ pathname: "/", search: search.toString() }}>Back to index</Link>
+        </div>
 
       {pending ? <div className="panel-message">Retrieving paper...</div> : null}
       {error ? <div className="panel-message is-error">{error.message}</div> : null}
@@ -120,7 +129,13 @@ export function PaperDetail({
                 error={summary.error}
                 label="Summary"
               >
-                {summary.data ? <StructuredSummary content={summary.data.content} /> : null}
+                {summary.data ? (
+                  <StructuredSummary
+                    paperId={paper.id}
+                    content={summary.data.content}
+                    onOpenPdf={onOpenPdf}
+                  />
+                ) : null}
               </ArtifactState>
             ) : (
               <ArtifactState
@@ -130,13 +145,68 @@ export function PaperDetail({
                 error={outline.error}
                 label="Outline"
               >
-                {outline.data ? <div className="markdown"><ReactMarkdown>{outline.data.content}</ReactMarkdown></div> : null}
+                {outline.data ? (
+                  <div className="markdown">
+                    <ReactMarkdown
+                      components={{
+                        a: ({ href, children }) => href?.startsWith(`/papers/${encodeURIComponent(paper.id)}/pdf`)
+                          ? <Link to={href} onClick={onOpenPdf}>{children}</Link>
+                          : <a href={href}>{children}</a>,
+                      }}
+                    >
+                      {linkOutlineEvidence(outline.data.content, paper.id)}
+                    </ReactMarkdown>
+                  </div>
+                ) : null}
               </ArtifactState>
             )}
           </div>
         </>
       ) : null}
+      </div>
+      {focused && paper ? (
+        <button
+          className="pdf-toggle"
+          type="button"
+          aria-label={pdfView ? "Close PDF panel" : "Open PDF panel"}
+          aria-pressed={pdfView}
+          disabled={!paper.artifacts.pdf}
+          onClick={onTogglePdf}
+        >
+          <span aria-hidden="true">{pdfView ? ">" : "<"}</span>
+          <span>PDF</span>
+        </button>
+      ) : null}
+      {focused && paper ? (
+        <aside className="pdf-pane" aria-label="PDF reader" aria-hidden={!pdfView}>
+          {pdfView ? (
+            <ArtifactState
+              available={paper.artifacts.pdf}
+              status={paper.status}
+              pending={false}
+              error={null}
+              label="PDF"
+            >
+              <PdfReader paper={paper} page={search.get("page")} />
+            </ArtifactState>
+          ) : null}
+        </aside>
+      ) : null}
     </article>
+  );
+}
+
+function linkOutlineEvidence(content: string, paperId: string): string {
+  return content.replace(
+    /(Evidence pages:\s*)(\d+(?:\s*,\s*\d+)*)/gi,
+    (_match, label: string, pages: string) => {
+      const links = pages
+        .split(",")
+        .map((page) => page.trim())
+        .map((page) => `[${page}](/papers/${encodeURIComponent(paperId)}/pdf?view=outline&page=${page})`)
+        .join(", ");
+      return `${label}${links}`;
+    },
   );
 }
 

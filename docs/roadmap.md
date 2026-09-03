@@ -299,6 +299,8 @@ HTTP Schema 由 Passagen Web 所有，与 Passagen 存储记录相互独立，�
 
 ## M4：PDF 阅读
 
+**状态：已完成。** Web API 通过 Catalog 安全解析 `original_pdf`，以 inline、可缓存且支持 Range 的响应流式传输 PDF；React UI 提供原生嵌入式阅读路由，并把 Summary 和 Outline 中的证据页链接到对应 PDF 页面。
+
 ### 工作内容
 
 - 添加通过 `original_pdf` artifact 解析的 PDF 端点。

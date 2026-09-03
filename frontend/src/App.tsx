@@ -28,6 +28,16 @@ export function App() {
           />
         }
       />
+      <Route
+        path="/papers/:paperId/pdf"
+        element={
+          <AppShell
+            readingFocused={readingFocused}
+            onFocusReading={() => setReadingFocused(true)}
+            onExitReading={() => setReadingFocused(false)}
+          />
+        }
+      />
     </Routes>
   );
 }

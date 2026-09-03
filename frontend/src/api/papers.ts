@@ -82,6 +82,21 @@ export function fetchOutline(paperId: string): Promise<OutlineResponse> {
   return requestJson<OutlineResponse>(`/api/papers/${encodeURIComponent(paperId)}/outline`);
 }
 
+export function pdfUrl(paperId: string): string {
+  return `/api/papers/${encodeURIComponent(paperId)}/pdf`;
+}
+
+export async function checkPdf(paperId: string): Promise<boolean> {
+  const response = await fetch(pdfUrl(paperId), { headers: { Range: "bytes=0-0" } });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as
+      | { error?: { message?: string } }
+      | null;
+    throw new Error(body?.error?.message ?? `PDF request failed with status ${response.status}`);
+  }
+  return true;
+}
+
 async function requestJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) {
