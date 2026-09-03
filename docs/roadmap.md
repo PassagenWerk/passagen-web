@@ -240,6 +240,8 @@ HTTP Schema 由 Passagen Web 所有，与 Passagen 存储记录相互独立，�
 
 ## M2：只读论文 API
 
+**状态：已完成。** Web 应用现在通过单例 `CatalogService` 提供论文列表、详情、经过 Schema 校验的 Summary 和原始 Markdown Outline，并将 Catalog 领域失败映射为稳定 HTTP 错误。
+
 ### 工作内容
 
 - 根据配置的 `database_path` 和 `data_dir` 构造唯一 Catalog 依赖。

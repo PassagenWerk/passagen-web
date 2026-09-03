@@ -20,3 +20,4 @@ def test_openapi_is_rooted_under_api(data_dir: Path) -> None:
 
     assert response.status_code == 200
     assert "/api/health" in response.json()["paths"]
+    assert "/api/papers" in response.json()["paths"]

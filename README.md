@@ -10,7 +10,7 @@ Passagen Web 是一个本地 Web 界面，用于浏览和整理由 [Passagen](..
 
 Passagen 负责数据库 Schema、迁移、论文处理及 artifact 语义；本仓库负责 HTTP API、浏览器 UI 和本地服务生命周期。
 
-M0 项目基础和 M1 Catalog 契约已经完成。范围与里程碑参见 [`docs/roadmap.md`](docs/roadmap.md)，仓库边界参见 [`docs/architecture.md`](docs/architecture.md)。
+M0 项目基础、M1 Catalog 契约和 M2 只读论文 API 已经完成。范围与里程碑参见 [`docs/roadmap.md`](docs/roadmap.md)，仓库边界参见 [`docs/architecture.md`](docs/architecture.md)。
 
 ## 环境要求
 
@@ -58,6 +58,17 @@ npm --prefix frontend run dev
 打开 `http://127.0.0.1:5173`。Vite 会将 `/api` 代理到 FastAPI 进程，API 文档位于 `http://127.0.0.1:8765/api/docs`。
 
 监听地址默认为 `127.0.0.1`。只有显式传入 `--host` 才会监听其他网络接口。
+
+当前只读 API 提供论文列表、详情、结构化摘要和 Markdown 提纲：
+
+```text
+GET /api/papers
+GET /api/papers/{paper_id}
+GET /api/papers/{paper_id}/summary
+GET /api/papers/{paper_id}/outline
+```
+
+论文列表支持 `q`、`status`、`tag`、`venue`、`year`、`collection`、`sort`、`direction`、`limit` 和 `offset` 查询参数。
 
 ## 检查
 

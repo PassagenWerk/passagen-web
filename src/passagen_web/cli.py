@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import uvicorn
+from passagen.catalog import IncompatibleSchemaError
 
 from passagen_web.app import create_app
 from passagen_web.config import ConfigurationError, Settings
@@ -25,10 +26,11 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     try:
         settings = Settings.from_data_dir(args.data_dir, host=args.host, port=args.port)
-    except ConfigurationError as error:
+        application = create_app(settings)
+    except (ConfigurationError, IncompatibleSchemaError) as error:
         parser.error(str(error))
 
-    uvicorn.run(create_app(settings), host=settings.host, port=settings.port)
+    uvicorn.run(application, host=settings.host, port=settings.port)
 
 
 if __name__ == "__main__":
