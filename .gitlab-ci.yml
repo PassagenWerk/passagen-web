@@ -104,7 +104,7 @@ e2e:
   variables:
     UV_NO_SYNC: "1"
   before_script:
-    - apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git
+    - apt-get update && apt-get install -y --no-install-recommends curl ca-certificates ca-certificates git
     - curl -LsSf https://astral.sh/uv/install.sh | sh
     - npm ci --prefix frontend --prefer-offline
     - git clone --depth 1 "${CI_SERVER_PROTOCOL}://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_NAMESPACE}/passagen-cli.git" .ci/passagen-cli
@@ -131,7 +131,7 @@ wheel-build:
   extends: .frontend-job
   stage: build
   before_script:
-    - apt-get update && apt-get install -y --no-install-recommends curl
+    - apt-get update && apt-get install -y --no-install-recommends curl ca-certificates
     - curl -LsSf https://astral.sh/uv/install.sh | sh
     - npm ci --prefix frontend --prefer-offline
   script:
@@ -147,7 +147,7 @@ build-package:
   variables:
     UV_NO_SYNC: "1"
   before_script:
-    - apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git
+    - apt-get update && apt-get install -y --no-install-recommends curl ca-certificates ca-certificates git
     - curl -LsSf https://astral.sh/uv/install.sh | sh
     - npm ci --prefix frontend --prefer-offline
     - git clone --depth 1 "${CI_SERVER_PROTOCOL}://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_NAMESPACE}/passagen-cli.git" .ci/passagen-cli
