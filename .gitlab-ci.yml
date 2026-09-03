@@ -7,14 +7,16 @@ stages:
   image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
   variables:
     UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
+    UV_NO_SYNC: "1"
   cache:
     key: python-${CI_COMMIT_REF_SLUG}
     paths:
       - .uv-cache/
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends git
-    - git clone --depth 1 "${CI_SERVER_PROTOCOL}://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_NAMESPACE}/passagen-cli.git" ../passagen-cli
-    - uv sync --frozen
+    - git clone --depth 1 "${CI_SERVER_PROTOCOL}://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_NAMESPACE}/passagen-cli.git" .ci/passagen-cli
+    - uv sync --frozen --no-install-package passagen
+    - uv pip install --no-deps .ci/passagen-cli
 
 .frontend-job:
   image: node:24-bookworm-slim
@@ -99,12 +101,15 @@ frontend-test:
 e2e:
   extends: .frontend-job
   stage: test
+  variables:
+    UV_NO_SYNC: "1"
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends curl git
     - curl -LsSf https://astral.sh/uv/install.sh | sh
     - npm ci --prefix frontend --prefer-offline
-    - git clone --depth 1 "${CI_SERVER_PROTOCOL}://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_NAMESPACE}/passagen-cli.git" ../passagen-cli
-    - $HOME/.local/bin/uv sync --frozen
+    - git clone --depth 1 "${CI_SERVER_PROTOCOL}://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_NAMESPACE}/passagen-cli.git" .ci/passagen-cli
+    - $HOME/.local/bin/uv sync --frozen --no-install-package passagen
+    - $HOME/.local/bin/uv pip install --no-deps .ci/passagen-cli
     - npm --prefix frontend exec -- playwright install --with-deps chromium
   script:
     - PATH="$HOME/.local/bin:$PATH" npm --prefix frontend run test:e2e
@@ -139,12 +144,15 @@ wheel-build:
 build-package:
   extends: .frontend-job
   stage: build
+  variables:
+    UV_NO_SYNC: "1"
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends curl git
     - curl -LsSf https://astral.sh/uv/install.sh | sh
     - npm ci --prefix frontend --prefer-offline
-    - git clone --depth 1 "${CI_SERVER_PROTOCOL}://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_NAMESPACE}/passagen-cli.git" ../passagen-cli
-    - $HOME/.local/bin/uv sync --frozen
+    - git clone --depth 1 "${CI_SERVER_PROTOCOL}://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}:${CI_SERVER_PORT}/${CI_PROJECT_NAMESPACE}/passagen-cli.git" .ci/passagen-cli
+    - $HOME/.local/bin/uv sync --frozen --no-install-package passagen
+    - $HOME/.local/bin/uv pip install --no-deps .ci/passagen-cli
   script:
     - test "v$($HOME/.local/bin/uv run passagen-web --version)" = "$CI_COMMIT_TAG"
     - $HOME/.local/bin/uv build
