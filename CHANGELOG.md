@@ -7,6 +7,13 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-03
+
+### Fixed
+
+- CI build jobs now install `ca-certificates` before downloading the uv
+  installer, fixing release builds on runners using internal TLS.
+
 ## [0.1.0] - 2026-09-03
 
 ### Added

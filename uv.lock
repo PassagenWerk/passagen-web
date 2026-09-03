@@ -636,7 +636,7 @@ wheels = [
 
 [[package]]
 name = "passagen"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "../passagen-cli" }
 dependencies = [
     { name = "alembic" },
@@ -676,7 +676,7 @@ dev = [
 
 [[package]]
 name = "passagen-web"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
