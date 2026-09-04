@@ -9,13 +9,14 @@ React UI -> /api schemas -> FastAPI routes -> passagen.catalog -> storage and ar
 
 ## Repository Boundary
 
-Passagen owns durable domain concepts, migrations, transactions, artifact validation, and catalog
-services. Passagen Web owns browser-facing schemas, HTTP behavior, PDF streaming, frontend state,
-and the local server lifecycle.
+Passagen Core owns durable domain concepts, migrations, transactions, artifact validation, and
+catalog services. Passagen Web owns browser-facing schemas, HTTP behavior, PDF streaming, frontend
+state, and the local server lifecycle.
 
 The Web application must not import Passagen ORM models, open its SQLite database directly, scan the
-data directory for artifacts, or return filesystem paths. The adjacent Passagen checkout provides
-the `passagen.catalog` boundary used by read and write milestones.
+data directory for artifacts, or return filesystem paths. The adjacent `passagen-core` checkout
+provides the `passagen.catalog` boundary used by read and write milestones. Web does not depend on
+or invoke Passagen CLI.
 
 ## Runtime
 

@@ -1,6 +1,8 @@
 # Passagen Web
 
-Passagen Web 是一个本地 Web 界面，用于浏览和整理由 [Passagen](../passagen-cli) 管理的论文。它提供论文搜索与筛选、结构化摘要与提纲阅读、用户元数据行内编辑、PDF 阅读、标签以及有序论文集合等功能。
+Passagen Web 是 `passagen-core` 的本地浏览器适配器，用于浏览和整理由
+[Passagen CLI](../passagen-cli) 管理的论文。它提供论文搜索与筛选、结构化摘要与提纲阅读、
+用户元数据行内编辑、PDF 阅读、标签以及有序论文集合等功能。
 
 应用采用本地单用户服务设计：
 
@@ -17,17 +19,19 @@ M0 项目基础至 M7 本地分发与发布质量已经完成。范围与里程�
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/)
 - Node.js `>=24 <25` 和 npm `>=11 <12`
-- 与本仓库相邻的 Passagen checkout，以及已经初始化的 Passagen 数据目录
+- 与本仓库相邻的 `passagen-core` checkout，以及已经初始化的 Passagen 数据目录
 
 开发目录结构应为：
 
 ```text
 Passagen/
+├── passagen-core/
 ├── passagen-cli/
 └── passagen-web/
 ```
 
-Passagen Web 通过公开的 `passagen.catalog` 应用服务使用相邻 checkout，不会导入 Passagen 的存储层内部实现。
+Passagen Web 通过公开的 `passagen.catalog` 应用服务使用相邻的 Core checkout，不会导入
+Passagen 的存储层内部实现，也不依赖 `passagen-cli` distribution。
 
 ## 安装
 

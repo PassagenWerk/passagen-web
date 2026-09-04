@@ -2,9 +2,9 @@
 
 ## Compatibility
 
-Passagen Web `0.1.x` requires Python 3.12 or newer, Passagen `>=0.1,<0.2`, and the
-Passagen Schema version accepted by that package. Startup stops before serving requests when the
-database Schema is incompatible. Upgrade Passagen and run `passagen db init` before retrying.
+Passagen Web `0.2.x` requires Python 3.12 or newer, `passagen-core>=0.2,<0.3`, and the Passagen
+Schema version accepted by Core. Startup stops before serving requests when the database Schema is
+incompatible. Upgrade Core and run `passagen db init` through Passagen CLI before retrying.
 
 Published wheels include the compiled React application. Building a release from source requires
 Node.js `>=24 <25`, npm `>=11 <12`, and the frontend dependencies installed with
@@ -13,7 +13,7 @@ Node.js `>=24 <25`, npm `>=11 <12`, and the frontend dependencies installed with
 ## Release Checklist
 
 1. Run `make check` and `make check-e2e`.
-2. Run `uv run pytest` in the adjacent Passagen checkout.
+2. Run `uv run pytest` in the adjacent `passagen-core` checkout.
 3. Build with `uv build` and confirm the wheel contains `passagen_web/static/index.html` and its
    hashed assets.
 4. Install the wheel into a clean environment and run

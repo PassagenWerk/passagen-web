@@ -7,6 +7,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-04
+
+### Changed
+
+- Replaced the `passagen-cli` implementation dependency with the shared `passagen-core` package.
+
 ## [0.1.1] - 2026-09-03
 
 ### Fixed
