@@ -2,7 +2,7 @@
 
 ## Compatibility
 
-Passagen Web `0.2.x` requires Python 3.12 or newer, `passagen-core>=0.2,<0.3`, and the Passagen
+Passagen Web `0.3.x` requires Python 3.12 or newer, `passagen-core>=0.3,<0.4`, and the Passagen
 Schema version accepted by Core. Startup stops before serving requests when the database Schema is
 incompatible. Upgrade Core and run `passagen db init` through Passagen CLI before retrying.
 

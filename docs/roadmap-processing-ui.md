@@ -132,9 +132,7 @@ class ProcessingRun(BaseModel):
     mode: Literal["continue", "rebuild"]
     from_stage: str | None = None
 
-    status: Literal[
-        "queued", "running", "completed", "failed", "interrupted"
-    ]
+    status: Literal["queued", "running", "completed", "failed", "interrupted"]
 
     current_paper_id: str | None = None
     current_stage: str | None = None
