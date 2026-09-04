@@ -361,6 +361,10 @@ Processing 是处理任务的主要入口，但 Library 和 Paper 仍提供上�
 
 ### M1：Core ProcessingService 与 run contract
 
+**状态：已完成（2026-09-04）。** \`passagen.processing\` 提供 \`ProcessingService\`、持久化的
+\`ProcessingRun\`/\`ProgressEvent\`（\`update_runs\` 表，schema v3）、冲突检测、重启中断恢复和
+\`data/runs/<run-id>/\` 快照与事件日志；CLI \`update\` 已切换到同一 service，输出与退出码不变。
+
 工作内容：
 
 - 将现有 stage 编排整理为适配器无关的 `ProcessingService`；
@@ -375,6 +379,10 @@ Processing 是处理任务的主要入口，但 Library 和 Paper 仍提供上�
 - 中断后重启不产生永久 running 的 run。
 
 ### M2：Web processing-runs API 与单 worker runner
+
+**状态：已完成（2026-09-04）。** \`POST/GET /api/processing-runs*\` 返回 202 并持久化状态；
+进程内单 worker runner 后台执行；配置统一从 \`<data_dir>/passagen.yaml\` 读取（相对 prompt 路径
+相对配置文件目录解析），启动日志打印实际配置路径，\`--config\` 保留为逃生口。
 
 工作内容：
 
@@ -395,6 +403,10 @@ Processing 是处理任务的主要入口，但 Library 和 Paper 仍提供上�
 
 ### M3：Paper 快捷操作与 Processing 状态工作区
 
+**状态：已完成（2026-09-04）。** 一级导航新增 \`Processing\`，路由 \`/processing\` 与
+\`/processing/runs/{run_id}\`；Paper 页面提供 Process/Continue/Reprocess；Library 保留既有状态
+展示与筛选。
+
 工作内容：
 
 - 添加 `Processing` 一级导航和 `/processing` 路由；
@@ -411,6 +423,10 @@ Processing 是处理任务的主要入口，但 Library 和 Paper 仍提供上�
 - 可从 Processing 或 Paper 进入对应 run 详情。
 
 ### M4：PDF 上传与批量处理
+
+**状态：已完成（2026-09-04）。** \`POST /api/papers/import\` 多文件上传复用 Core 内容寻址导入与
+去重，单文件失败不中断批次；Processing 页面提供上传入口、\`Process pending papers\`、批量重试和
+\`Reprocess from...\`。
 
 工作内容：
 

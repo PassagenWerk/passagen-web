@@ -1,6 +1,9 @@
+import logging
+import uuid
+from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Request, Response
+from fastapi import APIRouter, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 from passagen.catalog import (
     InvalidArtifactError,
@@ -11,8 +14,9 @@ from passagen.catalog import (
     SortDirection,
     validate_summary_json,
 )
+from passagen.stages.scanning import import_files
 
-from passagen_web.dependencies import CatalogDependency
+from passagen_web.dependencies import CatalogDependency, SettingsDependency
 from passagen_web.schemas.papers import (
     ArtifactAvailability,
     OutlineResponse,
@@ -22,8 +26,56 @@ from passagen_web.schemas.papers import (
     PaperTagsUpdateRequest,
     SummaryResponse,
 )
+from passagen_web.schemas.processing import ImportFailureResponse, ImportResponse
+
+logger = logging.getLogger("passagen_web.api")
 
 router = APIRouter(prefix="/papers", tags=["papers"])
+
+
+@router.post("/import", response_model=ImportResponse)
+async def import_papers(
+    settings: SettingsDependency,
+    files: list[UploadFile],
+) -> ImportResponse:
+    """Import uploaded PDF files; processing is triggered separately."""
+    staging_root = settings.data_dir / "pdfs" / ".tmp" / f"upload-{uuid.uuid4()}"
+    staged: list[Path] = []
+    try:
+        for index, upload in enumerate(files):
+            filename = Path(upload.filename or "upload.pdf").name
+            staged_path = staging_root / str(index) / filename
+            staged_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                with staged_path.open("wb") as target:
+                    while chunk := await upload.read(1024 * 1024):
+                        target.write(chunk)
+            finally:
+                await upload.close()
+            staged.append(staged_path)
+        result = import_files(
+            staged,
+            data_dir=settings.data_dir,
+            database_path=settings.database_path,
+        )
+    finally:
+        for staged_path in staged:
+            staged_path.unlink(missing_ok=True)
+            staged_path.parent.rmdir()
+        if staging_root.is_dir():
+            staging_root.rmdir()
+    return ImportResponse(
+        added=[paper.id for paper in result.imported],
+        duplicates=[paper.id for paper in result.skipped],
+        failed=[
+            ImportFailureResponse(
+                filename=failure.path.name,
+                reason=failure.code,
+                message=failure.message.replace(str(settings.data_dir), "<data-dir>"),
+            )
+            for failure in result.failures
+        ],
+    )
 
 
 @router.get("", response_model=PaperPageResponse)

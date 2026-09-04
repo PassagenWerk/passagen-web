@@ -21,6 +21,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     serve = subparsers.add_parser("serve", help="start the local web server")
     serve.add_argument("--data-dir", type=Path, required=True, help="Passagen data directory")
+    serve.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help="explicit config file (default: <data-dir>/passagen.yaml)",
+    )
     serve.add_argument("--host", default="127.0.0.1", help="listen address (default: 127.0.0.1)")
     serve.add_argument("--port", type=int, default=8765, help="listen port (default: 8765)")
     serve.add_argument("--no-open", action="store_true", help="do not open a browser")
@@ -41,6 +47,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     try:
         settings = Settings.from_data_dir(
             args.data_dir,
+            config_path=args.config,
             host=args.host,
             port=args.port,
             allowed_origins=tuple(args.allow_origin),
@@ -51,6 +58,10 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     configure_logging()
     logger = logging.getLogger("passagen_web")
+    logger.info(
+        "configuration_loaded",
+        extra={"config": str(settings.config_path) if settings.config_path else "<defaults>"},
+    )
     logger.info("server_starting", extra={"host": settings.host, "port": settings.port})
     browser_timer = threading.Timer(0.75, webbrowser.open, args=(settings.app_url,))
     browser_timer.daemon = True

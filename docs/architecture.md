@@ -5,6 +5,7 @@ in one direction:
 
 ```text
 React UI -> /api schemas -> FastAPI routes -> passagen.catalog -> storage and artifacts
+                                          -> passagen.processing -> runs and stage execution
 ```
 
 ## Repository Boundary
@@ -21,8 +22,16 @@ or invoke Passagen CLI.
 ## Runtime
 
 `passagen-web serve` creates immutable runtime settings and validates the library before Uvicorn is
-started. FastAPI dependencies read these settings from application state. Development runs Vite on
-`127.0.0.1:5173`, proxying `/api` to FastAPI on `127.0.0.1:8765`.
+started. Processing configuration comes from the same `<data-dir>/passagen.yaml` the CLI reads, via
+Core `load_settings()`; the resolved config path is logged at startup and `--config` remains an
+explicit escape hatch. FastAPI dependencies read these settings from application state. Development
+runs Vite on `127.0.0.1:5173`, proxying `/api` to FastAPI on `127.0.0.1:8765`.
+
+Long-running processing never executes inside an HTTP handler. `POST /api/processing-runs` persists
+a queued run and returns `202`; a single in-process worker thread dequeues and executes runs through
+the Core `ProcessingService`. Run state, per-run config snapshots, and structured progress events
+live under the library (`update_runs` table and `data/runs/<run-id>/`), so a restart marks any
+still-active run `interrupted` instead of leaving it running forever.
 
 Production static asset packaging and SPA fallback routing are deferred to M7. This avoids coupling
 the development foundation to a provisional distribution design.

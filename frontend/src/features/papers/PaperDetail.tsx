@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { fetchOutline, fetchSummary, type Paper, type Tag } from "../../api/papers";
 import { PdfReader } from "../reader/PdfReader";
 import { PaperLibraryEditor } from "./PaperLibraryEditor";
+import { PaperProcessing } from "./PaperProcessing";
 import { StructuredSummary } from "./StructuredSummary";
 
 interface PaperDetailProps {
@@ -106,6 +107,7 @@ export function PaperDetail({
               </div>
             ) : null}
             <PaperLibraryEditor key={paper.id} paper={paper} tags={tags} />
+            <PaperProcessing paper={paper} />
           </header>
 
           <div className="reader-tabs" role="tablist" aria-label="Paper artifacts">

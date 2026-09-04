@@ -1,5 +1,6 @@
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -15,31 +16,57 @@ from passagen.catalog import (
     IncompatibleSchemaError,
     InvalidArtifactError,
 )
+from passagen.processing import (
+    ProcessingError,
+    ProcessingService,
+    RunConflictError,
+    RunNotFoundError,
+    UnknownPaperError,
+)
 
 from passagen_web import __version__
 from passagen_web.api.collections import router as collections_router
 from passagen_web.api.health import router as health_router
 from passagen_web.api.papers import router as papers_router
+from passagen_web.api.processing import router as processing_router
 from passagen_web.api.tags import router as tags_router
 from passagen_web.config import Settings
+from passagen_web.runner import ProcessingRunner
 from passagen_web.schemas.errors import ErrorDetail, ErrorResponse
 
 logger = logging.getLogger("passagen_web.api")
 
 
 def create_app(settings: Settings, *, static_dir: Path | None = None) -> FastAPI:
+    processing = ProcessingService(settings.core)
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        interrupted = processing.interrupt_active_runs()
+        for run in interrupted:
+            logger.info("processing_run_interrupted", extra={"run_id": run.id})
+        runner = ProcessingRunner(processing)
+        runner.start()
+        try:
+            yield
+        finally:
+            runner.stop()
+
     app = FastAPI(
         title="Passagen Web API",
         version=__version__,
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
+        lifespan=lifespan,
     )
     app.state.settings = settings
     app.state.catalog = CatalogService(settings.database_path, settings.data_dir)
+    app.state.processing = processing
     app.include_router(health_router, prefix="/api")
     app.include_router(papers_router, prefix="/api")
     app.include_router(tags_router, prefix="/api")
     app.include_router(collections_router, prefix="/api")
+    app.include_router(processing_router, prefix="/api")
     _install_error_handlers(app)
     _install_origin_protection(app, settings)
     _install_static_routes(app, static_dir or Path(__file__).with_name("static"))
@@ -91,13 +118,13 @@ def _install_static_routes(app: FastAPI, static_dir: Path) -> None:
     @app.get("/{frontend_path:path}", include_in_schema=False, response_class=FileResponse)
     def frontend(frontend_path: str) -> FileResponse:
         first_segment = frontend_path.partition("/")[0]
-        if first_segment not in {"", "papers", "collections"}:
+        if first_segment not in {"", "papers", "collections", "processing"}:
             raise HTTPException(status_code=404)
         return FileResponse(index, media_type="text/html", headers={"Cache-Control": "no-cache"})
 
 
 def _install_error_handlers(app: FastAPI) -> None:
-    errors: tuple[tuple[type[CatalogError], int, str], ...] = (
+    errors: tuple[tuple[type[Exception], int, str], ...] = (
         (CatalogNotFoundError, 404, "not_found"),
         (InvalidArtifactError, 422, "invalid_artifact"),
         (CatalogValidationError, 400, "invalid_request"),
@@ -107,6 +134,17 @@ def _install_error_handlers(app: FastAPI) -> None:
         (CatalogError, 500, "catalog_error"),
     )
     for error_type, status_code, code in errors:
+        app.add_exception_handler(
+            error_type,
+            _error_handler(status_code, code),
+        )
+    processing_errors: tuple[tuple[type[Exception], int, str], ...] = (
+        (UnknownPaperError, 404, "not_found"),
+        (RunNotFoundError, 404, "not_found"),
+        (RunConflictError, 409, "run_conflict"),
+        (ProcessingError, 400, "invalid_request"),
+    )
+    for error_type, status_code, code in processing_errors:
         app.add_exception_handler(
             error_type,
             _error_handler(status_code, code),

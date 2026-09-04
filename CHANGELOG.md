@@ -7,6 +7,20 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- Processing runs API (`POST/GET /api/processing-runs`, run detail and progress event polling)
+  backed by the Core `ProcessingService` and an in-process single-worker runner with persisted
+  state; active runs are marked `interrupted` on restart instead of showing as running forever.
+- PDF import endpoint `POST /api/papers/import` accepting multipart multi-file uploads with
+  content-addressed deduplication and per-file failure reasons.
+- `Processing` workspace in the React app (PDF upload, pending/failed paper views, batch process
+  and retry, recent runs, run detail with progress log), plus per-paper
+  Process/Continue/Reprocess actions on the paper page.
+- `passagen-web serve --config` escape hatch; the server loads the same
+  `<data-dir>/passagen.yaml` as the CLI via Core `load_settings()` and logs the config path in
+  use at startup.
+
 ## [0.2.0] - 2026-09-04
 
 ### Changed

@@ -10,6 +10,9 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
   const health = useQuery({ queryKey: ["health"], queryFn: fetchHealth, retry: false });
+  const libraryActive =
+    !location.pathname.startsWith("/collections") &&
+    !location.pathname.startsWith("/processing");
   const connectionLabel = health.isPending
     ? "Connecting"
     : health.isSuccess
@@ -27,10 +30,11 @@ export function AppShell({ children }: AppShellProps) {
           <nav className="primary-nav" aria-label="Primary navigation">
             <Link
               to="/"
-              className={location.pathname.startsWith("/collections") ? "" : "active"}
-              aria-current={location.pathname.startsWith("/collections") ? undefined : "page"}
+              className={libraryActive ? "active" : ""}
+              aria-current={libraryActive ? "page" : undefined}
             >Library</Link>
             <NavLink to="/collections">Collections</NavLink>
+            <NavLink to="/processing">Processing</NavLink>
           </nav>
           <div className={`connection ${health.isSuccess ? "is-online" : ""}`} role="status">
             <span className="connection-dot" />

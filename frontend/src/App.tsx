@@ -4,6 +4,8 @@ import { Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { CollectionsPage } from "./features/collections/CollectionsPage";
 import { LibraryPage } from "./features/papers/LibraryPage";
+import { ProcessingPage } from "./features/processing/ProcessingPage";
+import { RunDetailPage } from "./features/processing/RunDetailPage";
 
 export function App() {
   const [readingFocused, setReadingFocused] = useState(false);
@@ -50,6 +52,8 @@ export function App() {
       <Route path="/collections/:collectionId" element={<AppShell><CollectionsPage /></AppShell>} />
       <Route path="/collections/:collectionId/papers/:paperId" element={<AppShell><CollectionsPage /></AppShell>} />
       <Route path="/collections/:collectionId/papers/:paperId/pdf" element={<AppShell><CollectionsPage /></AppShell>} />
+      <Route path="/processing" element={<AppShell><ProcessingPage /></AppShell>} />
+      <Route path="/processing/runs/:runId" element={<AppShell><RunDetailPage /></AppShell>} />
     </Routes>
   );
 }
