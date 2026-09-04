@@ -11,9 +11,10 @@ import {
 } from "../../api/processing";
 
 const rebuildStages: { value: RebuildStage; label: string }[] = [
-  { value: "metadata", label: "Metadata" },
-  { value: "parse", label: "Parse" },
-  { value: "summary", label: "Summary" },
+  { value: "metadata", label: "All stages" },
+  { value: "parse", label: "Full text + Summary + Outline" },
+  { value: "summary", label: "Summary + Outline" },
+  { value: "outline", label: "Outline only" },
 ];
 
 export function PaperProcessing({ paper }: { paper: Paper }) {
@@ -51,27 +52,30 @@ export function PaperProcessing({ paper }: { paper: Paper }) {
       ) : (
         <div className="paper-processing-actions">
           {complete ? (
-            <span className="reprocess-control">
-              <select
-                aria-label="Reprocess from stage"
-                value={fromStage}
-                onChange={(event) => setFromStage(event.target.value as RebuildStage)}
-              >
-                {rebuildStages.map((stage) => (
-                  <option key={stage.value} value={stage.value}>
-                    From {stage.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="text-button"
-                disabled={start.isPending}
-                onClick={() => start.mutate({ rebuild: fromStage })}
-              >
-                Reprocess
-              </button>
-            </span>
+            <details className="paper-reprocess">
+              <summary>Reprocess paper</summary>
+              <span className="reprocess-control">
+                <select
+                  aria-label="Stages to rebuild"
+                  value={fromStage}
+                  onChange={(event) => setFromStage(event.target.value as RebuildStage)}
+                >
+                  {rebuildStages.map((stage) => (
+                    <option key={stage.value} value={stage.value}>
+                      {stage.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={start.isPending}
+                  onClick={() => start.mutate({ rebuild: fromStage })}
+                >
+                  Reprocess
+                </button>
+              </span>
+            </details>
           ) : (
             <button
               type="button"

@@ -56,7 +56,8 @@ metadata -> parse -> summarize -> outline
 Web 不把每个内部 stage 做成独立按钮。产品入口只有三个：
 
 - `Process` / `Continue processing`：推进到当前最新实现阶段；
-- `Reprocess`：高级选项，允许选择从 metadata、parse 或 summary 重建；
+- `Reprocess`：高级选项，明确选择重建全部阶段、full text 及下游、summary 及
+  outline，或仅 outline；
 - `Process pending papers`：批量推进所有落后论文。
 
 具体 stage 只作为状态展示和高级选项出现，与 CLI 的 `update [paper-id] [--force]`
@@ -331,7 +332,7 @@ Processing 是处理任务的主要入口，但 Library 和 Paper 仍提供上�
 - 待处理、处理中和失败论文视图；
 - `Process pending papers` 批量入口；
 - 最近 runs、整体进度、结果汇总和稳定的失败分类；
-- 批量重试，以及 `Reprocess from...` 高级选项；
+- 批量重试，以及明确列出受影响阶段的 `Reprocess` 高级选项；
 - 可从论文或 run 进入对应 Paper 页面。
 
 ### Library 页面
@@ -345,7 +346,7 @@ Processing 是处理任务的主要入口，但 Library 和 Paper 仍提供上�
 
 - 未完成论文显示 `Process` / `Continue processing`；
 - 处理中显示当前 stage、进度和预计状态；
-- 已完成论文显示 `Reprocess`，高级选项允许选择起始 stage；
+- 已完成论文提供默认折叠的 `Reprocess paper` 高级区域，展开后选择要重建的阶段；
 - 失败时显示稳定的错误分类和重试入口；
 - 提供进入对应 run 详情的入口；
 - 保留现有 reader、collection、tag 和 metadata 编辑功能不变。
@@ -426,14 +427,14 @@ Processing 是处理任务的主要入口，但 Library 和 Paper 仍提供上�
 
 **状态：已完成（2026-09-04）。** \`POST /api/papers/import\` 多文件上传复用 Core 内容寻址导入与
 去重，单文件失败不中断批次；Processing 页面提供上传入口、\`Process pending papers\`、批量重试和
-\`Reprocess from...\`。
+明确列出受影响阶段的 \`Reprocess\` 选项。
 
 工作内容：
 
 - `POST /api/papers/import` 多文件上传；
 - 复用 Core 内容寻址导入与去重；
 - Processing 页面提供上传入口与 `Process pending papers`；
-- Processing 页面提供批量重试和 `Reprocess from...` 高级选项。
+- Processing 页面提供批量重试和明确列出受影响阶段的 `Reprocess` 高级选项。
 
 验收条件：
 

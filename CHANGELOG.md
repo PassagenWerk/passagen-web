@@ -21,6 +21,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   `<data-dir>/passagen.yaml` as the CLI via Core `load_settings()` and logs the config path in
   use at startup.
 
+### Changed
+
+- Reprocess choices now state every affected stage and support rebuilding only the Outline;
+  completed papers keep these controls collapsed by default in the Library reader, while the
+  Processing workspace explains each stage, its rebuild scope, and LLM usage.
+
 ## [0.2.0] - 2026-09-04
 
 ### Changed

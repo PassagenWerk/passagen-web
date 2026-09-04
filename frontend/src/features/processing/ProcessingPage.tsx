@@ -23,9 +23,10 @@ const statusLabels: Record<string, string> = {
 };
 
 const rebuildStages: { value: RebuildStage; label: string }[] = [
-  { value: "metadata", label: "Metadata" },
-  { value: "parse", label: "Parse" },
-  { value: "summary", label: "Summary" },
+  { value: "metadata", label: "All stages" },
+  { value: "parse", label: "Full text + Summary + Outline" },
+  { value: "summary", label: "Summary + Outline" },
+  { value: "outline", label: "Outline only" },
 ];
 
 export function ProcessingPage() {
@@ -82,6 +83,43 @@ export function ProcessingPage() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="processing-card" aria-labelledby="reprocessing-heading">
+        <div className="processing-card-heading">
+          <h3 id="reprocessing-heading">Reprocessing stages</h3>
+        </div>
+        <p className="processing-note">
+          Reprocessing replaces generated artifacts from the selected stage onward. Artifacts
+          from earlier stages are kept.
+        </p>
+        <dl className="stage-guide">
+          <div>
+            <dt>Metadata</dt>
+            <dd>Resolve bibliographic details such as title, authors, venue, DOI, and year.</dd>
+          </div>
+          <div>
+            <dt>Full text</dt>
+            <dd>Extract structured text from the PDF.</dd>
+          </div>
+          <div>
+            <dt>Summary</dt>
+            <dd>Generate the structured paper summary from the extracted text.</dd>
+          </div>
+          <div>
+            <dt>Outline</dt>
+            <dd>Generate the reading outline from the current summary.</dd>
+          </div>
+        </dl>
+        <p className="processing-note reprocess-scope">
+          <strong>Scope:</strong> The All stages option rebuilds the entire pipeline; Full text
+          keeps Metadata; Summary keeps Metadata and Full text; Outline only keeps all earlier
+          artifacts.
+        </p>
+        <p className="processing-note">
+          Summary and Outline use the configured LLM and may take several minutes. Library Tags
+          and manually edited library metadata are preserved.
+        </p>
       </section>
 
       <section className="processing-card" aria-labelledby="failed-heading">
@@ -296,13 +334,13 @@ function FailedPaperRow({
         <ProcessButton label="Retry" paperIds={[failure.paper_id]} onStarted={onStarted} />
         <span className="reprocess-control">
           <select
-            aria-label="Reprocess from stage"
+            aria-label="Stages to rebuild"
             value={fromStage}
             onChange={(event) => setFromStage(event.target.value as RebuildStage)}
           >
             {rebuildStages.map((stage) => (
               <option key={stage.value} value={stage.value}>
-                From {stage.label}
+                {stage.label}
               </option>
             ))}
           </select>

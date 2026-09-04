@@ -1,6 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -132,6 +131,10 @@ test("processing workspace lists pending papers and recent runs", async () => {
   renderApp();
 
   expect(await screen.findByRole("heading", { name: "Pending papers" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Reprocessing stages" })).toBeInTheDocument();
+  expect(screen.getByText("Extract structured text from the PDF.")).toBeInTheDocument();
+  expect(screen.getByText(/Outline only keeps all earlier artifacts/)).toBeInTheDocument();
+  expect(screen.getByText(/manually edited library metadata are preserved/)).toBeInTheDocument();
   expect(await screen.findByRole("link", { name: "An Unprocessed Paper" })).toBeInTheDocument();
   expect(await screen.findByRole("link", { name: /Run run-1/ })).toBeInTheDocument();
 
@@ -209,4 +212,41 @@ test("paper status ignores an older failure after the latest run succeeds", asyn
     ]);
   });
   expect(screen.queryByText(/Last run failed/)).not.toBeInTheDocument();
+});
+
+test("paper page hides rebuild controls until requested and supports outline only", async () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+  render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <PaperProcessing paper={{ ...pendingPaper, status: "outlined" }} />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+  const disclosure = screen.getByText("Reprocess paper").closest("details");
+  expect(disclosure).not.toHaveAttribute("open");
+  fireEvent.click(screen.getByText("Reprocess paper"));
+
+  fireEvent.change(screen.getByRole("combobox", { name: "Stages to rebuild" }), {
+    target: { value: "outline" },
+  });
+  expect(screen.getByRole("option", { name: "Summary + Outline" })).toBeInTheDocument();
+  expect(screen.getByRole("option", { name: "Outline only" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
+
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/processing-runs",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          paper_ids: ["paper-1"],
+          mode: "rebuild",
+          from_stage: "outline",
+        }),
+      }),
+    );
+  });
 });

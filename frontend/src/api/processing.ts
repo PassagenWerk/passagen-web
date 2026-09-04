@@ -1,7 +1,7 @@
 import { requestJson, responseError } from "./papers";
 
 export type RunStatus = "queued" | "running" | "completed" | "failed" | "interrupted";
-export type RebuildStage = "metadata" | "parse" | "summary";
+export type RebuildStage = "metadata" | "parse" | "summary" | "outline";
 
 export interface RunPaperFailure {
   paper_id: string;
