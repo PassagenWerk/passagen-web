@@ -229,6 +229,8 @@ def _paper_response(paper: PaperView) -> PaperResponse:
     return PaperResponse(
         id=paper.id,
         title=paper.title,
+        # Core 0.4 builds from before schema v4 do not expose abstracts.
+        abstract=getattr(paper, "abstract", None),
         authors=list(paper.authors),
         year=paper.year,
         venue=paper.venue,

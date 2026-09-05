@@ -191,6 +191,12 @@ export function PaperDetail({
           </div>
 
           <div className="reader" role="tabpanel">
+            {paper.abstract ? (
+              <section className="paper-abstract" aria-labelledby="paper-abstract-heading">
+                <h3 id="paper-abstract-heading">Author abstract</h3>
+                <p>{paper.abstract}</p>
+              </section>
+            ) : null}
             {view === "summary" ? (
               <ArtifactState
                 available={paper.artifacts.summary}

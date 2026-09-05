@@ -9,6 +9,7 @@ import { PaperProcessing } from "../papers/PaperProcessing";
 const pendingPaper = {
   id: "paper-1",
   title: "An Unprocessed Paper",
+  abstract: null,
   authors: ["Ada Author"],
   year: 2024,
   venue: null,

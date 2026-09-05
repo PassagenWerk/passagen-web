@@ -14,16 +14,22 @@ def create_library() -> Path:
     atexit.register(shutil.rmtree, data_dir, ignore_errors=True)
     initialize_database(data_dir / "passagen.db")
     with connect_database(data_dir / "passagen.db") as connection:
-        for paper_id, title in (("paper-a", "Alpha Systems"), ("paper-b", "Beta Storage")):
+        papers = (
+            ("paper-a", "Alpha Systems", "An author-written overview of Alpha Systems."),
+            ("paper-b", "Beta Storage", None),
+        )
+        for paper_id, title, abstract in papers:
             connection.execute(
                 """
                 INSERT INTO papers
-                    (id, title, authors_json, year, venue, original_filename, pdf_sha256, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (id, title, abstract, authors_json, year, venue, original_filename, pdf_sha256,
+                     status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     paper_id,
                     title,
+                    abstract,
                     json.dumps(["Ada Author"]),
                     2026,
                     "SOSP",

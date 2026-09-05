@@ -7,6 +7,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- Author abstracts in the shared paper contract and reader, displayed separately before generated
+  Summary and Outline content.
+
 ## [0.4.0] - 2026-09-05
 
 Requires `passagen-core` `0.4.x` and Passagen Schema version 3.

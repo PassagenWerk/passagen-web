@@ -7,6 +7,7 @@ export interface ArtifactAvailability {
 export interface Paper {
   id: string;
   title: string | null;
+  abstract: string | null;
   authors: string[];
   year: number | null;
   venue: string | null;

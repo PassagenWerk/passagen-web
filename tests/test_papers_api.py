@@ -16,18 +16,21 @@ def _insert_paper(
     title: str,
     year: int,
     venue: str,
+    abstract: str | None = None,
     status: str = "summarized",
 ) -> None:
     with connect_database(data_dir / "passagen.db") as connection:
         connection.execute(
             """
             INSERT INTO papers
-                (id, title, authors_json, year, venue, original_filename, pdf_sha256, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (id, title, abstract, authors_json, year, venue, original_filename, pdf_sha256,
+                 status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 paper_id,
                 title,
+                abstract,
                 json.dumps(["Ada Author"]),
                 year,
                 venue,
@@ -121,7 +124,14 @@ def test_list_papers_filters_by_multiple_tags(data_dir: Path) -> None:
 
 
 def test_paper_detail_and_not_found_error_are_stable(data_dir: Path) -> None:
-    _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
+    _insert_paper(
+        data_dir,
+        "paper-a",
+        title="Alpha",
+        year=2024,
+        venue="SOSP",
+        abstract="An author-written overview.",
+    )
 
     with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
         detail = client.get("/api/papers/paper-a")
@@ -129,6 +139,7 @@ def test_paper_detail_and_not_found_error_are_stable(data_dir: Path) -> None:
 
     assert detail.status_code == 200
     assert detail.json()["authors"] == ["Ada Author"]
+    assert detail.json()["abstract"] == "An author-written overview."
     assert missing.status_code == 404
     assert missing.json()["error"]["code"] == "not_found"
 

@@ -285,6 +285,9 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); font: 9px var(--font-mono
 .reader { width: 100%; flex: 0 0 auto; min-height: auto; overflow: visible; padding: 25px 30px 60px; }
 .artifact-message { padding: 18px 0; color: var(--muted); font: 15px/1.55 var(--font-paper); }
 .artifact-message p { margin: 6px 0 0; }
+.paper-abstract { margin: 0 0 28px; padding: 0 0 23px; border-bottom: 1px solid var(--line); }
+.paper-abstract h3 { margin: 0 0 11px; color: var(--accent); font: 600 10px var(--font-sans); text-transform: uppercase; letter-spacing: .09em; }
+.paper-abstract p { margin: 0; color: var(--reading-ink); font: var(--reader-font-size)/var(--reader-line-height) var(--font-paper); }
 
 .structured-summary { width: 100%; display: grid; gap: 25px; }
 .summary-block { min-width: 0; }

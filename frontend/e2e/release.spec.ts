@@ -47,6 +47,8 @@ test("runs the tag management, in-context assignment, and filtering workflow", a
   // Assign an existing tag while reading Alpha Systems.
   await page.getByRole("link", { name: /Alpha Systems/ }).click();
   await expect(page.getByText("A release-quality problem")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Author abstract" })).toBeVisible();
+  await expect(page.getByText("An author-written overview of Alpha Systems.")).toBeVisible();
   await page.getByRole("button", { name: "Tags 0" }).click();
   await page.getByRole("option", { name: /Systems/ }).click();
   await expect(page.getByRole("option", { name: /Systems/ })).toHaveAttribute(

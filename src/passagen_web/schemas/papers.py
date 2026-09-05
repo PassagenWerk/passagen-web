@@ -14,6 +14,7 @@ class PaperResponse(BaseModel):
 
     id: str
     title: str | None
+    abstract: str | None
     authors: list[str]
     year: int | None
     venue: str | None
