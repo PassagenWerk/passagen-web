@@ -194,7 +194,18 @@ export function PaperDetail({
             {paper.abstract ? (
               <section className="paper-abstract" aria-labelledby="paper-abstract-heading">
                 <h3 id="paper-abstract-heading">Author abstract</h3>
-                <p>{paper.abstract}</p>
+                <div className={paper.cleaned_abstract ? "abstract-columns" : undefined}>
+                  {paper.cleaned_abstract ? (
+                    <article className="abstract-version abstract-version-cleaned">
+                      <h4>Cleaned</h4>
+                      <p>{paper.cleaned_abstract}</p>
+                    </article>
+                  ) : null}
+                  <article className="abstract-version">
+                    {paper.cleaned_abstract ? <h4>Original extraction</h4> : null}
+                    <p>{paper.abstract}</p>
+                  </article>
+                </div>
               </section>
             ) : null}
             {view === "summary" ? (

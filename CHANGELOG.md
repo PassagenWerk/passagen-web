@@ -11,6 +11,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - Author abstracts in the shared paper contract and reader, displayed separately before generated
   Summary and Outline content.
+- Validated cleaned abstracts as the primary Reader column alongside the retained original
+  extraction, with a stacked mobile layout and automatic fallback when no current artifact exists.
 
 ## [0.4.0] - 2026-09-05
 

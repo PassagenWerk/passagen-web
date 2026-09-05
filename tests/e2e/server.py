@@ -1,9 +1,11 @@
 import atexit
+import hashlib
 import json
 import shutil
 import tempfile
 from pathlib import Path
 
+from passagen.stages.abstract_fixing import CleanedAbstractArtifact
 from passagen.storage.database import connect_database, initialize_database
 
 from passagen_web.cli import main
@@ -45,10 +47,23 @@ def create_library() -> Path:
     )
     outline = b"# Release outline\n\n- Evidence pages: 1\n"
     pdf = b"%PDF-1.7\n1 0 obj<</Type/Catalog>>endobj\n%%EOF\n"
+    raw_abstract = "An author-written overview of Alpha Systems."
+    cleaned_abstract = (
+        CleanedAbstractArtifact(
+            paper_id="paper-a",
+            raw_abstract_sha256=hashlib.sha256(raw_abstract.encode()).hexdigest(),
+            prompt_sha256="b" * 64,
+            model="test-model",
+            cleaned_abstract="A cleaned author-written overview of Alpha Systems.",
+            corrections=["Repaired extraction spacing"],
+        ).model_dump_json()
+        + "\n"
+    ).encode()
     artifacts = (
         ("summary_json", "summary.json", summary),
         ("outline_md", "outline.md", outline),
         ("original_pdf", "paper.pdf", pdf),
+        ("abstract_cleaned_json", "abstract.cleaned.json", cleaned_abstract),
     )
     with connect_database(data_dir / "passagen.db") as connection:
         for kind, filename, content in artifacts:

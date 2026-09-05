@@ -61,10 +61,10 @@ export function LibraryPage({
   const detail = useQuery({
     queryKey: ["paper", paperId],
     queryFn: () => fetchPaper(paperId!),
-    enabled: Boolean(paperId && !listedPaper),
+    enabled: Boolean(paperId),
     retry: false,
   });
-  const selectedPaper = listedPaper ?? detail.data;
+  const selectedPaper = detail.data ?? listedPaper;
 
   function changeSearch(key: string, value: string) {
     const next = new URLSearchParams(search);

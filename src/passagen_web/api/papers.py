@@ -15,6 +15,7 @@ from passagen.catalog import (
     TagMatch,
     validate_summary_json,
 )
+from passagen.stages.abstract_fixing import load_cleaned_abstract
 from passagen.stages.scanning import import_files
 
 from passagen_web.dependencies import CatalogDependency, SettingsDependency
@@ -120,8 +121,16 @@ def list_papers(
 
 
 @router.get("/{paper_id}", response_model=PaperResponse)
-def get_paper(paper_id: str, catalog: CatalogDependency) -> PaperResponse:
-    return _paper_response(catalog.get_paper(paper_id))
+def get_paper(
+    paper_id: str,
+    catalog: CatalogDependency,
+    settings: SettingsDependency,
+) -> PaperResponse:
+    cleaned = load_cleaned_abstract(settings.database_path, settings.data_dir, paper_id)
+    return _paper_response(
+        catalog.get_paper(paper_id),
+        cleaned_abstract=cleaned.cleaned_abstract if cleaned is not None else None,
+    )
 
 
 @router.patch("/{paper_id}/metadata", response_model=PaperResponse)
@@ -224,13 +233,14 @@ def get_pdf(paper_id: str, request: Request, catalog: CatalogDependency) -> Resp
     return response
 
 
-def _paper_response(paper: PaperView) -> PaperResponse:
+def _paper_response(paper: PaperView, *, cleaned_abstract: str | None = None) -> PaperResponse:
     kinds = set(paper.artifact_kinds)
     return PaperResponse(
         id=paper.id,
         title=paper.title,
         # Core 0.4 builds from before schema v4 do not expose abstracts.
         abstract=getattr(paper, "abstract", None),
+        cleaned_abstract=cleaned_abstract,
         authors=list(paper.authors),
         year=paper.year,
         venue=paper.venue,

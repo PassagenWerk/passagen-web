@@ -1,8 +1,10 @@
+import hashlib
 import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 from passagen.catalog import CatalogService
+from passagen.stages.abstract_fixing import CleanedAbstractArtifact
 from passagen.storage.database import connect_database
 
 from passagen_web.app import create_app
@@ -124,22 +126,46 @@ def test_list_papers_filters_by_multiple_tags(data_dir: Path) -> None:
 
 
 def test_paper_detail_and_not_found_error_are_stable(data_dir: Path) -> None:
+    raw_abstract = "An author-written overview."
     _insert_paper(
         data_dir,
         "paper-a",
         title="Alpha",
         year=2024,
         venue="SOSP",
-        abstract="An author-written overview.",
+        abstract=raw_abstract,
+    )
+    cleaned = CleanedAbstractArtifact(
+        paper_id="paper-a",
+        raw_abstract_sha256=hashlib.sha256(raw_abstract.encode()).hexdigest(),
+        prompt_sha256="b" * 64,
+        model="test-model",
+        cleaned_abstract="A cleaned author-written overview.",
+        corrections=["Repaired extraction spacing"],
+    )
+    _insert_artifact(
+        data_dir,
+        "paper-a",
+        "abstract_cleaned_json",
+        "papers/paper-a/abstract.cleaned.json",
+        (cleaned.model_dump_json() + "\n").encode(),
     )
 
     with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
         detail = client.get("/api/papers/paper-a")
+        with connect_database(data_dir / "passagen.db") as connection:
+            connection.execute(
+                "UPDATE papers SET abstract = ? WHERE id = ?",
+                ("A newly edited original abstract.", "paper-a"),
+            )
+        stale = client.get("/api/papers/paper-a")
         missing = client.get("/api/papers/missing")
 
     assert detail.status_code == 200
     assert detail.json()["authors"] == ["Ada Author"]
     assert detail.json()["abstract"] == "An author-written overview."
+    assert detail.json()["cleaned_abstract"] == "A cleaned author-written overview."
+    assert stale.json()["cleaned_abstract"] is None
     assert missing.status_code == 404
     assert missing.json()["error"]["code"] == "not_found"
 

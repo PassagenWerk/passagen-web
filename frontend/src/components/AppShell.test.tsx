@@ -9,6 +9,7 @@ const paper = {
   id: "paper-1",
   title: "A Useful Paper",
   abstract: "An author-written overview of this research.",
+  cleaned_abstract: "A cleaned author-written overview of this research.",
   authors: ["Ada Author", "Ben Builder"],
   year: 2024,
   venue: "SOSP",
@@ -243,6 +244,9 @@ test("opens a paper summary and supports keyboard navigation", async () => {
 
   expect(await screen.findByText("A useful research problem")).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Author abstract" })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Cleaned" })).toBeInTheDocument();
+  expect(screen.getByText("A cleaned author-written overview of this research.")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Original extraction" })).toBeInTheDocument();
   expect(screen.getByText("An author-written overview of this research.")).toBeInTheDocument();
   expect(screen.getByRole("tab", { name: "Summary" })).toHaveAttribute("aria-selected", "true");
   expect(screen.queryByRole("button", { name: "Open PDF panel" })).not.toBeInTheDocument();
