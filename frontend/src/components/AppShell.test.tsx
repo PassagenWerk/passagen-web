@@ -130,6 +130,9 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
+  delete document.documentElement.dataset.theme;
+  delete document.documentElement.dataset.readerScale;
+  document.documentElement.style.removeProperty("--reader-font-size");
 });
 
 function response(body: unknown): Promise<Response> {
@@ -163,6 +166,33 @@ test("loads the connected paper library and updates search through the URL", asy
   await waitFor(() => {
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(expect.stringContaining("q=kernel"));
   });
+});
+
+test("changes and persists the color theme", async () => {
+  renderApp();
+
+  fireEvent.click(screen.getByRole("button", { name: "Mode" }));
+  fireEvent.click(screen.getByRole("radio", { name: "dark" }));
+
+  await waitFor(() => expect(document.documentElement).toHaveAttribute("data-theme", "dark"));
+  expect(window.localStorage.getItem("passagen.theme")).toBe("dark");
+  expect(screen.queryByRole("radio", { name: "dark" })).not.toBeInTheDocument();
+});
+
+test("changes and persists the reading text size", async () => {
+  renderApp("/papers/paper-1");
+  await screen.findByText("A useful research problem");
+
+  expect(screen.queryByRole("slider", { name: "Reading font size" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Reading text size" }));
+  fireEvent.change(screen.getByRole("slider", { name: "Reading font size" }), {
+    target: { value: "21" },
+  });
+
+  await waitFor(() => expect(document.documentElement.style.getPropertyValue("--reader-font-size")).toBe("21px"));
+  expect(document.documentElement).toHaveAttribute("data-reader-scale", "large");
+  expect(window.localStorage.getItem("passagen.reader-font-size")).toBe("21");
+  expect(screen.getByText("21px")).toBeInTheDocument();
 });
 
 test("opens a paper summary and supports keyboard navigation", async () => {

@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 
 import { fetchHealth } from "../api/health";
+import { useDisplayPreferences, type ThemePreference } from "../features/preferences/displayPreferences";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -9,6 +11,8 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
+  const { theme, setTheme } = useDisplayPreferences();
+  const [themeOpen, setThemeOpen] = useState(false);
   const health = useQuery({ queryKey: ["health"], queryFn: fetchHealth, retry: false });
   const libraryActive =
     !location.pathname.startsWith("/collections") &&
@@ -36,6 +40,35 @@ export function AppShell({ children }: AppShellProps) {
             <NavLink to="/collections">Collections</NavLink>
             <NavLink to="/processing">Processing</NavLink>
           </nav>
+          <div className="theme-settings">
+            <button
+              className="settings-toggle"
+              type="button"
+              aria-expanded={themeOpen}
+              aria-controls="theme-settings"
+              onClick={() => setThemeOpen((open) => !open)}
+            >Mode</button>
+            {themeOpen ? (
+              <fieldset className="settings-panel theme-settings-panel" id="theme-settings">
+                <legend>Theme</legend>
+                {(["system", "light", "dark"] as ThemePreference[]).map((option) => (
+                  <label key={option}>
+                    <input
+                      type="radio"
+                      name="theme"
+                      value={option}
+                      checked={theme === option}
+                      onChange={() => {
+                        setTheme(option);
+                        setThemeOpen(false);
+                      }}
+                    />
+                    <span>{option}</span>
+                  </label>
+                ))}
+              </fieldset>
+            ) : null}
+          </div>
           <div className={`connection ${health.isSuccess ? "is-online" : ""}`} role="status">
             <span className="connection-dot" />
             {connectionLabel}

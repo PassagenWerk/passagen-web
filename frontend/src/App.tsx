@@ -4,6 +4,7 @@ import { Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/AppShell";
 import { CollectionsPage } from "./features/collections/CollectionsPage";
 import { LibraryPage } from "./features/papers/LibraryPage";
+import { DisplayPreferencesProvider } from "./features/preferences/DisplayPreferencesProvider";
 import { ProcessingPage } from "./features/processing/ProcessingPage";
 import { RunDetailPage } from "./features/processing/RunDetailPage";
 
@@ -11,7 +12,8 @@ export function App() {
   const [readingFocused, setReadingFocused] = useState(false);
 
   return (
-    <Routes>
+    <DisplayPreferencesProvider>
+      <Routes>
       <Route
         path="/"
         element={
@@ -54,6 +56,7 @@ export function App() {
       <Route path="/collections/:collectionId/papers/:paperId/pdf" element={<AppShell><CollectionsPage /></AppShell>} />
       <Route path="/processing" element={<AppShell><ProcessingPage /></AppShell>} />
       <Route path="/processing/runs/:runId" element={<AppShell><RunDetailPage /></AppShell>} />
-    </Routes>
+      </Routes>
+    </DisplayPreferencesProvider>
   );
 }

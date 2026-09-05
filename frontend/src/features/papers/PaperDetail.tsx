@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { fetchOutline, fetchSummary, type Paper, type Tag } from "../../api/papers";
+import { useDisplayPreferences } from "../preferences/displayPreferences";
 import { PdfReader } from "../reader/PdfReader";
 import { PaperLibraryEditor } from "./PaperLibraryEditor";
 import { PaperProcessing } from "./PaperProcessing";
@@ -37,6 +39,8 @@ export function PaperDetail({
   onExitFocus,
   paperPath,
 }: PaperDetailProps) {
+  const { readerFontSize, setReaderFontSize } = useDisplayPreferences();
+  const [readerSettingsOpen, setReaderSettingsOpen] = useState(false);
   const requestedView = search.get("view") === "outline" ? "outline" : "summary";
   const view = requestedView === "summary" && !paper?.artifacts.summary && paper?.artifacts.outline
     ? "outline"
@@ -110,21 +114,53 @@ export function PaperDetail({
             <PaperProcessing paper={paper} />
           </header>
 
-          <div className="reader-tabs" role="tablist" aria-label="Paper artifacts">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === "summary"}
-              disabled={!paper.artifacts.summary}
-              onClick={() => onView("summary")}
-            >Summary</button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={view === "outline"}
-              disabled={!paper.artifacts.outline}
-              onClick={() => onView("outline")}
-            >Outline</button>
+          <div className="reader-tabs">
+            <div className="reader-tab-list" role="tablist" aria-label="Paper artifacts">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "summary"}
+                disabled={!paper.artifacts.summary}
+                onClick={() => onView("summary")}
+              >Summary</button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "outline"}
+                disabled={!paper.artifacts.outline}
+                onClick={() => onView("outline")}
+              >Outline</button>
+            </div>
+            <div className="reader-settings">
+              <button
+                className="reader-settings-toggle"
+                type="button"
+                aria-label="Reading text size"
+                aria-expanded={readerSettingsOpen}
+                aria-controls="reader-size-settings"
+                onClick={() => setReaderSettingsOpen((open) => !open)}
+              >Aa</button>
+              {readerSettingsOpen ? (
+                <fieldset className="settings-panel reader-settings-panel" id="reader-size-settings">
+                  <legend>Reading text</legend>
+                  <output htmlFor="reader-font-size">{readerFontSize}px</output>
+                  <div className="reader-size-slider">
+                    <span aria-hidden="true">A</span>
+                    <input
+                      id="reader-font-size"
+                      type="range"
+                      min="14"
+                      max="24"
+                      step="1"
+                      value={readerFontSize}
+                      aria-label="Reading font size"
+                      onChange={(event) => setReaderFontSize(Number(event.target.value))}
+                    />
+                    <span aria-hidden="true">A</span>
+                  </div>
+                </fieldset>
+              ) : null}
+            </div>
           </div>
 
           <div className="reader" role="tabpanel">

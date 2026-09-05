@@ -3,8 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f3efe4" />
+    <meta name="theme-color" content="#f1ede2" />
     <title>Passagen Library</title>
+    <script>
+      (() => {
+        try {
+          const theme = localStorage.getItem("passagen.theme");
+          const dark = theme === "dark" ||
+            (theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.dataset.theme = dark ? "dark" : "light";
+          document.querySelector('meta[name="theme-color"]').content = dark ? "#171814" : "#f1ede2";
+
+          const size = Number(localStorage.getItem("passagen.reader-font-size"));
+          if (Number.isInteger(size) && size >= 14 && size <= 24) {
+            document.documentElement.style.setProperty("--reader-font-size", `${size}px`);
+            document.documentElement.dataset.readerScale = size >= 21 ? "large" : "standard";
+          }
+        } catch {
+          // Defaults in the stylesheet remain available when storage is blocked.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
