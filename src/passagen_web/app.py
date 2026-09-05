@@ -118,7 +118,7 @@ def _install_static_routes(app: FastAPI, static_dir: Path) -> None:
     @app.get("/{frontend_path:path}", include_in_schema=False, response_class=FileResponse)
     def frontend(frontend_path: str) -> FileResponse:
         first_segment = frontend_path.partition("/")[0]
-        if first_segment not in {"", "papers", "collections", "processing"}:
+        if first_segment not in {"", "papers", "collections", "processing", "tags"}:
             raise HTTPException(status_code=404)
         return FileResponse(index, media_type="text/html", headers={"Cache-Control": "no-cache"})
 

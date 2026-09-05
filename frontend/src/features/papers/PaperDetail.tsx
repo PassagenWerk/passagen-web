@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { fetchOutline, fetchSummary, type Paper, type Tag } from "../../api/papers";
+import { useEscapeClose } from "../../components/useEscapeClose";
 import { useDisplayPreferences } from "../preferences/displayPreferences";
 import { PdfReader } from "../reader/PdfReader";
 import { PaperLibraryEditor } from "./PaperLibraryEditor";
 import { PaperProcessing } from "./PaperProcessing";
+import { PaperTagPicker } from "./PaperTagPicker";
 import { StructuredSummary } from "./StructuredSummary";
 
 interface PaperDetailProps {
@@ -41,6 +43,14 @@ export function PaperDetail({
 }: PaperDetailProps) {
   const { readerFontSize, setReaderFontSize } = useDisplayPreferences();
   const [readerSettingsOpen, setReaderSettingsOpen] = useState(false);
+  const [tagPickerOpen, setTagPickerOpen] = useState(false);
+  const tagPickerToggle = useRef<HTMLButtonElement>(null);
+  const paperId = paper?.id;
+  useEffect(() => setTagPickerOpen(false), [paperId]);
+  useEscapeClose(tagPickerOpen, () => {
+    setTagPickerOpen(false);
+    tagPickerToggle.current?.focus();
+  });
   const requestedView = search.get("view") === "outline" ? "outline" : "summary";
   const view = requestedView === "summary" && !paper?.artifacts.summary && paper?.artifacts.outline
     ? "outline"
@@ -110,7 +120,7 @@ export function PaperDetail({
                 })}
               </div>
             ) : null}
-            <PaperLibraryEditor key={paper.id} paper={paper} tags={tags} />
+            <PaperLibraryEditor key={paper.id} paper={paper} />
             <PaperProcessing paper={paper} />
           </header>
 
@@ -131,7 +141,23 @@ export function PaperDetail({
                 onClick={() => onView("outline")}
               >Outline</button>
             </div>
-            <div className="reader-settings">
+            <div className="reader-actions">
+              <div className="reader-tags">
+                <button
+                  ref={tagPickerToggle}
+                  className="reader-settings-toggle"
+                  type="button"
+                  aria-expanded={tagPickerOpen}
+                  aria-controls="paper-tag-picker"
+                  onClick={() => setTagPickerOpen((open) => !open)}
+                >Tags {paper.tag_ids.length}</button>
+                {tagPickerOpen ? (
+                  <div className="settings-panel tag-picker-panel" id="paper-tag-picker">
+                    <PaperTagPicker key={paper.id} paper={paper} tags={tags} />
+                  </div>
+                ) : null}
+              </div>
+              <div className="reader-settings">
               <button
                 className="reader-settings-toggle"
                 type="button"
@@ -160,6 +186,7 @@ export function PaperDetail({
                   </div>
                 </fieldset>
               ) : null}
+              </div>
             </div>
           </div>
 

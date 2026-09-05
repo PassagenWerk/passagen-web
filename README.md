@@ -88,6 +88,8 @@ GET /api/papers/{paper_id}/outline
 GET /api/papers/{paper_id}/pdf
 PATCH /api/papers/{paper_id}/metadata
 PUT /api/papers/{paper_id}/tags
+PUT /api/papers/{paper_id}/tags/{tag_id}
+DELETE /api/papers/{paper_id}/tags/{tag_id}
 GET /api/tags
 POST /api/tags
 PATCH /api/tags/{tag_id}
@@ -104,9 +106,9 @@ DELETE /api/collections/{collection_id}/papers/{paper_id}
 
 PDF 端点以内联方式流式传输受管理的原始论文，支持字节范围请求、`ETag` 和 `Last-Modified`。PDF 仅在聚焦 Read 模式通过右侧开关显示，打开后与左侧 Summary 或 Outline 构成双栏；其 URL 为 `/papers/{paper_id}/pdf?page={page}`。Summary 和 Outline 中的 evidence page 会自动打开 PDF 侧栏并跳转到对应页面，也可从阅读器在新标签页打开原始 PDF。
 
-论文列表支持 `q`、`status`、`tag`、`venue`、`year`、`collection`、`sort`、`direction`、`limit` 和 `offset` 查询参数。
+论文列表支持 `q`、`status`、`tag`、`tag_match`、`venue`、`year`、`collection`、`sort`、`direction`、`limit` 和 `offset` 查询参数。`tag` 可以重复出现以筛选多个 Tag；`tag_match=all`（默认）要求论文同时包含全部所选 Tag，`tag_match=any` 匹配包含任意所选 Tag 的论文。`GET /api/tags` 返回每个 Tag 的 `paper_count` 使用数量。
 
-Library Tags 是用户维护的持久化标签，可通过 Find 面板创建、重命名、改色、删除，并在论文详情页的编辑器中分配。Summary 中生成的 `Paper Keywords` 保持只读，与 Library Tags 不自动合并。元数据编辑器允许修改标题、Venue 和年份，请求携带 `updated_at` 进行乐观并发校验，被其他流程更新的值不会静默覆盖。
+Library Tags 是用户维护的持久化标签。Find 面板提供可搜索的多选 Tag 筛选，选中状态保存在 URL 中；阅读工具栏的 `Tags N` 入口可以在不离开阅读位置的情况下即时添加或移除当前论文的 Tag，并可直接创建并分配新 Tag。`/tags` 工作区集中创建、重命名、改色和删除全局 Tag，删除前会显示受影响的论文数量。Summary 中生成的 `Paper Keywords` 保持只读，与 Library Tags 不自动合并。元数据编辑器（Edit Metadata）允许修改标题、Venue 和年份，请求携带 `updated_at` 进行乐观并发校验，被其他流程更新的值不会静默覆盖。
 
 顶部的 `Library` 和 `Collections` 是两个互通的工作入口。Library 默认浏览全部论文，也可以浏览具体集合或尚未归类的论文，并从当前筛选结果多选、批量加入集合；选择具体集合时可使用持久化集合顺序浏览。Collections 使用独立两栏工作区创建和编辑集合、添加或移除成员，并通过一次原子请求调整成员顺序。从集合打开论文会保留集合上下文，上一篇和下一篇遵循集合顺序，退出阅读后返回原集合。
 

@@ -41,6 +41,7 @@ def test_production_app_serves_assets_and_spa_fallback_without_masking_api(
         root = client.get("/")
         paper_route = client.get("/papers/paper-1/pdf?page=3")
         collection_route = client.get("/collections/collection-1/papers/paper-1")
+        tag_route = client.get("/tags/tag-1")
         asset = client.get("/assets/app.js")
         missing_api = client.get("/api/not-a-route")
         missing_frontend = client.get("/not-a-route")
@@ -48,6 +49,7 @@ def test_production_app_serves_assets_and_spa_fallback_without_masking_api(
     assert root.text == "<main>Passagen application</main>"
     assert paper_route.status_code == 200
     assert collection_route.status_code == 200
+    assert tag_route.status_code == 200
     assert asset.text == "console.log('passagen')"
     assert missing_api.status_code == 404
     assert missing_api.headers["content-type"].startswith("application/json")

@@ -16,7 +16,8 @@ export function AppShell({ children }: AppShellProps) {
   const health = useQuery({ queryKey: ["health"], queryFn: fetchHealth, retry: false });
   const libraryActive =
     !location.pathname.startsWith("/collections") &&
-    !location.pathname.startsWith("/processing");
+    !location.pathname.startsWith("/processing") &&
+    !location.pathname.startsWith("/tags");
   const connectionLabel = health.isPending
     ? "Connecting"
     : health.isSuccess

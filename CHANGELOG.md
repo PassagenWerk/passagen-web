@@ -7,6 +7,26 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- Idempotent single-tag assignment endpoints `PUT/DELETE /api/papers/{paper_id}/tags/{tag_id}`
+  returning the updated paper; the full-replacement `PUT /api/papers/{paper_id}/tags` remains for
+  batch callers.
+- Multi-tag library filtering through repeated `tag` query parameters with
+  `tag_match=all|any` on `GET /api/papers`; `GET /api/tags` now reports each tag's `paper_count`
+  from a single aggregate query.
+- `/tags` workspace for searching, creating, renaming, recoloring, and deleting Library Tags with
+  per-tag usage counts and a delete confirmation that states the affected papers.
+- In-context tag picker on the sticky reading toolbar (`Tags N`): search, instant assign/remove
+  with retryable failure states, and "Create and assign" for new tags without leaving the reading
+  position.
+
+### Changed
+
+- The Find panel replaces the single-tag select and the embedded per-row tag manager with a
+  searchable multi-select tag filter that keeps the selected tags and match mode in the URL.
+- `Edit Library Data` was renamed to `Edit Metadata` and no longer edits tag assignments.
+
 ## [0.3.0] - 2026-09-04
 
 ### Added

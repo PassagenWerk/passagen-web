@@ -12,6 +12,7 @@ from passagen.catalog import (
     PaperStatus,
     PaperView,
     SortDirection,
+    TagMatch,
     validate_summary_json,
 )
 from passagen.stages.scanning import import_files
@@ -83,7 +84,8 @@ def list_papers(
     catalog: CatalogDependency,
     query: Annotated[str | None, Query(alias="q")] = None,
     status: PaperStatus | None = None,
-    tag: str | None = None,
+    tag: Annotated[list[str] | None, Query()] = None,
+    tag_match: TagMatch = TagMatch.ALL,
     venue: str | None = None,
     year: int | None = None,
     collection: str | None = None,
@@ -97,7 +99,8 @@ def list_papers(
         PaperFilters(
             query=query,
             status=status,
-            tag_id=tag,
+            tag_ids=tuple(dict.fromkeys(tag or [])),
+            tag_match=tag_match,
             venue=venue,
             year=year,
             collection_id=collection,
@@ -141,6 +144,23 @@ def update_paper_tags(
     paper_id: str, payload: PaperTagsUpdateRequest, catalog: CatalogDependency
 ) -> PaperResponse:
     catalog.set_paper_tags(paper_id, payload.tag_ids)
+    return _paper_response(catalog.get_paper(paper_id))
+
+
+@router.put("/{paper_id}/tags/{tag_id}", response_model=PaperResponse)
+def add_paper_tag(paper_id: str, tag_id: str, catalog: CatalogDependency) -> PaperResponse:
+    catalog.get_paper(paper_id)
+    catalog.get_tag(tag_id)
+    catalog.add_paper_tag(paper_id, tag_id)
+    return _paper_response(catalog.get_paper(paper_id))
+
+
+@router.delete("/{paper_id}/tags/{tag_id}", response_model=PaperResponse)
+def remove_paper_tag(paper_id: str, tag_id: str, catalog: CatalogDependency) -> PaperResponse:
+    paper = catalog.get_paper(paper_id)
+    catalog.get_tag(tag_id)
+    if tag_id in paper.tag_ids:
+        catalog.remove_paper_tag(paper_id, tag_id)
     return _paper_response(catalog.get_paper(paper_id))
 
 

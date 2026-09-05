@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -46,7 +46,19 @@ const collection = {
   })),
 };
 
+let tagFixtures: Array<{
+  id: string;
+  name: string;
+  color: string | null;
+  created_at: string;
+  paper_count: number;
+}>;
+
 beforeEach(() => {
+  tagFixtures = [
+    { id: "tag-1", name: "Systems", color: "#395b64", created_at: "2026-01-01", paper_count: 1 },
+    { id: "tag-2", name: "Priority", color: "#6b705c", created_at: "2026-01-02", paper_count: 0 },
+  ];
   vi.stubGlobal(
     "fetch",
     vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -74,12 +86,30 @@ beforeEach(() => {
       }
       if (url === "/api/collections/collection-1") return response(collection);
       if (url === "/api/tags" && init?.method === "POST") {
-        return response({ id: "tag-2", name: "Priority", color: "#6b705c", created_at: "2026-01-02" });
+        const body = JSON.parse(String(init.body)) as { name: string; color?: string };
+        const created = {
+          id: `tag-${tagFixtures.length + 1}`,
+          name: body.name,
+          color: body.color ?? null,
+          created_at: "2026-01-03",
+          paper_count: 0,
+        };
+        tagFixtures.push(created);
+        return response(created);
       }
       if (url === "/api/tags") {
-        return response([
-          { id: "tag-1", name: "Systems", color: "#395b64", created_at: "2026-01-01" },
-        ]);
+        return response(tagFixtures);
+      }
+      const tagMatch = /^\/api\/tags\/([\w-]+)$/.exec(url);
+      if (tagMatch && init?.method === "PATCH") {
+        const tag = tagFixtures.find((item) => item.id === tagMatch[1]);
+        if (!tag) return Promise.resolve(new Response(null, { status: 404 }));
+        Object.assign(tag, JSON.parse(String(init.body)) as { name?: string; color?: string });
+        return response(tag);
+      }
+      if (tagMatch && init?.method === "DELETE") {
+        tagFixtures = tagFixtures.filter((item) => item.id !== tagMatch[1]);
+        return Promise.resolve(new Response(null, { status: 204 }));
       }
       if (url.endsWith("/summary")) {
         return response({
@@ -121,6 +151,15 @@ beforeEach(() => {
       if (url.endsWith("/tags") && init?.method === "PUT") {
         return response({ ...paper, tag_ids: [] });
       }
+      if (url === "/api/papers/paper-1/tags/tag-1" && init?.method === "DELETE") {
+        return response({ ...paper, tag_ids: [] });
+      }
+      if (url === "/api/papers/paper-1/tags/tag-1" && init?.method === "PUT") {
+        return response(paper);
+      }
+      if (url === "/api/papers/paper-1/tags/tag-3" && init?.method === "PUT") {
+        return response({ ...paper, tag_ids: ["tag-1", "tag-3"] });
+      }
       if (url === "/api/papers/paper-1") return response(paper);
       return Promise.resolve(new Response(null, { status: 404 }));
     }),
@@ -157,7 +196,7 @@ test("loads the connected paper library and updates search through the URL", asy
 
   expect(await screen.findByText("Library online")).toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: "A Useful Paper" })).toBeInTheDocument();
-  expect(screen.getAllByText("Systems")).toHaveLength(2);
+  expect(screen.getAllByText("Systems")).toHaveLength(1);
 
   fireEvent.change(screen.getByRole("searchbox", { name: "Search title" }), {
     target: { value: "kernel" },
@@ -292,26 +331,167 @@ test("keeps generated keywords distinct from editable Library Tags", async () =>
 
   expect(await screen.findByText("Paper keywords (generated)")).toBeInTheDocument();
   expect(screen.getByText("generated-keyword")).toBeInTheDocument();
-  expect(screen.getByText("Personal labels; separate from read-only Paper Keywords.")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Tags 1" }));
+  expect(screen.getByText("Personal labels; separate from generated Paper Keywords.")).toBeInTheDocument();
 });
 
-test("creates a Library Tag and saves user metadata", async () => {
+test("assigns and removes Library Tags from the reading toolbar", async () => {
   renderApp("/papers/paper-1");
   await screen.findByText("A useful research problem");
 
-  fireEvent.click(screen.getByText("Manage Library Tags"));
-  fireEvent.change(screen.getByRole("textbox", { name: "New Library Tag" }), {
-    target: { value: "Priority" },
+  fireEvent.click(screen.getByRole("button", { name: "Tags 1" }));
+  const picker = screen.getByRole("listbox", { name: "Tags" });
+  const option = within(picker).getByRole("option", { name: /Systems/ });
+  expect(option).toHaveAttribute("aria-selected", "true");
+  fireEvent.click(option);
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/papers/paper-1/tags/tag-1",
+      expect.objectContaining({ method: "DELETE" }),
+    );
   });
-  fireEvent.click(screen.getByRole("button", { name: "Add" }));
+  expect(within(picker).getByRole("option", { name: /Systems/ })).toHaveAttribute("aria-selected", "false");
+
+  fireEvent.click(within(picker).getByRole("option", { name: /Systems/ }));
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/papers/paper-1/tags/tag-1",
+      expect.objectContaining({ method: "PUT" }),
+    );
+  });
+});
+
+test("creates and assigns a new tag from the reading toolbar", async () => {
+  renderApp("/papers/paper-1");
+  await screen.findByText("A useful research problem");
+
+  fireEvent.click(screen.getByRole("button", { name: "Tags 1" }));
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search tags" }), {
+    target: { value: "Methods" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: 'Create and assign "Methods"' }));
+
   await waitFor(() => {
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
       "/api/tags",
-      expect.objectContaining({ method: "POST" }),
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ name: "Methods", color: "#6b705c" }) }),
+    );
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/papers/paper-1/tags/tag-3",
+      expect.objectContaining({ method: "PUT" }),
+    );
+  });
+});
+
+test("filters the library by multiple tags through the picker and URL", async () => {
+  renderApp();
+  await screen.findByRole("heading", { name: "A Useful Paper" });
+
+  fireEvent.click(screen.getByRole("button", { name: /All tags/ }));
+  fireEvent.click(screen.getByRole("option", { name: /Systems/ }));
+  fireEvent.click(screen.getByRole("option", { name: /Priority/ }));
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(expect.stringContaining("tag=tag-1&tag=tag-2"));
+  });
+  expect(screen.getByRole("button", { name: /Systems/ })).toHaveAttribute("aria-expanded", "true");
+
+  fireEvent.click(screen.getByRole("radio", { name: "Any selected tag" }));
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(expect.stringContaining("tag_match=any"));
+  });
+
+  fireEvent.click(screen.getByRole("button", { name: "Clear tags" }));
+  await waitFor(() => {
+    const papersCalls = vi.mocked(fetch).mock.calls
+      .map(([input]) => String(input))
+      .filter((url) => url.startsWith("/api/papers?"));
+    expect(papersCalls.at(-1)).toBe("/api/papers?");
+  });
+});
+
+test("restores a multi-tag filter from the URL", async () => {
+  renderApp("/?tag=tag-1&tag=tag-2&tag_match=any");
+
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(expect.stringContaining("tag_match=any"));
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(expect.stringContaining("tag=tag-1&tag=tag-2"));
+  });
+  expect(await screen.findByRole("button", { name: /Systems/ })).toBeInTheDocument();
+});
+
+test("manages Library Tags from the tags workspace", async () => {
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+  renderApp("/tags");
+
+  expect(await screen.findByRole("link", { name: /Systems/ })).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /Priority/ })).toBeInTheDocument();
+
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search Library Tags" }), {
+    target: { value: "prio" },
+  });
+  expect(screen.queryByRole("link", { name: /Systems/ })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: /Priority/ })).toBeInTheDocument();
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search Library Tags" }), {
+    target: { value: "" },
+  });
+
+  fireEvent.click(screen.getByRole("link", { name: /Systems/ }));
+  expect(await screen.findByRole("heading", { name: "Systems" })).toBeInTheDocument();
+  expect(screen.getByText("Library Tag / 1 paper")).toBeInTheDocument();
+
+  fireEvent.change(screen.getByRole("textbox", { name: "Name" }), {
+    target: { value: "Systems v2" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Save tag" }));
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/tags/tag-1",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ name: "Systems v2", color: "#395b64" }),
+      }),
     );
   });
 
-  fireEvent.click(screen.getByText("Edit Library Data"));
+  fireEvent.click(screen.getByRole("button", { name: "Delete tag" }));
+  expect(confirm).toHaveBeenCalledWith(
+    'Delete Library Tag "Systems v2"? It will be removed from 1 paper.',
+  );
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/tags/tag-1",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+  confirm.mockRestore();
+});
+
+test("creates a Library Tag from the tags workspace", async () => {
+  renderApp("/tags");
+  await screen.findByRole("link", { name: /Systems/ });
+
+  fireEvent.change(screen.getByRole("textbox", { name: "New Library Tag" }), {
+    target: { value: "Methods" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/tags",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ name: "Methods", color: "#6b705c" }),
+      }),
+    );
+  });
+  expect(await screen.findByRole("heading", { name: "Methods" })).toBeInTheDocument();
+});
+
+test("saves user metadata from the paper header", async () => {
+  renderApp("/papers/paper-1");
+  await screen.findByText("A useful research problem");
+
+  fireEvent.click(screen.getByText("Edit Metadata"));
   fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
     target: { value: "A User Title" },
   });
@@ -321,15 +501,6 @@ test("creates a Library Tag and saves user metadata", async () => {
     "/api/papers/paper-1/metadata",
     expect.objectContaining({ method: "PATCH" }),
   );
-
-  fireEvent.click(screen.getByRole("checkbox", { name: /Systems/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Save tags" }));
-  await waitFor(() => {
-    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      "/api/papers/paper-1/tags",
-      expect.objectContaining({ method: "PUT" }),
-    );
-  });
 });
 
 test("browses all, collection, and unfiled papers from the Library", async () => {

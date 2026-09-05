@@ -74,6 +74,16 @@ export function LibraryPage({
     startTransition(() => setSearch(next, { replace: key === "q" }));
   }
 
+  function changeTags(tagIds: string[], match: "all" | "any") {
+    const next = new URLSearchParams(search);
+    next.delete("tag");
+    for (const tagId of tagIds) next.append("tag", tagId);
+    next.delete("tag_match");
+    if (tagIds.length > 1 && match === "any") next.set("tag_match", "any");
+    next.delete("offset");
+    startTransition(() => setSearch(next));
+  }
+
   function clearFilters() {
     const next = new URLSearchParams();
     const view = search.get("view");
@@ -162,6 +172,7 @@ export function LibraryPage({
         tags={tags.data ?? []}
         collections={collections.data ?? []}
         onChange={changeSearch}
+        onTags={changeTags}
         onBrowse={changeBrowse}
         onClear={clearFilters}
       />

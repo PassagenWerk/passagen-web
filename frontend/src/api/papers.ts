@@ -34,6 +34,7 @@ export interface Tag {
   name: string;
   color: string | null;
   created_at: string;
+  paper_count: number;
 }
 
 export interface SummaryResponse {
@@ -53,23 +54,28 @@ export interface MetadataUpdate {
   expected_updated_at: string;
 }
 
+export const DEFAULT_TAG_COLOR = "#6b705c";
+
 export async function fetchPapers(search: URLSearchParams): Promise<PaperPage> {
   const query = new URLSearchParams();
   for (const key of [
     "q",
     "status",
-    "tag",
     "venue",
     "year",
     "collection",
     "unfiled",
     "sort",
     "direction",
+    "tag_match",
     "limit",
     "offset",
   ]) {
     const value = search.get(key);
     if (value) query.set(key, value);
+  }
+  for (const tagId of search.getAll("tag")) {
+    if (tagId) query.append("tag", tagId);
   }
   return requestJson<PaperPage>(`/api/papers?${query.toString()}`);
 }
@@ -106,7 +112,21 @@ export function updatePaperTags(paperId: string, tagIds: string[]): Promise<Pape
   });
 }
 
-export function createTag(name: string, color: string): Promise<Tag> {
+export function addPaperTag(paperId: string, tagId: string): Promise<Paper> {
+  return requestJson<Paper>(
+    `/api/papers/${encodeURIComponent(paperId)}/tags/${encodeURIComponent(tagId)}`,
+    { method: "PUT" },
+  );
+}
+
+export function removePaperTag(paperId: string, tagId: string): Promise<Paper> {
+  return requestJson<Paper>(
+    `/api/papers/${encodeURIComponent(paperId)}/tags/${encodeURIComponent(tagId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export function createTag(name: string, color: string = DEFAULT_TAG_COLOR): Promise<Tag> {
   return requestJson<Tag>("/api/tags", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -91,6 +91,35 @@ def test_list_papers_filters_sorts_and_never_returns_paths(data_dir: Path) -> No
     assert "summaries/b.json" not in response.text
 
 
+def test_list_papers_filters_by_multiple_tags(data_dir: Path) -> None:
+    _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
+    _insert_paper(data_dir, "paper-b", title="Beta", year=2024, venue="SOSP")
+    _insert_paper(data_dir, "paper-c", title="Gamma", year=2024, venue="SOSP")
+    catalog = CatalogService(data_dir / "passagen.db", data_dir)
+    systems = catalog.create_tag("Systems")
+    priority = catalog.create_tag("Priority")
+    catalog.add_paper_tag("paper-a", systems.id)
+    catalog.add_paper_tag("paper-b", systems.id)
+    catalog.add_paper_tag("paper-b", priority.id)
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        match_all = client.get("/api/papers", params=[("tag", systems.id), ("tag", priority.id)])
+        match_any = client.get(
+            "/api/papers",
+            params=[("tag", systems.id), ("tag", priority.id), ("tag_match", "any")],
+        )
+        unknown = client.get("/api/papers", params=[("tag", systems.id), ("tag", "missing-tag")])
+        invalid_match = client.get("/api/papers", params={"tag_match": "some"})
+
+    assert match_all.status_code == 200
+    assert match_all.json()["total"] == 1
+    assert [item["id"] for item in match_all.json()["items"]] == ["paper-b"]
+    assert match_any.json()["total"] == 2
+    assert [item["id"] for item in match_any.json()["items"]] == ["paper-a", "paper-b"]
+    assert unknown.json()["total"] == 0
+    assert invalid_match.status_code == 422
+
+
 def test_paper_detail_and_not_found_error_are_stable(data_dir: Path) -> None:
     _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
 
@@ -244,6 +273,7 @@ def test_tags_are_available_for_library_filters(data_dir: Path) -> None:
             "name": "Distributed systems",
             "color": "#395b64",
             "created_at": tag.created_at,
+            "paper_count": 0,
         }
     ]
 
@@ -268,6 +298,31 @@ def test_library_tag_lifecycle_and_paper_assignment(data_dir: Path) -> None:
     assert assigned.json()["tag_ids"] == [tag_id]
     assert deleted.status_code == 204
     assert detail.json()["tag_ids"] == []
+
+
+def test_single_tag_assignment_endpoints_are_idempotent(data_dir: Path) -> None:
+    _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
+    catalog = CatalogService(data_dir / "passagen.db", data_dir)
+    tag = catalog.create_tag("Systems")
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        added = client.put(f"/api/papers/paper-a/tags/{tag.id}")
+        added_again = client.put(f"/api/papers/paper-a/tags/{tag.id}")
+        removed = client.delete(f"/api/papers/paper-a/tags/{tag.id}")
+        removed_again = client.delete(f"/api/papers/paper-a/tags/{tag.id}")
+        missing_paper = client.put(f"/api/papers/missing/tags/{tag.id}")
+        missing_tag = client.put("/api/papers/paper-a/tags/missing")
+        remove_missing_tag = client.delete("/api/papers/paper-a/tags/missing")
+
+    assert added.status_code == 200
+    assert added.json()["tag_ids"] == [tag.id]
+    assert added_again.json()["tag_ids"] == [tag.id]
+    assert removed.json()["tag_ids"] == []
+    assert removed_again.status_code == 200
+    assert removed_again.json()["tag_ids"] == []
+    assert missing_paper.status_code == 404
+    assert missing_tag.status_code == 404
+    assert remove_missing_tag.status_code == 404
 
 
 def test_user_metadata_update_uses_optimistic_concurrency(data_dir: Path) -> None:

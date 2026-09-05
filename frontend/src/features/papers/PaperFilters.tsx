@@ -1,6 +1,6 @@
 import type { CollectionSummary } from "../../api/collections";
 import type { Tag } from "../../api/papers";
-import { LibraryTagManager } from "../tags/LibraryTagManager";
+import { TagFilter } from "../tags/TagFilter";
 import { Link } from "react-router-dom";
 
 interface PaperFiltersProps {
@@ -8,11 +8,12 @@ interface PaperFiltersProps {
   tags: Tag[];
   collections: CollectionSummary[];
   onChange: (key: string, value: string) => void;
+  onTags: (tagIds: string[], match: "all" | "any") => void;
   onBrowse: (value: string) => void;
   onClear: () => void;
 }
 
-export function PaperFilters({ search, tags, collections, onChange, onBrowse, onClear }: PaperFiltersProps) {
+export function PaperFilters({ search, tags, collections, onChange, onTags, onBrowse, onClear }: PaperFiltersProps) {
   const hasFilters = ["q", "status", "tag", "venue", "year", "collection", "unfiled"].some((key) => search.has(key));
   const browseValue = search.has("unfiled") ? "unfiled" : search.get("collection") ?? "";
 
@@ -33,7 +34,7 @@ export function PaperFilters({ search, tags, collections, onChange, onBrowse, on
         />
       </label>
 
-      <LibraryTagManager tags={tags} />
+      <TagFilter search={search} tags={tags} onChange={onTags} />
 
       <label className="field">
         <span>Collection</span>
@@ -59,21 +60,6 @@ export function PaperFilters({ search, tags, collections, onChange, onBrowse, on
           <option value="parsed">Parsed</option>
           <option value="summarized">Summarized</option>
           <option value="outlined">Outlined</option>
-        </select>
-      </label>
-
-      <label className="field">
-        <span>Tag</span>
-        <select
-          value={search.get("tag") ?? ""}
-          onChange={(event) => onChange("tag", event.target.value)}
-        >
-          <option value="">All tags</option>
-          {tags.map((tag) => (
-            <option key={tag.id} value={tag.id}>
-              {tag.name}
-            </option>
-          ))}
         </select>
       </label>
 

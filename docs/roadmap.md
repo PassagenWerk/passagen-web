@@ -328,6 +328,9 @@ HTTP Schema 由 Passagen Web 所有，与 Passagen 存储记录相互独立，�
 
 **状态：已完成。** Web API 现在提供 Library Tags 生命周期、论文分配和携带 `updated_at` 的用户元数据更新；界面区分只读 Paper Keywords 与用户维护的 Library Tags，并显示保存、失败和冲突状态。
 
+基础能力完成后的多 Tag 筛选、阅读中快捷赋值和独立管理工作区见
+[`roadmap-tag-ui.md`](roadmap-tag-ui.md)。该计划改进现有交互，但不改变本里程碑的完成状态。
+
 ### 工作内容
 
 - 实现标签列表、创建、重命名、改色、删除及分配端点。
@@ -500,3 +503,6 @@ M8 集合综合属于后续版本，不是首个论文浏览与整理版本的�
 
 后续版本的 PDF 上传、处理触发和进度展示能力见
 [`roadmap-processing-ui.md`](roadmap-processing-ui.md)，不属于首个版本范围。
+
+Library Tags 的多选筛选、不中断阅读的论文 Tag 赋值和全局管理界面演进见
+[`roadmap-tag-ui.md`](roadmap-tag-ui.md)。

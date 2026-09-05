@@ -12,6 +12,7 @@ class TagResponse(BaseModel):
     name: str
     color: str | None
     created_at: str
+    paper_count: int
 
 
 class TagCreateRequest(BaseModel):
