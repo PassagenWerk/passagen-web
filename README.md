@@ -34,7 +34,7 @@ uv sync --frozen
 ```
 
 如需创建和初始化论文库，请安装
-[Passagen CLI](../passagen-cli/)，然后运行：
+[Passagen CLI](/PassagenWerk/passagen-cli)，然后运行：
 
 ```bash
 cd ../passagen-cli
@@ -89,7 +89,7 @@ uv run passagen-web serve --data-dir /path/to/library
 ```
 
 默认使用 DeepSeek `deepseek-flash-v4`。完整 DeepSeek、GROBID、Crossref、arXiv 和 pipeline 配置
-见 Passagen Core 仓库的 docs/user/configuration.md（[Passagen Core](../passagen-core/)）。
+见 Passagen Core 仓库的 docs/user/configuration.md（[Passagen Core](/PassagenWerk/passagen-core)）。
 
 ## 故障排查
 
@@ -124,7 +124,7 @@ uv run passagen-web serve --data-dir /path/to/library
 
 - [Web 运行、备份与恢复](docs/user/operations.md)
 - [Web 架构](docs/development/architecture.md)
-- [Passagen Core](../passagen-core/) 的 docs/user/configuration.md
+- [Passagen Core](/PassagenWerk/passagen-core) 的 docs/user/configuration.md
 - [Roadmap](docs/roadmap/README.md)
 
 ## 许可证
