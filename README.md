@@ -4,6 +4,8 @@ Passagen Web 是 Passagen 论文库的本地浏览器界面。它与 CLI 使用�
 配置文件，可以导入和处理 PDF、搜索论文、阅读 cleaned Abstract、Summary、Outline 与原始
 PDF，并管理标签、集合和论文元数据。
 
+README 中的仓库链接指向 GitHub；在 GitLab 或 Gitea 镜像中，对应仓库位于同一 PassagenWerk 组的同名路径下。
+
 ## 功能
 
 - 浏览、搜索、筛选和排序本地论文库。
@@ -34,7 +36,7 @@ uv sync --frozen
 ```
 
 如需创建和初始化论文库，请安装
-[Passagen CLI](/PassagenWerk/passagen-cli)，然后运行：
+[Passagen CLI](https://github.com/PassagenWerk/passagen-cli)，然后运行：
 
 ```bash
 cd ../passagen-cli
@@ -89,7 +91,7 @@ uv run passagen-web serve --data-dir /path/to/library
 ```
 
 默认使用 DeepSeek `deepseek-flash-v4`。完整 DeepSeek、GROBID、Crossref、arXiv 和 pipeline 配置
-见 Passagen Core 仓库的 docs/user/configuration.md（[Passagen Core](/PassagenWerk/passagen-core)）。
+见 Passagen Core 仓库的 docs/user/configuration.md（[Passagen Core](https://github.com/PassagenWerk/passagen-core)）。
 
 ## 故障排查
 
@@ -124,7 +126,7 @@ uv run passagen-web serve --data-dir /path/to/library
 
 - [Web 运行、备份与恢复](docs/user/operations.md)
 - [Web 架构](docs/development/architecture.md)
-- [Passagen Core](/PassagenWerk/passagen-core) 的 docs/user/configuration.md
+- [Passagen Core](https://github.com/PassagenWerk/passagen-core) 的 docs/user/configuration.md
 - [Roadmap](docs/roadmap/README.md)
 
 ## 许可证
