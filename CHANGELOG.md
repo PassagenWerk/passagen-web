@@ -7,6 +7,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-05
+
+Requires `passagen-core` `0.4.x` and Passagen Schema version 3.
+
 ### Added
 
 - Idempotent single-tag assignment endpoints `PUT/DELETE /api/papers/{paper_id}/tags/{tag_id}`
