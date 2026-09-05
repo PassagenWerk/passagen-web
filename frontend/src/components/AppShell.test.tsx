@@ -244,10 +244,16 @@ test("opens a paper summary and supports keyboard navigation", async () => {
 
   expect(await screen.findByText("A useful research problem")).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Author abstract" })).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Cleaned" })).toBeInTheDocument();
-  expect(screen.getByText("A cleaned author-written overview of this research.")).toBeInTheDocument();
-  expect(screen.getByRole("heading", { name: "Original extraction" })).toBeInTheDocument();
-  expect(screen.getByText("An author-written overview of this research.")).toBeInTheDocument();
+  const abstract = screen.getByRole("region", { name: "Author abstract" });
+  expect(within(abstract).getByRole("button", { name: "Cleaned" })).toHaveAttribute("aria-pressed", "true");
+  expect(within(abstract).getByText("A cleaned author-written overview of this research.")).toBeVisible();
+  expect(within(abstract).queryByText("An author-written overview of this research.")).not.toBeInTheDocument();
+  fireEvent.click(within(abstract).getByRole("button", { name: "Original" }));
+  expect(within(abstract).getByText("An author-written overview of this research.")).toBeVisible();
+  expect(within(abstract).queryByText("A cleaned author-written overview of this research.")).not.toBeInTheDocument();
+  fireEvent.click(within(abstract).getByRole("button", { name: "Collapse" }));
+  expect(within(abstract).getByText("An author-written overview of this research.")).not.toBeVisible();
+  expect(screen.getByRole("button", { name: "Expand" })).toHaveAttribute("aria-expanded", "false");
   expect(screen.getByRole("tab", { name: "Summary" })).toHaveAttribute("aria-selected", "true");
   expect(screen.queryByRole("button", { name: "Open PDF panel" })).not.toBeInTheDocument();
   expect(screen.queryByLabelText("PDF reader")).not.toBeInTheDocument();
@@ -499,15 +505,21 @@ test("saves user metadata from the paper header", async () => {
   await screen.findByText("A useful research problem");
 
   fireEvent.click(screen.getByText("Edit Metadata"));
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(screen.queryByRole("dialog", { name: "Edit paper metadata" })).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Edit Metadata" })).toHaveFocus();
+  fireEvent.click(screen.getByText("Edit Metadata"));
   fireEvent.change(screen.getByRole("textbox", { name: "Title" }), {
     target: { value: "A User Title" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Save metadata" }));
-  expect(await screen.findByText("Saved")).toBeInTheDocument();
-  expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-    "/api/papers/paper-1/metadata",
-    expect.objectContaining({ method: "PATCH" }),
-  );
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/papers/paper-1/metadata",
+      expect.objectContaining({ method: "PATCH" }),
+    );
+  });
+  expect(screen.queryByRole("dialog", { name: "Edit paper metadata" })).not.toBeInTheDocument();
 });
 
 test("browses all, collection, and unfiled papers from the Library", async () => {

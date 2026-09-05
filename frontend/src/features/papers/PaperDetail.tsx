@@ -44,9 +44,15 @@ export function PaperDetail({
   const { readerFontSize, setReaderFontSize } = useDisplayPreferences();
   const [readerSettingsOpen, setReaderSettingsOpen] = useState(false);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
+  const [abstractExpanded, setAbstractExpanded] = useState(true);
+  const [abstractVersion, setAbstractVersion] = useState<"cleaned" | "original">("cleaned");
   const tagPickerToggle = useRef<HTMLButtonElement>(null);
   const paperId = paper?.id;
   useEffect(() => setTagPickerOpen(false), [paperId]);
+  useEffect(() => {
+    setAbstractExpanded(true);
+    setAbstractVersion("cleaned");
+  }, [paperId]);
   useEscapeClose(tagPickerOpen, () => {
     setTagPickerOpen(false);
     tagPickerToggle.current?.focus();
@@ -120,9 +126,54 @@ export function PaperDetail({
                 })}
               </div>
             ) : null}
-            <PaperLibraryEditor key={paper.id} paper={paper} />
-            <PaperProcessing paper={paper} />
+            <div className="paper-header-actions">
+              <PaperLibraryEditor key={paper.id} paper={paper} />
+              <PaperProcessing key={`processing-${paper.id}`} paper={paper} />
+            </div>
           </header>
+
+          {paper.abstract ? (
+            <section className="paper-abstract" aria-labelledby="paper-abstract-heading">
+              <div className="abstract-heading">
+                <div>
+                  <h3 id="paper-abstract-heading">Author abstract</h3>
+                  {paper.cleaned_abstract && abstractVersion === "cleaned" ? (
+                    <span className="abstract-provenance">LLM-assisted</span>
+                  ) : null}
+                </div>
+                <div className="abstract-controls">
+                  {paper.cleaned_abstract && abstractExpanded ? (
+                    <div className="abstract-version-toggle" aria-label="Abstract version">
+                      <button
+                        type="button"
+                        aria-pressed={abstractVersion === "cleaned"}
+                        onClick={() => setAbstractVersion("cleaned")}
+                      >Cleaned</button>
+                      <button
+                        type="button"
+                        aria-pressed={abstractVersion === "original"}
+                        onClick={() => setAbstractVersion("original")}
+                      >Original</button>
+                    </div>
+                  ) : null}
+                  <button
+                    className="abstract-collapse"
+                    type="button"
+                    aria-expanded={abstractExpanded}
+                    aria-controls="paper-abstract-content"
+                    onClick={() => setAbstractExpanded((expanded) => !expanded)}
+                  >{abstractExpanded ? "Collapse" : "Expand"}</button>
+                </div>
+              </div>
+              <div id="paper-abstract-content" hidden={!abstractExpanded}>
+                <p>
+                  {abstractVersion === "cleaned" && paper.cleaned_abstract
+                    ? paper.cleaned_abstract
+                    : paper.abstract}
+                </p>
+              </div>
+            </section>
+          ) : null}
 
           <div className="reader-tabs">
             <div className="reader-tab-list" role="tablist" aria-label="Paper artifacts">
@@ -191,23 +242,6 @@ export function PaperDetail({
           </div>
 
           <div className="reader" role="tabpanel">
-            {paper.abstract ? (
-              <section className="paper-abstract" aria-labelledby="paper-abstract-heading">
-                <h3 id="paper-abstract-heading">Author abstract</h3>
-                <div className={paper.cleaned_abstract ? "abstract-columns" : undefined}>
-                  {paper.cleaned_abstract ? (
-                    <article className="abstract-version abstract-version-cleaned">
-                      <h4>Cleaned</h4>
-                      <p>{paper.cleaned_abstract}</p>
-                    </article>
-                  ) : null}
-                  <article className="abstract-version">
-                    {paper.cleaned_abstract ? <h4>Original extraction</h4> : null}
-                    <p>{paper.abstract}</p>
-                  </article>
-                </div>
-              </section>
-            ) : null}
             {view === "summary" ? (
               <ArtifactState
                 available={paper.artifacts.summary}

@@ -48,9 +48,10 @@ test("runs the tag management, in-context assignment, and filtering workflow", a
   await page.getByRole("link", { name: /Alpha Systems/ }).click();
   await expect(page.getByText("A release-quality problem")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Author abstract" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Cleaned" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cleaned" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("A cleaned author-written overview of Alpha Systems.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Original extraction" })).toBeVisible();
+  await expect(page.getByText("An author-written overview of Alpha Systems.")).not.toBeVisible();
+  await page.getByRole("button", { name: "Original" }).click();
   await expect(page.getByText("An author-written overview of Alpha Systems.")).toBeVisible();
   await page.getByRole("button", { name: "Tags 0" }).click();
   await page.getByRole("option", { name: /Systems/ }).click();

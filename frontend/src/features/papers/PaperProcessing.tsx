@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import type { Paper } from "../../api/papers";
+import { useEscapeClose } from "../../components/useEscapeClose";
 import {
   createRun,
   fetchRuns,
@@ -20,6 +21,12 @@ const rebuildStages: { value: RebuildStage; label: string }[] = [
 export function PaperProcessing({ paper }: { paper: Paper }) {
   const queryClient = useQueryClient();
   const [fromStage, setFromStage] = useState<RebuildStage>("metadata");
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  useEscapeClose(open, () => {
+    setOpen(false);
+    trigger.current?.focus();
+  });
   const runs = useQuery({
     queryKey: ["paper-runs", paper.id],
     queryFn: () => fetchRuns({ paperId: paper.id, limit: 5 }),
@@ -36,8 +43,10 @@ export function PaperProcessing({ paper }: { paper: Paper }) {
     mutationFn: (options: { rebuild?: RebuildStage }) =>
       createRun([paper.id], options.rebuild ? "rebuild" : "continue", options.rebuild),
     onSuccess: async () => {
+      setOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["paper-runs", paper.id] });
       await queryClient.invalidateQueries({ queryKey: ["processing-runs"] });
+      trigger.current?.focus();
     },
   });
 
@@ -52,30 +61,47 @@ export function PaperProcessing({ paper }: { paper: Paper }) {
       ) : (
         <div className="paper-processing-actions">
           {complete ? (
-            <details className="paper-reprocess">
-              <summary>Reprocess paper</summary>
-              <span className="reprocess-control">
-                <select
-                  aria-label="Stages to rebuild"
-                  value={fromStage}
-                  onChange={(event) => setFromStage(event.target.value as RebuildStage)}
+            <div className="paper-action paper-reprocess">
+              <button
+                ref={trigger}
+                className="paper-action-button"
+                type="button"
+                aria-expanded={open}
+                aria-controls="paper-reprocess-panel"
+                onClick={() => setOpen((value) => !value)}
+              >Reprocess</button>
+              {open ? (
+                <div
+                  className="settings-panel paper-action-panel reprocess-action-panel"
+                  id="paper-reprocess-panel"
+                  role="dialog"
+                  aria-label="Reprocess paper"
                 >
-                  {rebuildStages.map((stage) => (
-                    <option key={stage.value} value={stage.value}>
-                      {stage.label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="text-button"
-                  disabled={start.isPending}
-                  onClick={() => start.mutate({ rebuild: fromStage })}
-                >
-                  Reprocess
-                </button>
-              </span>
-            </details>
+                  <label htmlFor="paper-reprocess-stage">Stages to rebuild</label>
+                  <span className="reprocess-control">
+                    <select
+                      id="paper-reprocess-stage"
+                      value={fromStage}
+                      onChange={(event) => setFromStage(event.target.value as RebuildStage)}
+                    >
+                      {rebuildStages.map((stage) => (
+                        <option key={stage.value} value={stage.value}>
+                          {stage.label}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={start.isPending}
+                      onClick={() => start.mutate({ rebuild: fromStage })}
+                    >
+                      Reprocess
+                    </button>
+                  </span>
+                </div>
+              ) : null}
+            </div>
           ) : (
             <button
               type="button"

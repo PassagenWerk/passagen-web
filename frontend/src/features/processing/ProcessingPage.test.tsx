@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
@@ -227,16 +227,20 @@ test("paper page hides rebuild controls until requested and supports outline onl
     </QueryClientProvider>,
   );
 
-  const disclosure = screen.getByText("Reprocess paper").closest("details");
-  expect(disclosure).not.toHaveAttribute("open");
-  fireEvent.click(screen.getByText("Reprocess paper"));
+  expect(screen.queryByRole("dialog", { name: "Reprocess paper" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
+  expect(screen.getByRole("dialog", { name: "Reprocess paper" })).toBeInTheDocument();
 
   fireEvent.change(screen.getByRole("combobox", { name: "Stages to rebuild" }), {
     target: { value: "outline" },
   });
   expect(screen.getByRole("option", { name: "Summary + Outline" })).toBeInTheDocument();
   expect(screen.getByRole("option", { name: "Outline only" })).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
+  fireEvent.click(
+    within(screen.getByRole("dialog", { name: "Reprocess paper" })).getByRole("button", {
+      name: "Reprocess",
+    }),
+  );
 
   await waitFor(() => {
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
