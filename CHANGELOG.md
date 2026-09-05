@@ -21,6 +21,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   with retryable failure states, and "Create and assign" for new tags without leaving the reading
   position.
 
+### Fixed
+
+- The listen-port preflight now sets `SO_REUSEADDR` like the actual server socket, so restarting
+  the server (for example between e2e runs) no longer fails with a false "port is already in use"
+  while sockets from the previous run are still in `TIME_WAIT`.
+
 ### Changed
 
 - The Find panel replaces the single-tag select and the embedded per-row tag manager with a

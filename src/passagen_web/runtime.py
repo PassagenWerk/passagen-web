@@ -87,6 +87,10 @@ def ensure_port_available(host: str, port: int) -> None:
     for family, socket_type, protocol, _canonical_name, address in addresses:
         candidate = socket.socket(family, socket_type, protocol)
         try:
+            # Match uvicorn's listen behavior: reuse the address so sockets left in
+            # TIME_WAIT by a previous run do not produce a false conflict, while an
+            # actively listening socket still fails the bind.
+            candidate.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             candidate.bind(address)
             return
         except OSError as exc:

@@ -33,6 +33,21 @@ def test_port_preflight_reports_an_existing_listener() -> None:
         listener.close()
 
 
+def test_port_preflight_ignores_time_wait_sockets() -> None:
+    listener = socket.socket()
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind(("127.0.0.1", 0))
+    listener.listen()
+    port = listener.getsockname()[1]
+    client = socket.create_connection(("127.0.0.1", port))
+    connection, _ = listener.accept()
+    connection.close()  # server-initiated close leaves a TIME_WAIT record on the port
+    client.close()
+    listener.close()
+
+    ensure_port_available("127.0.0.1", port)
+
+
 def test_json_formatter_emits_structured_fields_without_message_arguments() -> None:
     record = logging.LogRecord("passagen_web", logging.INFO, "", 0, "server_starting", (), None)
     record.host = "127.0.0.1"
