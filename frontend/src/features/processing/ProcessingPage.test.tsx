@@ -4,7 +4,11 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { App } from "../../App";
-import { PaperProcessing } from "../papers/PaperProcessing";
+import {
+  PaperProcessingStatus,
+  StageReprocessButton,
+} from "../papers/PaperProcessing";
+import { usePaperProcessing } from "../papers/usePaperProcessing";
 
 const pendingPaper = {
   id: "paper-1",
@@ -129,6 +133,17 @@ function renderApp(entry = "/processing") {
   );
 }
 
+function PaperProcessingHarness() {
+  const paper = { ...pendingPaper, status: "outlined" };
+  const processing = usePaperProcessing(paper);
+  return (
+    <>
+      <PaperProcessingStatus paper={paper} processing={processing} />
+      <StageReprocessButton stage="outline" label="Outline" processing={processing} />
+    </>
+  );
+}
+
 test("processing workspace lists pending papers and recent runs", async () => {
   renderApp();
 
@@ -136,7 +151,7 @@ test("processing workspace lists pending papers and recent runs", async () => {
   expect(screen.getByRole("heading", { name: "Reprocessing stages" })).toBeInTheDocument();
   expect(screen.getByText("Extract structured text from the PDF.")).toBeInTheDocument();
   expect(screen.getByText(/Failures are reported as warnings/)).toBeInTheDocument();
-  expect(screen.getByText(/keeps earlier stages and rebuilds the selected stage onward/)).toBeInTheDocument();
+  expect(screen.getByText(/refreshes only its independent cleaned view/)).toBeInTheDocument();
   expect(screen.getByText(/manually edited library metadata are preserved/)).toBeInTheDocument();
   expect(await screen.findByRole("link", { name: "An Unprocessed Paper" })).toBeInTheDocument();
   expect(await screen.findByRole("link", { name: /Run run-1/ })).toBeInTheDocument();
@@ -203,7 +218,7 @@ test("paper status ignores an older failure after the latest run succeeds", asyn
   render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <PaperProcessing paper={{ ...pendingPaper, status: "outlined" }} />
+        <PaperProcessingHarness />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -217,31 +232,28 @@ test("paper status ignores an older failure after the latest run succeeds", asyn
   expect(screen.queryByText(/Last run failed/)).not.toBeInTheDocument();
 });
 
-test("paper page hides rebuild controls until requested and supports outline only", async () => {
+test("paper stage reset asks for confirmation before rebuilding", async () => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
   render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <PaperProcessing paper={{ ...pendingPaper, status: "outlined" }} />
+        <PaperProcessingHarness />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 
-  expect(screen.queryByRole("dialog", { name: "Reprocess paper" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Reprocess" }));
-  expect(screen.getByRole("dialog", { name: "Reprocess paper" })).toBeInTheDocument();
-
-  fireEvent.change(screen.getByRole("combobox", { name: "Stages to rebuild" }), {
-    target: { value: "outline" },
-  });
-  expect(screen.getByRole("option", { name: "Summary + Outline" })).toBeInTheDocument();
-  expect(screen.getByRole("option", { name: "Abstract clean + Summary + Outline" })).toBeInTheDocument();
-  expect(screen.getByRole("option", { name: "Outline only" })).toBeInTheDocument();
+  expect(screen.queryByRole("dialog", { name: "Reprocess from Outline" })).not.toBeInTheDocument();
+  const trigger = screen.getByRole("button", { name: "Reprocess from Outline" });
+  fireEvent.click(trigger);
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(screen.queryByRole("dialog", { name: "Reprocess from Outline" })).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+  fireEvent.click(trigger);
+  const dialog = screen.getByRole("dialog", { name: "Reprocess from Outline" });
+  expect(dialog).toHaveTextContent("Outline will be regenerated for this paper");
   fireEvent.click(
-    within(screen.getByRole("dialog", { name: "Reprocess paper" })).getByRole("button", {
-      name: "Reprocess",
-    }),
+    within(dialog).getByRole("button", { name: "Confirm reprocess" }),
   );
 
   await waitFor(() => {

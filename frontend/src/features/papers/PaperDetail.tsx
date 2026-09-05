@@ -8,9 +8,13 @@ import { useEscapeClose } from "../../components/useEscapeClose";
 import { useDisplayPreferences } from "../preferences/displayPreferences";
 import { PdfReader } from "../reader/PdfReader";
 import { PaperLibraryEditor } from "./PaperLibraryEditor";
-import { PaperProcessing } from "./PaperProcessing";
+import {
+  PaperProcessingStatus,
+  StageReprocessButton,
+} from "./PaperProcessing";
 import { PaperTagPicker } from "./PaperTagPicker";
 import { StructuredSummary } from "./StructuredSummary";
+import { usePaperProcessing } from "./usePaperProcessing";
 
 interface PaperDetailProps {
   paper: Paper | undefined;
@@ -75,6 +79,7 @@ export function PaperDetail({
   });
   const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
   const currentPaperPath = paperPath ?? (paper ? `/papers/${encodeURIComponent(paper.id)}` : "");
+  const processing = usePaperProcessing(paper);
 
   return (
     <article className={`detail-panel ${pdfView ? "has-pdf" : ""}`} aria-labelledby="detail-heading">
@@ -128,7 +133,15 @@ export function PaperDetail({
             ) : null}
             <div className="paper-header-actions">
               <PaperLibraryEditor key={paper.id} paper={paper} />
-              <PaperProcessing key={`processing-${paper.id}`} paper={paper} />
+              {paper.status === "outlined" ? (
+                <StageReprocessButton
+                  key={`metadata-reprocess-${paper.id}`}
+                  stage="metadata"
+                  label="Metadata"
+                  processing={processing}
+                />
+              ) : null}
+              <PaperProcessingStatus paper={paper} processing={processing} />
             </div>
           </header>
 
@@ -142,6 +155,14 @@ export function PaperDetail({
                   ) : null}
                 </div>
                 <div className="abstract-controls">
+                  {paper.status === "outlined" ? (
+                    <StageReprocessButton
+                      key={`abstract-reprocess-${paper.id}`}
+                      stage="abstract"
+                      label="Abstract clean"
+                      processing={processing}
+                    />
+                  ) : null}
                   {paper.cleaned_abstract && abstractExpanded ? (
                     <div className="abstract-version-toggle" aria-label="Abstract version">
                       <button
@@ -193,6 +214,14 @@ export function PaperDetail({
               >Outline</button>
             </div>
             <div className="reader-actions">
+              {paper.status === "outlined" ? (
+                <StageReprocessButton
+                  key={`${view}-reprocess-${paper.id}`}
+                  stage={view}
+                  label={view === "summary" ? "Summary" : "Outline"}
+                  processing={processing}
+                />
+              ) : null}
               <div className="reader-tags">
                 <button
                   ref={tagPickerToggle}

@@ -21,6 +21,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Added a global Header indicator for active and idle processing tasks.
 - Exposed non-blocking Abstract clean as a selectable processing stage between Full text and
   Summary, with clearer rebuild scope and LLM usage guidance.
+- Replaced the paper Reader's general Reprocess dropdown with contextual reset controls for
+  Metadata, Abstract clean, Summary, and Outline, each with an explicit rebuild confirmation.
+- Made the independent Abstract clean reset preserve existing Summary and Outline artifacts.
 
 ## [0.4.0] - 2026-09-05
 

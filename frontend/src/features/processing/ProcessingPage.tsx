@@ -25,7 +25,7 @@ const statusLabels: Record<string, string> = {
 const rebuildStages: { value: RebuildStage; label: string }[] = [
   { value: "metadata", label: "All stages" },
   { value: "parse", label: "Full text + Abstract clean + Summary + Outline" },
-  { value: "abstract", label: "Abstract clean + Summary + Outline" },
+  { value: "abstract", label: "Abstract clean only" },
   { value: "summary", label: "Summary + Outline" },
   { value: "outline", label: "Outline only" },
 ];
@@ -120,8 +120,9 @@ export function ProcessingPage() {
           </div>
         </dl>
         <p className="processing-note reprocess-scope">
-          <strong>Scope:</strong> The All stages option rebuilds the entire pipeline; each other
-          option keeps earlier stages and rebuilds the selected stage onward.
+          <strong>Scope:</strong> The All stages option rebuilds the entire pipeline. Other options
+          keep earlier stages and rebuild from the selected stage onward, except Abstract clean,
+          which refreshes only its independent cleaned view.
         </p>
         <p className="processing-note">
           Abstract clean, Summary, and Outline use the configured LLM and may take several minutes.

@@ -228,8 +228,16 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); font: 9px var(--font-mono
 .paper-action-button { border: 0; border-bottom: 1px solid var(--line); padding: 3px 0; color: var(--muted); background: transparent; font: 600 9px var(--font-sans); text-transform: uppercase; letter-spacing: .08em; cursor: pointer; }
 .paper-action-button:hover, .paper-action-button[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
 .paper-action-panel { top: 100%; left: 0; width: min(420px, calc(100vw - 44px)); margin-top: 7px; }
-.reprocess-action-panel { width: min(350px, calc(100vw - 44px)); gap: 8px; }
-.reprocess-action-panel > label { padding: 0; color: var(--muted); font: 600 8px var(--font-sans); text-transform: uppercase; letter-spacing: .08em; }
+.stage-reprocess { position: relative; display: flex; align-items: center; }
+.stage-reprocess-trigger { display: grid; place-items: center; width: 23px; height: 23px; border: 1px solid var(--line); border-radius: 50%; padding: 0; color: var(--muted); background: transparent; cursor: pointer; }
+.stage-reprocess-trigger svg { fill: currentColor; }
+.stage-reprocess-trigger:hover, .stage-reprocess-trigger[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.stage-reprocess-trigger:disabled { border-color: var(--soft-line); color: var(--disabled); cursor: default; }
+.stage-reprocess-panel { top: calc(100% + 7px); right: 0; width: min(330px, calc(100vw - 44px)); gap: 7px; }
+.paper-header-actions .stage-reprocess-panel { right: auto; left: 0; }
+.stage-reprocess-panel strong { font: 600 10px var(--font-sans); text-transform: uppercase; letter-spacing: .06em; }
+.stage-reprocess-panel > span { color: var(--muted); font: 11px/1.4 var(--font-sans); }
+.stage-reprocess-panel > button { justify-self: start; margin-top: 2px; }
 .editor-section { display: grid; gap: 9px; padding: 13px; border: 1px solid var(--soft-line); background: var(--surface); }
 .metadata-action-panel { border-color: var(--line); background: var(--paper); }
 .editor-section + .editor-section { margin-top: 10px; }
@@ -480,6 +488,10 @@ footer { padding-top: 12px; color: var(--footer-ink); font-size: 8px; }
   .paper-panel { min-height: 55vh; border-right: 0; }
   .paper-header, .paper-abstract, .reader { padding-left: 19px; padding-right: 19px; }
   .reader-tabs { padding: 0 19px; }
+  .reader-tab-list > button { margin-right: 10px; padding-right: 8px; }
+  .reader-actions { gap: 10px; }
+  .stage-reprocess-panel { position: fixed; top: 64px; right: 13px; left: 13px; width: auto; }
+  .paper-header-actions .stage-reprocess-panel { right: 13px; left: 13px; }
   .metadata-grid { grid-template-columns: 1fr 1fr; }
   .summary-field { grid-template-columns: 1fr; gap: 2px; }
   .abstract-heading { display: grid; gap: 8px; }

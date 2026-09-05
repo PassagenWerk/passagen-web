@@ -255,7 +255,19 @@ test("opens a paper summary and supports keyboard navigation", async () => {
 
   expect(await screen.findByText("A useful research problem")).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Author abstract" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Reprocess from Metadata" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Reprocess from Summary" })).toBeInTheDocument();
   const abstract = screen.getByRole("region", { name: "Author abstract" });
+  const abstractReset = within(abstract).getByRole("button", {
+    name: "Reprocess from Abstract clean",
+  });
+  fireEvent.click(abstractReset);
+  const abstractDialog = within(abstract).getByRole("dialog", {
+    name: "Reprocess from Abstract clean",
+  });
+  expect(abstractDialog).toHaveTextContent("The cleaned Abstract view will be regenerated");
+  expect(abstractDialog).toHaveTextContent("Summary and Outline remain unchanged");
+  fireEvent.keyDown(window, { key: "Escape" });
   expect(within(abstract).getByRole("button", { name: "Cleaned" })).toHaveAttribute("aria-pressed", "true");
   expect(within(abstract).getByText("A cleaned author-written overview of this research.")).toBeVisible();
   expect(within(abstract).queryByText("An author-written overview of this research.")).not.toBeInTheDocument();
