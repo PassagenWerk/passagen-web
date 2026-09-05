@@ -135,7 +135,8 @@ test("processing workspace lists pending papers and recent runs", async () => {
   expect(await screen.findByRole("heading", { name: "Pending papers" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Reprocessing stages" })).toBeInTheDocument();
   expect(screen.getByText("Extract structured text from the PDF.")).toBeInTheDocument();
-  expect(screen.getByText(/Outline only keeps all earlier artifacts/)).toBeInTheDocument();
+  expect(screen.getByText(/Failures are reported as warnings/)).toBeInTheDocument();
+  expect(screen.getByText(/keeps earlier stages and rebuilds the selected stage onward/)).toBeInTheDocument();
   expect(screen.getByText(/manually edited library metadata are preserved/)).toBeInTheDocument();
   expect(await screen.findByRole("link", { name: "An Unprocessed Paper" })).toBeInTheDocument();
   expect(await screen.findByRole("link", { name: /Run run-1/ })).toBeInTheDocument();
@@ -235,6 +236,7 @@ test("paper page hides rebuild controls until requested and supports outline onl
     target: { value: "outline" },
   });
   expect(screen.getByRole("option", { name: "Summary + Outline" })).toBeInTheDocument();
+  expect(screen.getByRole("option", { name: "Abstract clean + Summary + Outline" })).toBeInTheDocument();
   expect(screen.getByRole("option", { name: "Outline only" })).toBeInTheDocument();
   fireEvent.click(
     within(screen.getByRole("dialog", { name: "Reprocess paper" })).getByRole("button", {

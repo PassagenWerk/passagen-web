@@ -19,6 +19,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Moved Author Abstract above the Summary/Outline tabs as a collapsible single-column reader with
   Cleaned/Original switching, and condensed metadata editing and reprocessing into header popovers.
 - Added a global Header indicator for active and idle processing tasks.
+- Exposed non-blocking Abstract clean as a selectable processing stage between Full text and
+  Summary, with clearer rebuild scope and LLM usage guidance.
 
 ## [0.4.0] - 2026-09-05
 

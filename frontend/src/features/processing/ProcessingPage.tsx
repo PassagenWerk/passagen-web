@@ -24,7 +24,8 @@ const statusLabels: Record<string, string> = {
 
 const rebuildStages: { value: RebuildStage; label: string }[] = [
   { value: "metadata", label: "All stages" },
-  { value: "parse", label: "Full text + Summary + Outline" },
+  { value: "parse", label: "Full text + Abstract clean + Summary + Outline" },
+  { value: "abstract", label: "Abstract clean + Summary + Outline" },
   { value: "summary", label: "Summary + Outline" },
   { value: "outline", label: "Outline only" },
 ];
@@ -103,6 +104,13 @@ export function ProcessingPage() {
             <dd>Extract structured text from the PDF.</dd>
           </div>
           <div>
+            <dt>Abstract clean</dt>
+            <dd>
+              Preserve the author&apos;s original while creating a validated LLM-assisted view.
+              Failures are reported as warnings and do not block Summary or Outline.
+            </dd>
+          </div>
+          <div>
             <dt>Summary</dt>
             <dd>Generate the structured paper summary from the extracted text.</dd>
           </div>
@@ -112,13 +120,12 @@ export function ProcessingPage() {
           </div>
         </dl>
         <p className="processing-note reprocess-scope">
-          <strong>Scope:</strong> The All stages option rebuilds the entire pipeline; Full text
-          keeps Metadata; Summary keeps Metadata and Full text; Outline only keeps all earlier
-          artifacts.
+          <strong>Scope:</strong> The All stages option rebuilds the entire pipeline; each other
+          option keeps earlier stages and rebuilds the selected stage onward.
         </p>
         <p className="processing-note">
-          Summary and Outline use the configured LLM and may take several minutes. Library Tags
-          and manually edited library metadata are preserved.
+          Abstract clean, Summary, and Outline use the configured LLM and may take several minutes.
+          Library Tags and manually edited library metadata are preserved.
         </p>
       </section>
 

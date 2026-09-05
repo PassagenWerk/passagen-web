@@ -93,6 +93,15 @@ def test_create_run_returns_202_and_completes(
         assert outline.json()["from_stage"] == "outline"
         assert wait_for_status(client, outline.json()["id"], {"completed"})["status"] == "completed"
 
+        abstract = client.post(
+            "/api/processing-runs",
+            json={"paper_ids": [paper_id], "mode": "rebuild", "from_stage": "abstract"},
+        )
+        assert abstract.status_code == 202
+        assert abstract.json()["from_stage"] == "abstract"
+        abstract_run = wait_for_status(client, abstract.json()["id"], {"completed"})
+        assert abstract_run["status"] == "completed"
+
 
 def test_create_run_conflict_returns_409(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     blocker = threading.Event()

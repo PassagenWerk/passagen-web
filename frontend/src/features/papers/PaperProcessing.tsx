@@ -13,7 +13,8 @@ import {
 
 const rebuildStages: { value: RebuildStage; label: string }[] = [
   { value: "metadata", label: "All stages" },
-  { value: "parse", label: "Full text + Summary + Outline" },
+  { value: "parse", label: "Full text + Abstract clean + Summary + Outline" },
+  { value: "abstract", label: "Abstract clean + Summary + Outline" },
   { value: "summary", label: "Summary + Outline" },
   { value: "outline", label: "Outline only" },
 ];
