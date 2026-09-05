@@ -1,6 +1,6 @@
 [project]
 name = "passagen-web"
-version = "0.4.0"
+version = "0.5.0"
 description = "Local web interface for Passagen paper libraries"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -8,7 +8,7 @@ license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.116,<1",
-    "passagen-core>=0.4,<0.5",
+    "passagen-core>=0.5,<0.6",
     "pydantic>=2.11,<3",
     "python-multipart>=0.0.9,<1",
     "uvicorn>=0.35,<1",
