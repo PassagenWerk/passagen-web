@@ -24,6 +24,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Replaced the paper Reader's general Reprocess dropdown with contextual reset controls for
   Metadata, Abstract clean, Summary, and Outline, each with an explicit rebuild confirmation.
 - Made the independent Abstract clean reset preserve existing Summary and Outline artifacts.
+- Reorganized documentation around user startup, network serving, shared configuration, developer
+  architecture, completed versus planned capabilities, and forge-neutral cross-repository
+  links.
 
 ## [0.4.0] - 2026-09-05
 

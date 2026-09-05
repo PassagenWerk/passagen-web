@@ -1,132 +1,132 @@
 # Passagen Web
 
-Passagen Web 是 `passagen-core` 的本地浏览器适配器，用于浏览和整理由
-[Passagen CLI](../passagen-cli) 管理的论文。它提供论文搜索与筛选、结构化摘要与提纲阅读、
-用户元数据行内编辑、PDF 阅读、标签以及有序论文集合等功能。
+Passagen Web 是 Passagen 论文库的本地浏览器界面。它与 CLI 使用同一个 data directory 和
+配置文件，可以导入和处理 PDF、搜索论文、阅读 cleaned Abstract、Summary、Outline 与原始
+PDF，并管理标签、集合和论文元数据。
 
-应用采用本地单用户服务设计：
+## 功能
 
-```text
-浏览器 -> Passagen Web API -> Passagen 应用服务 -> SQLite 和 artifact
-```
-
-Passagen 负责数据库 Schema、迁移、论文处理及 artifact 语义；本仓库负责 HTTP API、浏览器 UI 和本地服务生命周期。
-
-M0 项目基础至 M7 本地分发与发布质量已经完成。范围与里程碑参见 [`docs/roadmap.md`](docs/roadmap.md)，仓库边界参见 [`docs/architecture.md`](docs/architecture.md)。发布、升级、备份与恢复参见 [`docs/release.md`](docs/release.md)。
+- 浏览、搜索、筛选和排序本地论文库。
+- 上传 PDF，启动、查看和恢复 processing run。
+- 对 Metadata、Abstract clean、Summary 和 Outline 执行定向 reprocess。
+- 并排阅读 Summary、Outline 和 PDF evidence page。
+- 编辑受保护的用户元数据，管理标签和有序集合。
+- 在桌面和移动浏览器中使用 Light/Dark Mode。
 
 ## 环境要求
 
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/)
-- Node.js `>=24 <25` 和 npm `>=11 <12`
-- 与本仓库相邻的 `passagen-core` checkout，以及已经初始化的 Passagen 数据目录
-
-开发目录结构应为：
-
-```text
-Passagen/
-├── passagen-core/
-├── passagen-cli/
-└── passagen-web/
-```
-
-Passagen Web 通过公开的 `passagen.catalog` 应用服务使用相邻的 Core checkout，不会导入
-Passagen 的存储层内部实现，也不依赖 `passagen-cli` distribution。
+- 已通过 Passagen CLI 初始化的 data directory
+- 从源码修改前端时需要 Node.js `>=24 <25` 和 npm `>=11 <12`
 
 ## 安装
 
-```bash
-uv sync
-npm --prefix frontend ci
-uv run pre-commit install
-```
+源码环境使用相邻的 Core checkout：
 
-从源码构建 wheel：
+以下 URL 可替换为你使用的 GitHub、GitLab 或 Gitea 镜像地址：
 
 ```bash
-uv build
+git clone https://github.com/PassagenWerk/passagen-core.git
+git clone https://github.com/PassagenWerk/passagen-web.git
+cd passagen-web
+uv sync --frozen
 ```
 
-使用源码启动服务：
+如需创建和初始化论文库，请安装
+[Passagen CLI](../passagen-cli/)，然后运行：
 
 ```bash
-uv run passagen-web serve --data-dir ../passagen-cli/data
+cd ../passagen-cli
+uv sync --frozen
+uv run passagen --data-dir /path/to/library db init
 ```
 
-服务默认监听 `127.0.0.1:8765` 并自动打开浏览器。使用 `--no-open` 禁止自动打开；同一数据目录只能由一个 Passagen Web 进程使用，端口冲突会在启动前返回可操作的错误。
+## 启动
 
-前端在 `frontend/package.json` 中声明了相同的运行时版本范围。安装依赖时，npm 的严格 engine 检查会拒绝不受支持的 Node.js 或 npm 版本。
-
-pre-commit 配置默认同时安装 `pre-commit` 和 `pre-push` hook。Commit hook 会格式化并检查发生变更的代码；Push hook 会根据变更文件运行 basedpyright、mypy、Python 测试及完整前端检查。克隆仓库或重新创建 `.git` 后，请再次执行安装命令。
-
-## 开发
-
-使用包含 `passagen.db` 的数据目录启动 API：
+仅本机访问：
 
 ```bash
-uv run passagen-web serve --data-dir ../passagen-cli/data \
-  --allow-origin http://127.0.0.1:5173
+uv run passagen-web serve --data-dir /path/to/library
 ```
 
-在另一个终端中启动 Vite：
+默认监听 `127.0.0.1:8765` 并打开浏览器。
+
+局域网或反向代理场景：
 
 ```bash
-npm --prefix frontend run dev
+uv run passagen-web serve \
+  --data-dir ../passagen-cli/data \
+  --host 192.168.1.110 \
+  --port 8765 \
+  --no-open \
+  --allow-origin http://you-domain-or-ip:8765
 ```
 
-打开 `http://127.0.0.1:5173`。Vite 会将 `/api` 代理到 FastAPI 进程，API 文档位于 `http://127.0.0.1:8765/api/docs`。
+| 参数 | 说明 |
+|---|---|
+| `--data-dir PATH` | 必填，包含 `passagen.db` 和 managed artifacts 的目录。 |
+| `--config PATH` | 显式配置文件；默认使用 `<data-dir>/passagen.yaml`。 |
+| `--host ADDRESS` | 监听地址；默认 `127.0.0.1`。 |
+| `--port PORT` | 监听端口；默认 `8765`。 |
+| `--no-open` | 启动后不自动打开本机浏览器。 |
+| `--allow-origin URL` | 允许额外 browser origin 执行写请求；可重复指定。 |
 
-监听地址默认为 `127.0.0.1`。只有显式传入 `--host` 才会监听其他网络接口。浏览器写请求只接受应用自身 Origin；开发环境通过 `--allow-origin` 显式允许 Vite，非浏览器本地客户端可以继续调用 API。
+`--allow-origin` 必须填写浏览器地址栏页面的完整 origin，即 protocol、host 和 port，不能填写
+客户端设备 IP。浏览器直接打开服务自身地址时无需额外设置；通过反向代理、域名或 Vite 访问
+时才需要添加对应 origin。
 
-当前 API 提供论文读取、artifact 阅读、Library Tags、用户元数据和有序论文集合：
+同一个 data directory 同时只能由一个 Passagen Web 进程持有。修改配置、API key 或后端代码
+后必须重启服务；重新构建前端后刷新浏览器。
 
-```text
-GET /api/papers
-GET /api/papers/{paper_id}
-GET /api/papers/{paper_id}/summary
-GET /api/papers/{paper_id}/outline
-GET /api/papers/{paper_id}/pdf
-PATCH /api/papers/{paper_id}/metadata
-PUT /api/papers/{paper_id}/tags
-PUT /api/papers/{paper_id}/tags/{tag_id}
-DELETE /api/papers/{paper_id}/tags/{tag_id}
-GET /api/tags
-POST /api/tags
-PATCH /api/tags/{tag_id}
-DELETE /api/tags/{tag_id}
-GET /api/collections
-POST /api/collections
-GET /api/collections/{collection_id}
-PATCH /api/collections/{collection_id}
-DELETE /api/collections/{collection_id}
-POST /api/collections/{collection_id}/papers
-PATCH /api/collections/{collection_id}/papers/order
-DELETE /api/collections/{collection_id}/papers/{paper_id}
-```
+## 配置
 
-PDF 端点以内联方式流式传输受管理的原始论文，支持字节范围请求、`ETag` 和 `Last-Modified`。PDF 仅在聚焦 Read 模式通过右侧开关显示，打开后与左侧 Summary 或 Outline 构成双栏；其 URL 为 `/papers/{paper_id}/pdf?page={page}`。Summary 和 Outline 中的 evidence page 会自动打开 PDF 侧栏并跳转到对应页面，也可从阅读器在新标签页打开原始 PDF。
-
-论文列表支持 `q`、`status`、`tag`、`tag_match`、`venue`、`year`、`collection`、`sort`、`direction`、`limit` 和 `offset` 查询参数。`tag` 可以重复出现以筛选多个 Tag；`tag_match=all`（默认）要求论文同时包含全部所选 Tag，`tag_match=any` 匹配包含任意所选 Tag 的论文。`GET /api/tags` 返回每个 Tag 的 `paper_count` 使用数量。
-
-Library Tags 是用户维护的持久化标签。Find 面板提供可搜索的多选 Tag 筛选，选中状态保存在 URL 中；阅读工具栏的 `Tags N` 入口可以在不离开阅读位置的情况下即时添加或移除当前论文的 Tag，并可直接创建并分配新 Tag。`/tags` 工作区集中创建、重命名、改色和删除全局 Tag，删除前会显示受影响的论文数量。Summary 中生成的 `Paper Keywords` 保持只读，与 Library Tags 不自动合并。元数据编辑器（Edit Metadata）允许修改标题、Venue 和年份，请求携带 `updated_at` 进行乐观并发校验，被其他流程更新的值不会静默覆盖。
-
-顶部的 `Library` 和 `Collections` 是两个互通的工作入口。Library 默认浏览全部论文，也可以浏览具体集合或尚未归类的论文，并从当前筛选结果多选、批量加入集合；选择具体集合时可使用持久化集合顺序浏览。Collections 使用独立两栏工作区创建和编辑集合、添加或移除成员，并通过一次原子请求调整成员顺序。从集合打开论文会保留集合上下文，上一篇和下一篇遵循集合顺序，退出阅读后返回原集合。
-
-浏览界面的搜索、筛选、排序、分页、阅读视图和已选论文都保存在 URL 中。可以使用方向键或 `J`/`K` 在当前论文列表中移动。桌面端采用筛选、论文列表、阅读器三栏布局；窄屏设备会在列表与详情页面之间导航。
-
-## 检查
-
-使用 `make check` 运行全部检查，也可以分别检查两端：
+Web 与 CLI 读取同一个 `<data-dir>/passagen.yaml`，并从配置指定的环境变量读取 LLM API key：
 
 ```bash
-make check-python
-make check-frontend
+export PASSAGEN_API_KEY=your-deepseek-api-key
+uv run passagen-web serve --data-dir /path/to/library
 ```
 
-执行 `npm --prefix frontend run build` 后，前端生产资源会写入 `src/passagen_web/static`。发布构建通过 Hatch hook 自动执行该步骤并将资源收入 wheel；FastAPI 同一进程提供 UI、API 和 SPA fallback。
+默认使用 DeepSeek `deepseek-flash-v4`。完整 DeepSeek、GROBID、Crossref、arXiv 和 pipeline 配置
+见 Passagen Core 仓库的 docs/user/configuration.md（[Passagen Core](../passagen-core/)）。
 
-GitLab CI 会通过 `.gitlab-ci.yml` 运行等价的 Python 与前端 lint、测试和构建任务，并通过 GitLab reports 发布测试结果及 Python 覆盖率。
+## 故障排查
+
+### 页面显示 Library unavailable
+
+确认服务仍在运行、浏览器访问的 host/port 正确，并检查服务终端中的启动错误。
+
+### 写请求返回 403
+
+浏览器 origin 未被允许。将地址栏中的 origin 原样传给 `--allow-origin`，然后重启服务。
+
+### 请求返回 422
+
+前端和后端版本可能不一致。重新构建前端并重启 FastAPI 服务，使两端加载同一 checkout。
+
+### Processing unavailable 或 LLM 请求失败
+
+确认 `PASSAGEN_API_KEY` 在启动服务的同一个 shell 中存在，并检查共享配置中的 DeepSeek URL、
+模型名称和网络连接。
+
+### GROBID 不可用
+
+启动 GROBID，或在共享配置中设置 `pipeline.parsing.parser: pymupdf`。
+
+### 数据库被锁定
+
+停止使用同一 data directory 的其他 Web 进程。不要通过删除 lock file 绕过仍在运行的进程。
+
+更多备份、升级和恢复步骤见[Web 运行指南](docs/user/operations.md)。
+
+## 文档
+
+- [Web 运行、备份与恢复](docs/user/operations.md)
+- [Web 架构](docs/development/architecture.md)
+- [Passagen Core](../passagen-core/) 的 docs/user/configuration.md
+- [Roadmap](docs/roadmap/README.md)
 
 ## 许可证
 
-Passagen Web 仅按照 [GNU Affero General Public License v3.0](LICENSE) 发布，SPDX 标识为 `AGPL-3.0-only`。
+[GNU Affero General Public License v3.0](LICENSE)，SPDX 标识为 `AGPL-3.0-only`。
