@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 
 import { fetchHealth } from "../api/health";
+import { fetchRuns, isActiveRun } from "../api/processing";
 import { useDisplayPreferences, type ThemePreference } from "../features/preferences/displayPreferences";
 
 interface AppShellProps {
@@ -14,6 +15,14 @@ export function AppShell({ children }: AppShellProps) {
   const { theme, setTheme } = useDisplayPreferences();
   const [themeOpen, setThemeOpen] = useState(false);
   const health = useQuery({ queryKey: ["health"], queryFn: fetchHealth, retry: false });
+  const runs = useQuery({
+    queryKey: ["processing-runs"],
+    queryFn: () => fetchRuns({ limit: 50 }),
+    enabled: health.isSuccess,
+    retry: false,
+    refetchInterval: (query) =>
+      (query.state.data ?? []).some(isActiveRun) ? 1500 : 10_000,
+  });
   const libraryActive =
     !location.pathname.startsWith("/collections") &&
     !location.pathname.startsWith("/processing") &&
@@ -23,6 +32,14 @@ export function AppShell({ children }: AppShellProps) {
     : health.isSuccess
       ? "Library online"
       : "Library unavailable";
+  const processingActive = (runs.data ?? []).some(isActiveRun);
+  const processingLabel = health.isPending || runs.isPending
+      ? "Checking processing"
+    : !health.isSuccess || runs.isError
+      ? "Processing unavailable"
+      : processingActive
+        ? "Processing active"
+        : "Processing idle";
 
   return (
     <main className="app-shell">
@@ -70,9 +87,18 @@ export function AppShell({ children }: AppShellProps) {
               </fieldset>
             ) : null}
           </div>
-          <div className={`connection ${health.isSuccess ? "is-online" : ""}`} role="status">
-            <span className="connection-dot" />
-            {connectionLabel}
+          <div className="header-statuses">
+            <div className={`connection ${health.isSuccess ? "is-online" : ""}`} role="status">
+              <span className="connection-dot" />
+              {connectionLabel}
+            </div>
+            <Link
+              className={`connection processing-status ${processingActive ? "is-active" : ""}`}
+              to="/processing"
+            >
+              <span className="connection-dot" />
+              <span role="status" aria-live="polite">{processingLabel}</span>
+            </Link>
           </div>
         </div>
       </header>

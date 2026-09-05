@@ -101,9 +101,14 @@ a { color: inherit; text-decoration: none; }
 .primary-nav a.active { border-color: var(--accent); color: var(--accent); }
 .wordmark { display: flex; align-items: center; gap: 11px; font-family: var(--font-sans); font-size: 12px; font-weight: 700; letter-spacing: .22em; }
 .wordmark-mark { display: grid; place-items: center; width: 29px; height: 29px; border: 1px solid var(--ink); font: 18px var(--font-paper); letter-spacing: 0; }
+.header-statuses { display: grid; gap: 5px; min-width: 126px; }
 .connection { display: flex; align-items: center; gap: 8px; font: 600 9px var(--font-sans); text-transform: uppercase; letter-spacing: .09em; }
 .connection-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
 .connection.is-online .connection-dot { background: var(--green); box-shadow: 0 0 0 4px color-mix(in srgb, var(--green) 12%, transparent); }
+.processing-status { color: var(--muted); }
+.processing-status .connection-dot { background: var(--muted); }
+.processing-status.is-active { color: var(--accent); }
+.processing-status.is-active .connection-dot { background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent); }
 .theme-settings, .reader-settings { position: relative; }
 .settings-toggle, .reader-settings-toggle { border: 0; border-bottom: 1px solid var(--line); padding: 4px 0; color: var(--muted); background: transparent; font: 600 9px var(--font-sans); text-transform: uppercase; letter-spacing: .09em; cursor: pointer; }
 .settings-toggle[aria-expanded="true"], .reader-settings-toggle[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }

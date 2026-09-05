@@ -55,8 +55,10 @@ let tagFixtures: Array<{
   created_at: string;
   paper_count: number;
 }>;
+let processingRuns: unknown[];
 
 beforeEach(() => {
+  processingRuns = [];
   tagFixtures = [
     { id: "tag-1", name: "Systems", color: "#395b64", created_at: "2026-01-01", paper_count: 1 },
     { id: "tag-2", name: "Priority", color: "#6b705c", created_at: "2026-01-02", paper_count: 0 },
@@ -66,6 +68,7 @@ beforeEach(() => {
     vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === "/api/health") return response({ status: "ok", database: "available" });
+      if (url === "/api/processing-runs?limit=50") return response({ items: processingRuns });
       if (url === "/api/collections" && init?.method === "POST") return response(collection);
       if (url === "/api/collections") {
         return response([{
@@ -197,6 +200,7 @@ test("loads the connected paper library and updates search through the URL", asy
   renderApp();
 
   expect(await screen.findByText("Library online")).toBeInTheDocument();
+  expect(await screen.findByRole("link", { name: "Processing idle" })).toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: "A Useful Paper" })).toBeInTheDocument();
   expect(screen.getAllByText("Systems")).toHaveLength(1);
 
@@ -207,6 +211,13 @@ test("loads the connected paper library and updates search through the URL", asy
   await waitFor(() => {
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(expect.stringContaining("q=kernel"));
   });
+});
+
+test("shows an active processing run in the masthead", async () => {
+  processingRuns = [{ status: "running" }];
+  renderApp();
+
+  expect(await screen.findByRole("link", { name: "Processing active" })).toHaveClass("is-active");
 });
 
 test("changes and persists the color theme", async () => {
