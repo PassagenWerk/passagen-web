@@ -89,10 +89,19 @@ export function CollectionsPage() {
     const paper = index >= 0 ? detail.data?.papers[index].paper : undefined;
     const base = `/collections/${collectionId}/papers/${paperId}`;
     const pdfView = location.pathname.endsWith("/pdf");
+    const askOpen = search.get("ask") === "true" || search.get("view") === "ask";
     function changeView(view: "summary" | "outline" | "note") {
       const next = new URLSearchParams(search);
       if (view === "summary") next.delete("view");
       else next.set("view", view);
+      if (askOpen) next.set("ask", "true");
+      setSearch(next);
+    }
+    function toggleAsk() {
+      const next = new URLSearchParams(search);
+      if (next.get("view") === "ask") next.delete("view");
+      if (askOpen) next.delete("ask");
+      else next.set("ask", "true");
       setSearch(next);
     }
     function togglePdf() {
@@ -117,7 +126,9 @@ export function CollectionsPage() {
           pending={detail.isPending}
           error={detail.error}
           pdfView={pdfView}
+          askOpen={askOpen}
           onView={changeView}
+          onToggleAsk={toggleAsk}
           onTogglePdf={togglePdf}
           onOpenPdf={() => undefined}
           focused

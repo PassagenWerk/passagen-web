@@ -69,6 +69,8 @@ beforeEach(() => {
       const url = String(input);
       if (url === "/api/health") return response({ status: "ok", database: "available" });
       if (url === "/api/processing-runs?limit=50") return response({ items: processingRuns });
+      if (url === "/api/conversations?paper_id=paper-1") return response({ items: [] });
+      if (url.startsWith("/api/qa-records?")) return response({ items: [] });
       if (url === "/api/collections" && init?.method === "POST") return response(collection);
       if (url === "/api/collections") {
         return response([{
@@ -339,6 +341,47 @@ test("opens and closes PDF beside the focused summary", async () => {
   expect(screen.queryByTitle("A Useful Paper PDF")).not.toBeInTheDocument();
   expect(container.querySelector(".detail-panel")).not.toHaveClass("has-pdf");
   expect(container.querySelector(".library-grid")).toHaveClass("is-focus");
+});
+
+test("opens the paper PDF from the main reader toolbar", async () => {
+  const { container } = renderApp("/papers/paper-1");
+  await screen.findByText("A useful research problem");
+
+  fireEvent.click(screen.getByRole("button", { name: "Open paper PDF" }));
+
+  expect(await screen.findByTitle("A Useful Paper PDF")).toBeInTheDocument();
+  expect(container.querySelector(".library-grid")).toHaveClass("is-focus");
+  expect(container.querySelector(".detail-panel")).toHaveClass("has-pdf", "has-companion");
+  expect(screen.getByRole("button", { name: "Close paper PDF" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+});
+
+test("pushes Ask beside reading and shifts it left when PDF opens", async () => {
+  const { container } = renderApp("/papers/paper-1");
+  await screen.findByText("A useful research problem");
+
+  fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+  expect(container.querySelector(".library-grid")).toHaveClass("is-focus");
+  expect(container.querySelector(".detail-panel")).toHaveClass("has-ask", "has-companion");
+  expect(screen.getByText("A useful research problem")).toBeInTheDocument();
+  expect(screen.getByLabelText("Paper assistant")).toHaveAttribute("aria-hidden", "false");
+  expect(screen.getByText("New conversation")).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole("button", { name: "Open PDF panel" }));
+
+  expect(await screen.findByTitle("A Useful Paper PDF")).toBeInTheDocument();
+  expect(container.querySelector(".detail-panel")).toHaveClass("is-ask-primary", "has-pdf");
+
+  fireEvent.click(screen.getByRole("button", { name: "Close PDF panel" }));
+  expect(container.querySelector(".detail-panel")).not.toHaveClass("is-ask-primary", "has-pdf");
+  expect(container.querySelector(".detail-panel")).toHaveClass("has-ask");
+
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  expect(container.querySelector(".detail-panel")).not.toHaveClass("has-ask", "has-companion");
+  expect(screen.getByText("A useful research problem")).toBeInTheDocument();
 });
 
 test("opens evidence pages in the PDF reader", async () => {

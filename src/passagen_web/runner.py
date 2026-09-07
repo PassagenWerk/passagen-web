@@ -1,10 +1,11 @@
-"""In-process single-worker runner for persisted processing runs."""
+"""In-process single-worker runners for persisted processing and generation runs."""
 
 from __future__ import annotations
 
 import logging
 import threading
 
+from passagen.assistant import ConversationService
 from passagen.processing import ProcessingService
 from passagen.providers import check_provider_health
 
@@ -46,3 +47,35 @@ class ProcessingRunner:
             except Exception:
                 # execute_run already persisted the failure; this is a safety net.
                 logger.exception("processing_run_crashed", extra={"run_id": run.id})
+
+
+class GenerationRunner:
+    """Execute queued conversation/generation runs one at a time."""
+
+    def __init__(self, service: ConversationService, *, poll_interval: float = 0.2) -> None:
+        self._service = service
+        self._poll_interval = poll_interval
+        self._stop = threading.Event()
+        self._thread = threading.Thread(
+            target=self._loop, name="passagen-generation-runner", daemon=True
+        )
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def stop(self, *, timeout: float = 5.0) -> None:
+        self._stop.set()
+        self._thread.join(timeout=timeout)
+
+    def _loop(self) -> None:
+        while not self._stop.is_set():
+            run = self._service.claim_next_queued_run()
+            if run is None:
+                self._stop.wait(self._poll_interval)
+                continue
+            logger.info("generation_run_dequeued", extra={"run_id": run.id})
+            try:
+                self._service.execute_turn(run.id)
+            except Exception:
+                # execute_turn already persisted the failure; this is a safety net.
+                logger.exception("generation_run_crashed", extra={"run_id": run.id})

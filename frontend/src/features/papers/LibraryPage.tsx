@@ -22,9 +22,10 @@ export function LibraryPage({
   const { paperId } = useParams();
   const location = useLocation();
   const pdfView = location.pathname.endsWith("/pdf");
-  const focused = Boolean(paperId) && (readingFocused || pdfView);
   const navigate = useNavigate();
   const [search, setSearch] = useSearchParams();
+  const askOpen = search.get("ask") === "true" || search.get("view") === "ask";
+  const focused = Boolean(paperId) && (readingFocused || pdfView || askOpen);
   const deferredSearch = useDeferredValue(search.toString());
   const papers = useQuery({
     queryKey: ["papers", deferredSearch],
@@ -72,6 +73,14 @@ export function LibraryPage({
     else next.delete(key);
     if (key !== "offset" && key !== "view") next.delete("offset");
     startTransition(() => setSearch(next, { replace: key === "q" }));
+  }
+
+  function changeReaderView(view: "summary" | "outline" | "note") {
+    const next = new URLSearchParams(search);
+    if (view === "summary") next.delete("view");
+    else next.set("view", view);
+    if (askOpen) next.set("ask", "true");
+    setSearch(next);
   }
 
   function changeTags(tagIds: string[], match: "all" | "any") {
@@ -134,11 +143,24 @@ export function LibraryPage({
     });
   }
 
+  function toggleAsk() {
+    const next = new URLSearchParams(search);
+    if (next.get("view") === "ask") next.delete("view");
+    if (askOpen) next.delete("ask");
+    else {
+      next.set("ask", "true");
+      onFocusReading();
+    }
+    setSearch(next);
+  }
+
   function exitFocus() {
     onExitReading();
-    if (!paperId || !pdfView) return;
+    if (!paperId) return;
     const next = new URLSearchParams(search);
     next.delete("page");
+    next.delete("ask");
+    if (next.get("view") === "ask") next.delete("view");
     void navigate({ pathname: `/papers/${paperId}`, search: next.toString() });
   }
 
@@ -213,7 +235,9 @@ export function LibraryPage({
         pending={Boolean(paperId && !listedPaper && detail.isPending)}
         error={detail.error}
         pdfView={pdfView}
-        onView={(view) => changeSearch("view", view === "summary" ? "" : view)}
+        askOpen={askOpen}
+        onView={changeReaderView}
+        onToggleAsk={toggleAsk}
         onTogglePdf={togglePdf}
         onOpenPdf={onFocusReading}
         focused={focused}

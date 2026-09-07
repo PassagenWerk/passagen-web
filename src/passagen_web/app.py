@@ -6,6 +6,18 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from passagen.assistant import ConversationService
+from passagen.assistant.errors import (
+    AnswerValidationError,
+    AssistantError,
+    AssistantNotFoundError,
+    CitationValidationError,
+    ContextPlanError,
+    InsufficientEvidenceError,
+    ProviderCallError,
+    ScopeError,
+    StaleSourceError,
+)
 from passagen.catalog import (
     CatalogBusyError,
     CatalogConflictError,
@@ -26,31 +38,48 @@ from passagen.processing import (
 
 from passagen_web import __version__
 from passagen_web.api.collections import router as collections_router
+from passagen_web.api.conversations import router as conversations_router
+from passagen_web.api.generation_runs import router as generation_runs_router
 from passagen_web.api.health import router as health_router
 from passagen_web.api.papers import router as papers_router
 from passagen_web.api.processing import router as processing_router
+from passagen_web.api.qa_records import router as qa_records_router
 from passagen_web.api.tags import router as tags_router
 from passagen_web.config import Settings
-from passagen_web.runner import ProcessingRunner
+from passagen_web.runner import GenerationRunner, ProcessingRunner
 from passagen_web.schemas.errors import ErrorDetail, ErrorResponse
 
 logger = logging.getLogger("passagen_web.api")
 
 
-def create_app(settings: Settings, *, static_dir: Path | None = None) -> FastAPI:
+def create_app(
+    settings: Settings,
+    *,
+    static_dir: Path | None = None,
+    assistant: ConversationService | None = None,
+) -> FastAPI:
     processing = ProcessingService(settings.core)
+    assistant = assistant or ConversationService(
+        settings.database_path, settings.data_dir, settings.core.providers.llm
+    )
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         interrupted = processing.interrupt_active_runs()
         for run in interrupted:
             logger.info("processing_run_interrupted", extra={"run_id": run.id})
+        interrupted_generation = assistant.interrupt_active_runs()
+        if interrupted_generation:
+            logger.info("generation_runs_interrupted", extra={"count": interrupted_generation})
         runner = ProcessingRunner(processing)
+        generation_runner = GenerationRunner(assistant)
         runner.start()
+        generation_runner.start()
         try:
             yield
         finally:
             runner.stop()
+            generation_runner.stop()
 
     app = FastAPI(
         title="Passagen Web API",
@@ -62,11 +91,15 @@ def create_app(settings: Settings, *, static_dir: Path | None = None) -> FastAPI
     app.state.settings = settings
     app.state.catalog = CatalogService(settings.database_path, settings.data_dir)
     app.state.processing = processing
+    app.state.assistant = assistant
     app.include_router(health_router, prefix="/api")
     app.include_router(papers_router, prefix="/api")
     app.include_router(tags_router, prefix="/api")
     app.include_router(collections_router, prefix="/api")
     app.include_router(processing_router, prefix="/api")
+    app.include_router(conversations_router, prefix="/api")
+    app.include_router(qa_records_router, prefix="/api")
+    app.include_router(generation_runs_router, prefix="/api")
     _install_error_handlers(app)
     _install_origin_protection(app, settings)
     _install_static_routes(app, static_dir or Path(__file__).with_name("static"))
@@ -145,6 +178,22 @@ def _install_error_handlers(app: FastAPI) -> None:
         (ProcessingError, 400, "invalid_request"),
     )
     for error_type, status_code, code in processing_errors:
+        app.add_exception_handler(
+            error_type,
+            _error_handler(status_code, code),
+        )
+    assistant_errors: tuple[tuple[type[Exception], int, str], ...] = (
+        (AssistantNotFoundError, 404, "not_found"),
+        (ScopeError, 422, "invalid_scope"),
+        (ContextPlanError, 422, "invalid_context_plan"),
+        (CitationValidationError, 422, "invalid_citation"),
+        (AnswerValidationError, 422, "invalid_answer"),
+        (InsufficientEvidenceError, 422, "insufficient_evidence"),
+        (StaleSourceError, 409, "stale_source"),
+        (ProviderCallError, 502, "provider_error"),
+        (AssistantError, 500, "assistant_error"),
+    )
+    for error_type, status_code, code in assistant_errors:
         app.add_exception_handler(
             error_type,
             _error_handler(status_code, code),

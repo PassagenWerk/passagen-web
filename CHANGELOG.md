@@ -7,6 +7,38 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- Paper Ask workspace: persistent conversations with create/rename/delete, asynchronous
+  question turns (`202` + polling), pending/failed/retry states, per-answer source badges
+  (Summary, Outline, Raw sections, History), and citation chips that navigate to the Summary,
+  Outline, or the exact PDF page. User questions render optimistically, and completed answers
+  show their generation run and aggregate LLM call/token usage.
+- Structured answer archive: archive a turn with title and tags, search saved answers from the
+  Saved tab, reuse a saved question, unarchive, and export the full structured QA record JSON.
+- `/api/conversations` CRUD, `/api/conversations/{id}/turns` submission and polling,
+  `/api/qa-records` search/archive/export, and `/api/generation-runs/{id}` status with per-stage
+  token usage, backed by a single in-process `GenerationRunner`; legacy active generation runs
+  are marked interrupted on startup.
+
+### Fixed
+
+- Archiving an answer now invalidates the Saved-search cache, and the Ask workspace has explicit
+  narrow-screen layout rules for conversation controls and the composer.
+
+### Changed
+
+- Reworked paper reading as a three-pane model that displays at most two panes: Reader alone,
+  Reader with Ask, Reader with PDF, or Ask with PDF. Ask now opens beside the active Summary,
+  Outline, or Note; opening cited PDF evidence shifts Ask left without losing conversation state.
+- Added a Paper launch control beside Ask in the main Reader toolbar, restored companion-pane
+  transition animations, and collapse structured Summary content to one column whenever either
+  Ask or PDF occupies the second pane.
+- Redesigned Ask around a lazy new-conversation draft, a compact History settings popover,
+  independently scrolling messages and saved answers, a grounded-answer welcome state, and a
+  fixed composer. Previous conversations are no longer selected by default or exposed as a
+  permanent toolbar row.
+
 ## [0.5.0] - 2026-09-05
 
 Requires `passagen-core` `0.5.x` and Passagen Schema version 4.

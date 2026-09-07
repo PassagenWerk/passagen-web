@@ -8,6 +8,7 @@ Passagen Web 是 Core 的本地 HTTP 与浏览器适配器。它负责服务生�
 ```text
 React UI -> /api -> FastAPI routes -> passagen.catalog
                                 \-> passagen.processing
+                                \-> passagen.assistant
 ```
 
 Web 不导入 Core ORM model、不直接打开 SQLite、不扫描 artifact 目录，也不依赖 Passagen CLI。
@@ -22,6 +23,11 @@ Passagen Core 仓库的 docs/development/architecture.md。
 长任务不在 HTTP request handler 中同步执行。`POST /api/processing-runs` 持久化 queued run
 并返回 `202`；进程内单 worker 通过 Core `ProcessingService` 执行任务。服务重启会把遗留活动
 run 标记为 interrupted。
+
+对话问答沿用同一模式：`POST /api/conversations/{id}/turns` 持久化用户消息、pending 回答和
+queued generation run 并返回 `202`；进程内 `GenerationRunner` 通过 Core `ConversationService`
+认领并执行 run。浏览器轮询 turn 或 `/api/generation-runs/{id}` 获取状态，失败时用户消息保留
+并展示稳定错误码，可重试。
 
 ## HTTP Boundary
 

@@ -13,6 +13,7 @@ import {
   type Tag,
 } from "../../api/papers";
 import { useEscapeClose } from "../../components/useEscapeClose";
+import { AskPanel } from "../ask/AskPanel";
 import { useDisplayPreferences } from "../preferences/displayPreferences";
 import { PdfReader } from "../reader/PdfReader";
 import { PaperLibraryEditor } from "./PaperLibraryEditor";
@@ -31,7 +32,9 @@ interface PaperDetailProps {
   pending: boolean;
   error: Error | null;
   pdfView: boolean;
+  askOpen: boolean;
   onView: (view: "summary" | "outline" | "note") => void;
+  onToggleAsk: () => void;
   onTogglePdf: () => void;
   onOpenPdf: () => void;
   focused: boolean;
@@ -46,7 +49,9 @@ export function PaperDetail({
   pending,
   error,
   pdfView,
+  askOpen,
   onView,
+  onToggleAsk,
   onTogglePdf,
   onOpenPdf,
   focused,
@@ -98,7 +103,10 @@ export function PaperDetail({
   const processing = usePaperProcessing(paper);
 
   return (
-    <article className={`detail-panel ${pdfView ? "has-pdf" : ""}`} aria-labelledby="detail-heading">
+    <article
+      className={`detail-panel ${pdfView || askOpen ? "has-companion" : ""} ${pdfView ? "has-pdf" : ""} ${askOpen ? "has-ask" : ""} ${pdfView && askOpen ? "is-ask-primary" : ""}`}
+      aria-labelledby="detail-heading"
+    >
       {focused ? (
         <button
           className="focus-back"
@@ -235,6 +243,26 @@ export function PaperDetail({
                 onClick={() => onView("note")}
               >Note</button>
             </div>
+            <button
+              className="reader-ask-toggle"
+              type="button"
+              aria-pressed={askOpen}
+              onClick={onToggleAsk}
+            >
+              <span>Ask</span>
+              <span aria-hidden="true">{askOpen ? "×" : "→"}</span>
+            </button>
+            <button
+              className="reader-paper-toggle"
+              type="button"
+              aria-label={pdfView ? "Close paper PDF" : "Open paper PDF"}
+              aria-pressed={pdfView}
+              disabled={!paper.artifacts.pdf}
+              onClick={onTogglePdf}
+            >
+              <span>Paper</span>
+              <span aria-hidden="true">{pdfView ? "×" : "→"}</span>
+            </button>
             <div className="reader-actions">
               {paper.status === "outlined" && view !== "note" ? (
                 <StageReprocessButton
@@ -351,6 +379,28 @@ export function PaperDetail({
           <span aria-hidden="true">{pdfView ? ">" : "<"}</span>
           <span>PDF</span>
         </button>
+      ) : null}
+      {focused && paper ? (
+        <aside className="ask-pane" aria-label="Paper assistant" aria-hidden={!askOpen}>
+          {askOpen ? (
+            <>
+              <div className="companion-heading">
+                <div>
+                  <span>Paper companion</span>
+                  <strong>Ask</strong>
+                </div>
+                <button type="button" onClick={onToggleAsk}>Close</button>
+              </div>
+              <AskPanel
+                paper={paper}
+                paperPath={currentPaperPath}
+                readerView={view}
+                onOpenPdf={onOpenPdf}
+                onView={onView}
+              />
+            </>
+          ) : null}
+        </aside>
       ) : null}
       {focused && paper ? (
         <aside className="pdf-pane" aria-label="PDF reader" aria-hidden={!pdfView}>

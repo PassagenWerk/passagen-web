@@ -1,6 +1,7 @@
 from typing import Annotated, cast
 
 from fastapi import Depends, Request
+from passagen.assistant import ConversationService
 from passagen.catalog import CatalogService
 from passagen.processing import ProcessingService
 
@@ -19,6 +20,11 @@ def get_processing(request: Request) -> ProcessingService:
     return cast(ProcessingService, request.app.state.processing)
 
 
+def get_assistant(request: Request) -> ConversationService:
+    return cast(ConversationService, request.app.state.assistant)
+
+
 SettingsDependency = Annotated[Settings, Depends(get_settings)]
 CatalogDependency = Annotated[CatalogService, Depends(get_catalog)]
 ProcessingDependency = Annotated[ProcessingService, Depends(get_processing)]
+AssistantDependency = Annotated[ConversationService, Depends(get_assistant)]
