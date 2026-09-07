@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { Paper } from "../../api/papers";
+import { DisplayPreferencesProvider } from "../preferences/DisplayPreferencesProvider";
 import { AskPanel } from "./AskPanel";
 
 const paper: Paper = {
@@ -119,15 +120,17 @@ function renderPanel() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <AskPanel
-          paper={paper}
-          paperPath="/papers/paper-1"
-          readerView="summary"
-          onOpenPdf={() => {}}
-          onView={() => {}}
-        />
-      </MemoryRouter>
+      <DisplayPreferencesProvider>
+        <MemoryRouter>
+          <AskPanel
+            paper={paper}
+            paperPath="/papers/paper-1"
+            readerView="summary"
+            onOpenPdf={() => {}}
+            onView={() => {}}
+          />
+        </MemoryRouter>
+      </DisplayPreferencesProvider>
     </QueryClientProvider>,
   );
 }
@@ -176,6 +179,8 @@ describe("AskPanel", () => {
   });
 
   afterEach(() => {
+    window.localStorage.removeItem("passagen.reader-font-size");
+    document.documentElement.style.removeProperty("--reader-font-size");
     cleanup();
   });
 
@@ -192,6 +197,53 @@ describe("AskPanel", () => {
     expect(citation.getAttribute("href")).toBe(
       "/papers/paper-1/pdf?view=summary&ask=true&page=5",
     );
+  });
+
+  test("submits with Enter and keeps Shift+Enter as a newline", async () => {
+    renderPanel();
+    await screen.findByText("Read with a second set of eyes.");
+
+    const question = screen.getByLabelText("Question");
+    fireEvent.change(question, { target: { value: "What workload was used?" } });
+    fireEvent.keyDown(question, { key: "Enter" });
+
+    await waitFor(() => {
+      const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+      const submitCall = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          String(url) === "/api/conversations/conv-1/turns" &&
+          (init as RequestInit | undefined)?.method === "POST",
+      );
+      expect(submitCall).toBeTruthy();
+      expect(JSON.parse(String(submitCall![1]?.body))).toEqual({
+        question: "What workload was used?",
+      });
+    });
+
+    fireEvent.change(question, { target: { value: "First line" } });
+    fireEvent.keyDown(question, { key: "Enter", shiftKey: true });
+    const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url, init]) =>
+          String(url).endsWith("/turns") &&
+          (init as RequestInit | undefined)?.method === "POST",
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("exposes the shared text size setting from Ask", async () => {
+    renderPanel();
+    await screen.findByText("Read with a second set of eyes.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Conversation text size" }));
+    const slider = screen.getByLabelText("Conversation font size");
+    fireEvent.change(slider, { target: { value: "21" } });
+
+    await waitFor(() =>
+      expect(document.documentElement.style.getPropertyValue("--reader-font-size")).toBe("21px"),
+    );
+    expect(window.localStorage.getItem("passagen.reader-font-size")).toBe("21");
   });
 
   test("shows a stable failure with retry", async () => {
@@ -283,7 +335,8 @@ describe("AskPanel", () => {
         .getAllByText("How does eBPF work?")
         .some((element) => element.closest(".is-optimistic") !== null),
     ).toBe(true);
-    expect(screen.getByRole("button", { name: "Sending..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Running..." })).toBeDisabled();
+    expect(screen.getByRole("status", { name: "Answer is still running" })).toBeInTheDocument();
     await waitFor(() => expect(finishSubmission).toBeDefined());
     expect(
       fetchMock.mock.calls.some(
