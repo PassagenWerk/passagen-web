@@ -104,6 +104,13 @@ export function CollectionsPage() {
       else next.set("ask", "true");
       setSearch(next);
     }
+    function showReaderOnly() {
+      const next = new URLSearchParams(search);
+      next.delete("ask");
+      next.delete("page");
+      if (next.get("view") === "ask") next.delete("view");
+      void navigate({ pathname: base, search: next.toString() });
+    }
     function togglePdf() {
       const next = new URLSearchParams(search);
       if (pdfView) next.delete("page");
@@ -129,6 +136,7 @@ export function CollectionsPage() {
           askOpen={askOpen}
           onView={changeView}
           onToggleAsk={toggleAsk}
+          onReaderOnly={showReaderOnly}
           onTogglePdf={togglePdf}
           onOpenPdf={() => undefined}
           focused

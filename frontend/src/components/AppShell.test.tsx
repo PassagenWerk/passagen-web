@@ -375,12 +375,15 @@ test("pushes Ask beside reading and shifts it left when PDF opens", async () => 
   expect(await screen.findByTitle("A Useful Paper PDF")).toBeInTheDocument();
   expect(container.querySelector(".detail-panel")).toHaveClass("is-ask-primary", "has-pdf");
 
-  fireEvent.click(screen.getByRole("button", { name: "Close PDF panel" }));
-  expect(container.querySelector(".detail-panel")).not.toHaveClass("is-ask-primary", "has-pdf");
-  expect(container.querySelector(".detail-panel")).toHaveClass("has-ask");
-
-  fireEvent.click(screen.getByRole("button", { name: "Close" }));
-  expect(container.querySelector(".detail-panel")).not.toHaveClass("has-ask", "has-companion");
+  fireEvent.click(screen.getByRole("button", { name: "Paper only" }));
+  expect(container.querySelector(".detail-panel")).not.toHaveClass(
+    "is-ask-primary",
+    "has-pdf",
+    "has-ask",
+    "has-companion",
+  );
+  expect(screen.queryByTitle("A Useful Paper PDF")).not.toBeInTheDocument();
+  expect(container.querySelector(".library-grid")).toHaveClass("is-focus");
   expect(screen.getByText("A useful research problem")).toBeInTheDocument();
 });
 

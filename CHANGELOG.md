@@ -34,6 +34,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Added a Paper launch control beside Ask in the main Reader toolbar, restored companion-pane
   transition animations, and collapse structured Summary content to one column whenever either
   Ask or PDF occupies the second pane.
+- Removed the focused-reader top padding gap above the sticky artifact toolbar, and added a
+  one-step `Paper only` action that closes Ask and PDF while retaining focused single-pane reading.
 - Redesigned Ask around a lazy new-conversation draft, a compact History settings popover,
   independently scrolling messages and saved answers, a grounded-answer welcome state, and a
   fixed composer. Previous conversations are no longer selected by default or exposed as a

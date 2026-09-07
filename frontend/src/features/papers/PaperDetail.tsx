@@ -35,6 +35,7 @@ interface PaperDetailProps {
   askOpen: boolean;
   onView: (view: "summary" | "outline" | "note") => void;
   onToggleAsk: () => void;
+  onReaderOnly: () => void;
   onTogglePdf: () => void;
   onOpenPdf: () => void;
   focused: boolean;
@@ -52,6 +53,7 @@ export function PaperDetail({
   askOpen,
   onView,
   onToggleAsk,
+  onReaderOnly,
   onTogglePdf,
   onOpenPdf,
   focused,
@@ -389,7 +391,9 @@ export function PaperDetail({
                   <span>Paper companion</span>
                   <strong>Ask</strong>
                 </div>
-                <button type="button" onClick={onToggleAsk}>Close</button>
+                <button type="button" onClick={onReaderOnly}>
+                  <span aria-hidden="true">←</span> Paper only
+                </button>
               </div>
               <AskPanel
                 paper={paper}

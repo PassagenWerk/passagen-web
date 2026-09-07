@@ -154,6 +154,16 @@ export function LibraryPage({
     setSearch(next);
   }
 
+  function showReaderOnly() {
+    if (!paperId) return;
+    const next = new URLSearchParams(search);
+    next.delete("ask");
+    next.delete("page");
+    if (next.get("view") === "ask") next.delete("view");
+    onFocusReading();
+    void navigate({ pathname: `/papers/${paperId}`, search: next.toString() });
+  }
+
   function exitFocus() {
     onExitReading();
     if (!paperId) return;
@@ -238,6 +248,7 @@ export function LibraryPage({
         askOpen={askOpen}
         onView={changeReaderView}
         onToggleAsk={toggleAsk}
+        onReaderOnly={showReaderOnly}
         onTogglePdf={togglePdf}
         onOpenPdf={onFocusReading}
         focused={focused}
