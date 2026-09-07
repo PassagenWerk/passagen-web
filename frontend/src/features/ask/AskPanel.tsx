@@ -140,7 +140,6 @@ function AskChat({
     mutationFn: (title: string) => renameConversation(selectedId!, title),
     onSuccess: () => {
       setRenaming(false);
-      setHistoryOpen(false);
       invalidate();
     },
   });
@@ -197,7 +196,40 @@ function AskChat({
       <div className="ask-session-bar">
         <div>
           <span>{selectedId ? "Conversation" : "Ready to explore"}</span>
-          <strong>{detail.data?.conversation.title ?? "New conversation"}</strong>
+          {selectedId && renaming ? (
+            <form
+              className="ask-title-edit"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (renameDraft.trim()) rename.mutate(renameDraft.trim());
+              }}
+            >
+              <input
+                autoFocus
+                value={renameDraft}
+                onChange={(event) => setRenameDraft(event.target.value)}
+                aria-label="Conversation title"
+              />
+              <button type="submit" disabled={rename.isPending}>Save</button>
+              <button type="button" onClick={() => setRenaming(false)}>Cancel</button>
+            </form>
+          ) : (
+            <div className="ask-title-row">
+              <strong>{detail.data?.conversation.title ?? "New conversation"}</strong>
+              {selectedId ? (
+                <button
+                  type="button"
+                  aria-label="Rename conversation"
+                  onClick={() => {
+                    setRenameDraft(detail.data?.conversation.title ?? "");
+                    setRenaming(true);
+                  }}
+                >
+                  Rename
+                </button>
+              ) : null}
+            </div>
+          )}
         </div>
         <div className="ask-history">
           <button
@@ -246,41 +278,15 @@ function AskChat({
                 ) : null}
               </div>
               {selectedId ? (
-                renaming ? (
-                  <form
-                    className="ask-rename"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      if (renameDraft.trim()) rename.mutate(renameDraft.trim());
-                    }}
+                <div className="ask-history-actions">
+                  <button
+                    type="button"
+                    onClick={() => remove.mutate()}
+                    disabled={remove.isPending}
                   >
-                    <input
-                      value={renameDraft}
-                      onChange={(event) => setRenameDraft(event.target.value)}
-                      aria-label="Conversation title"
-                    />
-                    <button type="submit">Save</button>
-                  </form>
-                ) : (
-                  <div className="ask-history-actions">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRenameDraft(detail.data?.conversation.title ?? "");
-                        setRenaming(true);
-                      }}
-                    >
-                      Rename selected
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => remove.mutate()}
-                      disabled={remove.isPending}
-                    >
-                      Delete selected
-                    </button>
-                  </div>
-                )
+                    Delete selected
+                  </button>
+                </div>
               ) : null}
             </div>
           ) : null}

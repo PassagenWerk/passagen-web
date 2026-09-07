@@ -150,6 +150,9 @@ describe("AskPanel", () => {
           return response(conversation, 201);
         }
         if (url === "/api/conversations/conv-1") {
+          if (init?.method === "PATCH") {
+            return response({ ...conversation, title: JSON.parse(String(init.body)).title });
+          }
           return response({
             conversation,
             messages: [userMessage, assistantMessage, failedMessage],
@@ -207,6 +210,27 @@ describe("AskPanel", () => {
             (init as RequestInit | undefined)?.method === "POST",
         ),
       ).toBe(true);
+    });
+  });
+
+  test("renames the active conversation from its title", async () => {
+    renderPanel();
+    await openPreviousConversation();
+
+    fireEvent.click(screen.getByRole("button", { name: "Rename conversation" }));
+    fireEvent.change(screen.getByLabelText("Conversation title"), {
+      target: { value: "RNIC latency" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+      const renameCall = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          String(url) === "/api/conversations/conv-1" &&
+          (init as RequestInit | undefined)?.method === "PATCH",
+      );
+      expect(JSON.parse(String(renameCall?.[1]?.body))).toEqual({ title: "RNIC latency" });
     });
   });
 

@@ -553,21 +553,25 @@ footer { padding-top: 12px; color: var(--footer-ink); font-size: 8px; }
 .ask-session-bar > div:first-child { min-width: 0; display: grid; gap: 2px; }
 .ask-session-bar > div:first-child span { color: var(--accent); font: 600 8px var(--font-sans); text-transform: uppercase; letter-spacing: .09em; }
 .ask-session-bar > div:first-child strong { overflow: hidden; font: 400 17px var(--font-paper); white-space: nowrap; text-overflow: ellipsis; }
+.ask-title-row { min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.ask-title-row strong { min-width: 0; }
+.ask-title-row button, .ask-title-edit button { flex: 0 0 auto; border: 0; padding: 2px 0; color: var(--muted); background: transparent; font: 600 7px var(--font-sans); text-transform: uppercase; letter-spacing: .06em; cursor: pointer; }
+.ask-title-edit { display: flex; align-items: center; gap: 7px; }
+.ask-title-edit input { min-width: 0; width: min(220px, 35vw); border: 0; border-bottom: 1px solid var(--accent); padding: 3px 1px; color: var(--ink); background: transparent; font: 400 15px var(--font-paper); }
+.ask-title-edit button[type="submit"] { color: var(--accent); }
 .ask-history { position: relative; flex: 0 0 auto; }
 .ask-history-panel { top: 100%; right: 0; width: min(330px, calc(100vw - 64px)); max-height: min(480px, calc(100vh - 180px)); grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; padding: 12px; }
 .ask-history-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
 .ask-history-heading strong { font: 400 17px var(--font-paper); }
-.ask-history-heading button, .ask-history-actions button, .ask-rename button { border: 0; padding: 3px 0; color: var(--accent); background: transparent; font: 600 8px var(--font-sans); text-transform: uppercase; letter-spacing: .06em; cursor: pointer; }
+.ask-history-heading button, .ask-history-actions button { border: 0; padding: 3px 0; color: var(--accent); background: transparent; font: 600 8px var(--font-sans); text-transform: uppercase; letter-spacing: .06em; cursor: pointer; }
 .ask-history-list { min-height: 0; display: grid; gap: 3px; overflow-y: auto; }
 .ask-history-list > button { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: baseline; border: 0; border-left: 2px solid transparent; padding: 8px 8px 8px 10px; color: var(--ink); background: transparent; text-align: left; cursor: pointer; }
 .ask-history-list > button:hover { background: var(--surface-hover); }
 .ask-history-list > button.is-active { border-left-color: var(--accent); background: var(--surface); }
 .ask-history-list > button strong { overflow: hidden; font: 600 11px var(--font-paper); white-space: nowrap; text-overflow: ellipsis; }
 .ask-history-list > button span, .ask-history-list p { margin: 0; color: var(--muted); font: 8px var(--font-sans); }
-.ask-history-actions { display: flex; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
-.ask-history-actions button:last-child { color: var(--muted); }
-.ask-rename { display: flex; gap: 6px; align-items: center; }
-.ask-rename input { min-width: 0; flex: 1; border: 0; border-bottom: 1px solid var(--line); padding: 6px 2px; color: var(--ink); background: transparent; font: 11px var(--font-sans); }
+.ask-history-actions { display: flex; justify-content: flex-end; gap: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+.ask-history-actions button { color: var(--muted); }
 .ask-welcome { margin: auto; max-width: 310px; padding: 28px 18px; text-align: center; }
 .ask-welcome > span { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 14px; border: 1px solid var(--line); border-radius: 50%; color: var(--accent); font: 26px var(--font-paper); }
 .ask-welcome strong { display: block; font: 400 19px var(--font-paper); }
@@ -601,8 +605,8 @@ footer { padding-top: 12px; color: var(--footer-ink); font-size: 8px; }
 
 @media (max-width: 640px) {
   .ask-panel { padding: 12px; }
-  .ask-rename { width: 100%; }
-  .ask-rename input { min-width: 0; flex: 1; }
+  .ask-title-edit { width: 100%; }
+  .ask-title-edit input { min-width: 0; flex: 1; width: auto; }
   .ask-message.is-user { max-width: 95%; }
   .ask-composer { flex-direction: column; align-items: stretch; }
   .library-grid.is-focus .detail-panel.has-companion, .collection-reader-view.is-focus .detail-panel.has-companion { grid-template-columns: 38px minmax(0, 1fr) 38px; }
