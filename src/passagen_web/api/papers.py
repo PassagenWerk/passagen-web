@@ -21,8 +21,10 @@ from passagen.stages.scanning import import_files
 from passagen_web.dependencies import CatalogDependency, SettingsDependency
 from passagen_web.schemas.papers import (
     ArtifactAvailability,
+    NoteResponse,
     OutlineResponse,
     PaperMetadataUpdateRequest,
+    PaperNoteUpdateRequest,
     PaperPageResponse,
     PaperResponse,
     PaperTagsUpdateRequest,
@@ -191,6 +193,19 @@ def get_outline(paper_id: str, catalog: CatalogDependency) -> OutlineResponse:
     except (OSError, UnicodeError) as exc:
         raise InvalidArtifactError("Outline artifact is not readable UTF-8 text") from exc
     return OutlineResponse(paper_id=paper_id, content=content)
+
+
+@router.get("/{paper_id}/note", response_model=NoteResponse)
+def get_note(paper_id: str, catalog: CatalogDependency) -> NoteResponse:
+    return NoteResponse(paper_id=paper_id, content=catalog.get_paper_note(paper_id))
+
+
+@router.put("/{paper_id}/note", response_model=NoteResponse)
+def update_note(
+    paper_id: str, payload: PaperNoteUpdateRequest, catalog: CatalogDependency
+) -> NoteResponse:
+    content = catalog.update_paper_note(paper_id, payload.content)
+    return NoteResponse(paper_id=paper_id, content=content)
 
 
 @router.get("/{paper_id}/pdf", response_class=FileResponse)

@@ -48,6 +48,15 @@ class OutlineResponse(BaseModel):
     content: str = Field(description="Generated Markdown outline")
 
 
+class NoteResponse(BaseModel):
+    paper_id: str
+    content: str = Field(description="User-authored Markdown note")
+
+
+class PaperNoteUpdateRequest(BaseModel):
+    content: Annotated[str, Field(max_length=1_000_000)]
+
+
 class PaperMetadataUpdateRequest(BaseModel):
     title: Annotated[str, Field(min_length=1, max_length=1000)] | None = None
     venue: Annotated[str, Field(min_length=1, max_length=500)] | None = None

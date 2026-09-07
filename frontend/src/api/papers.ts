@@ -49,6 +49,11 @@ export interface OutlineResponse {
   content: string;
 }
 
+export interface NoteResponse {
+  paper_id: string;
+  content: string;
+}
+
 export interface MetadataUpdate {
   title?: string;
   venue?: string;
@@ -96,6 +101,18 @@ export function fetchSummary(paperId: string): Promise<SummaryResponse> {
 
 export function fetchOutline(paperId: string): Promise<OutlineResponse> {
   return requestJson<OutlineResponse>(`/api/papers/${encodeURIComponent(paperId)}/outline`);
+}
+
+export function fetchNote(paperId: string): Promise<NoteResponse> {
+  return requestJson<NoteResponse>(`/api/papers/${encodeURIComponent(paperId)}/note`);
+}
+
+export function updatePaperNote(paperId: string, content: string): Promise<NoteResponse> {
+  return requestJson<NoteResponse>(`/api/papers/${encodeURIComponent(paperId)}/note`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+  });
 }
 
 export function updatePaperMetadata(paperId: string, update: MetadataUpdate): Promise<Paper> {

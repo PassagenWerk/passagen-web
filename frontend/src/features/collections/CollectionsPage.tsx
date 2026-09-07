@@ -89,7 +89,7 @@ export function CollectionsPage() {
     const paper = index >= 0 ? detail.data?.papers[index].paper : undefined;
     const base = `/collections/${collectionId}/papers/${paperId}`;
     const pdfView = location.pathname.endsWith("/pdf");
-    function changeView(view: "summary" | "outline") {
+    function changeView(view: "summary" | "outline" | "note") {
       const next = new URLSearchParams(search);
       if (view === "summary") next.delete("view");
       else next.set("view", view);

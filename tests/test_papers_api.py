@@ -217,6 +217,21 @@ def test_outline_returns_markdown_without_server_rendering(data_dir: Path) -> No
     assert response.json() == {"paper_id": "paper-a", "content": markdown.decode()}
 
 
+def test_note_can_be_read_saved_and_cleared(data_dir: Path) -> None:
+    _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        empty = client.get("/api/papers/paper-a/note")
+        saved = client.put(
+            "/api/papers/paper-a/note", json={"content": "# My note\n\nUseful finding."}
+        )
+        cleared = client.put("/api/papers/paper-a/note", json={"content": ""})
+
+    assert empty.json() == {"paper_id": "paper-a", "content": ""}
+    assert saved.json() == {"paper_id": "paper-a", "content": "# My note\n\nUseful finding."}
+    assert cleared.json() == {"paper_id": "paper-a", "content": ""}
+
+
 def test_missing_artifact_returns_404(data_dir: Path) -> None:
     _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
 

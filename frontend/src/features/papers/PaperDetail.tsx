@@ -1,9 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { fetchOutline, fetchSummary, type Paper, type Tag } from "../../api/papers";
+import {
+  fetchNote,
+  fetchOutline,
+  fetchSummary,
+  updatePaperNote,
+  type Paper,
+  type Tag,
+} from "../../api/papers";
 import { useEscapeClose } from "../../components/useEscapeClose";
 import { useDisplayPreferences } from "../preferences/displayPreferences";
 import { PdfReader } from "../reader/PdfReader";
@@ -23,7 +31,7 @@ interface PaperDetailProps {
   pending: boolean;
   error: Error | null;
   pdfView: boolean;
-  onView: (view: "summary" | "outline") => void;
+  onView: (view: "summary" | "outline" | "note") => void;
   onTogglePdf: () => void;
   onOpenPdf: () => void;
   focused: boolean;
@@ -61,7 +69,9 @@ export function PaperDetail({
     setTagPickerOpen(false);
     tagPickerToggle.current?.focus();
   });
-  const requestedView = search.get("view") === "outline" ? "outline" : "summary";
+  const requestedView = ["outline", "note"].includes(search.get("view") ?? "")
+    ? search.get("view") as "outline" | "note"
+    : "summary";
   const view = requestedView === "summary" && !paper?.artifacts.summary && paper?.artifacts.outline
     ? "outline"
     : requestedView;
@@ -75,6 +85,12 @@ export function PaperDetail({
     queryKey: ["outline", paper?.id],
     queryFn: () => fetchOutline(paper!.id),
     enabled: Boolean(paper && view === "outline" && paper.artifacts.outline),
+    retry: false,
+  });
+  const note = useQuery({
+    queryKey: ["note", paper?.id],
+    queryFn: () => fetchNote(paper!.id),
+    enabled: Boolean(paper && view === "note"),
     retry: false,
   });
   const tagsById = new Map(tags.map((tag) => [tag.id, tag]));
@@ -212,12 +228,18 @@ export function PaperDetail({
                 disabled={!paper.artifacts.outline}
                 onClick={() => onView("outline")}
               >Outline</button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={view === "note"}
+                onClick={() => onView("note")}
+              >Note</button>
             </div>
             <div className="reader-actions">
-              {paper.status === "outlined" ? (
+              {paper.status === "outlined" && view !== "note" ? (
                 <StageReprocessButton
                   key={`${view}-reprocess-${paper.id}`}
-                  stage={view}
+                  stage={view as "summary" | "outline"}
                   label={view === "summary" ? "Summary" : "Outline"}
                   processing={processing}
                 />
@@ -288,7 +310,7 @@ export function PaperDetail({
                   />
                 ) : null}
               </ArtifactState>
-            ) : (
+            ) : view === "outline" ? (
               <ArtifactState
                 available={paper.artifacts.outline}
                 status={paper.status}
@@ -310,6 +332,8 @@ export function PaperDetail({
                   </div>
                 ) : null}
               </ArtifactState>
+            ) : (
+              <NoteEditor paperId={paper.id} content={note.data?.content ?? ""} pending={note.isPending} error={note.error} />
             )}
           </div>
         </>
@@ -344,6 +368,57 @@ export function PaperDetail({
         </aside>
       ) : null}
     </article>
+  );
+}
+
+function NoteEditor({
+  paperId,
+  content,
+  pending,
+  error,
+}: {
+  paperId: string;
+  content: string;
+  pending: boolean;
+  error: Error | null;
+}) {
+  const queryClient = useQueryClient();
+  const [draft, setDraft] = useState(content);
+  const [preview, setPreview] = useState(Boolean(content));
+  useEffect(() => {
+    setDraft(content);
+    setPreview(Boolean(content));
+  }, [content, paperId]);
+  const save = useMutation({
+    mutationFn: () => updatePaperNote(paperId, draft),
+    onSuccess: (updated) => queryClient.setQueryData(["note", paperId], updated),
+  });
+
+  if (pending) return <div className="artifact-message">Loading note...</div>;
+  if (error) return <div className="artifact-message is-error"><strong>Note could not be opened.</strong><p>{error.message}</p></div>;
+  return (
+    <section className="note-editor" aria-label="Paper note">
+      <div className="note-editor-actions">
+        <div className="abstract-version-toggle" aria-label="Note mode">
+          <button type="button" aria-pressed={!preview} onClick={() => setPreview(false)}>Edit</button>
+          <button type="button" aria-pressed={preview} onClick={() => setPreview(true)}>Preview</button>
+        </div>
+        <button type="button" onClick={() => save.mutate()} disabled={save.isPending || draft === content}>Save note</button>
+      </div>
+      {preview ? (
+        <div className="markdown note-preview"><ReactMarkdown>{draft || "_No note yet._"}</ReactMarkdown></div>
+      ) : (
+        <textarea
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="Write a Markdown note..."
+          aria-label="Note Markdown"
+        />
+      )}
+      {save.isPending ? <span className="form-status">Saving...</span> : null}
+      {save.error ? <span className="form-status is-error">Not saved: {save.error.message}</span> : null}
+      {save.isSuccess ? <span className="form-status is-saved">Saved</span> : null}
+    </section>
   );
 }
 

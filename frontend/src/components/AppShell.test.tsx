@@ -133,6 +133,12 @@ beforeEach(() => {
           content: "# Technical outline\n\n- Evidence pages: 7, 8\n\n<script>unsafe()</script>",
         });
       }
+      if (url.endsWith("/note") && init?.method === "PUT") {
+        return response({ paper_id: "paper-1", content: JSON.parse(String(init.body)).content });
+      }
+      if (url.endsWith("/note")) {
+        return response({ paper_id: "paper-1", content: "# Personal note\n\nWorth revisiting." });
+      }
       if (url.endsWith("/pdf")) {
         return Promise.resolve(
           new Response(new Uint8Array([37]), {
@@ -288,6 +294,24 @@ test("renders Markdown outline without executing raw HTML", async () => {
   expect(await screen.findByRole("heading", { name: "Technical outline" })).toBeInTheDocument();
   expect(document.querySelector("script")).not.toBeInTheDocument();
   expect(screen.queryByText("unsafe()")).not.toBeInTheDocument();
+});
+
+test("edits, previews, and saves a Markdown paper note", async () => {
+  renderApp("/papers/paper-1");
+  fireEvent.click(await screen.findByRole("tab", { name: "Note" }));
+
+  expect(await screen.findByRole("heading", { name: "Personal note" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+  const editor = screen.getByRole("textbox", { name: "Note Markdown" });
+  expect(editor).toHaveValue("# Personal note\n\nWorth revisiting.");
+  fireEvent.change(editor, { target: { value: "# Follow up\n\nCheck experiment." } });
+  fireEvent.click(screen.getByRole("button", { name: "Preview" }));
+  expect(await screen.findByRole("heading", { name: "Follow up" })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Save note" }));
+  await waitFor(() => expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+    "/api/papers/paper-1/note",
+    expect.objectContaining({ method: "PUT" }),
+  ));
 });
 
 test("double-click focuses reading and the back control restores three columns", async () => {

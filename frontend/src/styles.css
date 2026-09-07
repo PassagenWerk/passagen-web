@@ -349,6 +349,12 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); font: 9px var(--font-mono
 .markdown pre { overflow-x: auto; padding: 14px; background: var(--code-block); }
 .markdown blockquote { margin-left: 0; padding-left: 16px; border-left: 2px solid var(--accent); color: var(--muted); }
 .markdown a { color: var(--accent); text-underline-offset: 3px; }
+.note-editor { display: grid; gap: 14px; }
+.note-editor-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.note-editor-actions > button { border: 1px solid var(--accent); padding: 6px 10px; color: var(--paper); background: var(--accent); font: 600 9px var(--font-sans); text-transform: uppercase; letter-spacing: .07em; cursor: pointer; }
+.note-editor-actions > button:disabled { border-color: var(--line); color: var(--disabled); background: var(--surface); cursor: default; }
+.note-editor textarea { box-sizing: border-box; width: 100%; min-height: 360px; resize: vertical; border: 1px solid var(--line); padding: 14px; color: var(--reading-ink); background: var(--surface); font: 14px/1.55 var(--font-mono); }
+.note-preview { min-height: 360px; }
 
 .pdf-pane { min-width: 0; min-height: 0; overflow: hidden; background: var(--pdf-surface); }
 .pdf-pane[aria-hidden="true"] { opacity: 0; transform: translateX(16px); pointer-events: none; }
