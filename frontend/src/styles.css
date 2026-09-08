@@ -109,14 +109,14 @@ a { color: inherit; text-decoration: none; }
 .processing-status .connection-dot { background: var(--muted); }
 .processing-status.is-active { color: var(--accent); }
 .processing-status.is-active .connection-dot { background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent); }
-.theme-settings, .reader-settings { position: relative; }
+.theme-settings, .header-text-settings, .reader-settings { position: relative; }
 .settings-toggle, .reader-settings-toggle { border: 0; border-bottom: 1px solid var(--line); padding: 4px 0; color: var(--muted); background: transparent; font: 600 9px var(--font-sans); text-transform: uppercase; letter-spacing: .09em; cursor: pointer; }
 .settings-toggle[aria-expanded="true"], .reader-settings-toggle[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
 .settings-panel { position: absolute; z-index: 10; display: grid; gap: 3px; min-width: 132px; margin: 8px 0 0; border: 1px solid var(--line); padding: 10px; color: var(--ink); background: var(--paper); box-shadow: 0 8px 24px rgb(0 0 0 / 14%); }
 .settings-panel legend { padding: 0 3px; color: var(--muted); font: 600 8px var(--font-sans); text-transform: uppercase; letter-spacing: .09em; }
 .settings-panel label { display: flex; align-items: center; gap: 7px; padding: 4px 2px; font: 10px var(--font-sans); text-transform: capitalize; cursor: pointer; }
 .settings-panel input { margin: 0; accent-color: var(--accent); }
-.theme-settings-panel { right: 0; }
+.theme-settings-panel, .header-text-settings .reader-settings-panel { right: 0; }
 
 .library-grid {
   min-height: 0;
@@ -569,9 +569,6 @@ footer { padding-top: 12px; color: var(--footer-ink); font-size: 8px; }
 .ask-title-edit input { min-width: 0; width: min(220px, 35vw); border: 0; border-bottom: 1px solid var(--accent); padding: 3px 1px; color: var(--ink); background: transparent; font: 400 15px var(--font-paper); }
 .ask-title-edit button[type="submit"] { color: var(--accent); }
 .ask-session-actions { display: flex; align-items: flex-start; gap: 12px; }
-.ask-text-settings { position: relative; }
-.ask-text-settings-panel { top: 100%; right: 0; min-width: 230px; gap: 8px; }
-.ask-text-settings-panel output { justify-self: center; color: var(--accent); font: 600 11px var(--font-sans); }
 .ask-history { position: relative; flex: 0 0 auto; }
 .ask-history-panel { top: 100%; right: 0; width: min(330px, calc(100vw - 64px)); max-height: min(480px, calc(100vh - 180px)); grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; padding: 12px; }
 .ask-history-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }

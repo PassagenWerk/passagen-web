@@ -232,18 +232,11 @@ describe("AskPanel", () => {
     ).toHaveLength(1);
   });
 
-  test("exposes the shared text size setting from Ask", async () => {
+  test("does not duplicate the global text size setting", async () => {
     renderPanel();
     await screen.findByText("Read with a second set of eyes.");
 
-    fireEvent.click(screen.getByRole("button", { name: "Conversation text size" }));
-    const slider = screen.getByLabelText("Conversation font size");
-    fireEvent.change(slider, { target: { value: "21" } });
-
-    await waitFor(() =>
-      expect(document.documentElement.style.getPropertyValue("--reader-font-size")).toBe("21px"),
-    );
-    expect(window.localStorage.getItem("passagen.reader-font-size")).toBe("21");
+    expect(screen.queryByRole("button", { name: "Conversation text size" })).not.toBeInTheDocument();
   });
 
   test("shows a stable failure with retry", async () => {

@@ -14,7 +14,6 @@ import {
 } from "../../api/papers";
 import { useEscapeClose } from "../../components/useEscapeClose";
 import { AskPanel } from "../ask/AskPanel";
-import { useDisplayPreferences } from "../preferences/displayPreferences";
 import { PdfReader } from "../reader/PdfReader";
 import { PaperLibraryEditor } from "./PaperLibraryEditor";
 import {
@@ -60,8 +59,6 @@ export function PaperDetail({
   onExitFocus,
   paperPath,
 }: PaperDetailProps) {
-  const { readerFontSize, setReaderFontSize } = useDisplayPreferences();
-  const [readerSettingsOpen, setReaderSettingsOpen] = useState(false);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const [abstractExpanded, setAbstractExpanded] = useState(true);
   const [abstractVersion, setAbstractVersion] = useState<"cleaned" | "original">("cleaned");
@@ -288,36 +285,6 @@ export function PaperDetail({
                     <PaperTagPicker key={paper.id} paper={paper} tags={tags} />
                   </div>
                 ) : null}
-              </div>
-              <div className="reader-settings">
-              <button
-                className="reader-settings-toggle"
-                type="button"
-                aria-label="Reading text size"
-                aria-expanded={readerSettingsOpen}
-                aria-controls="reader-size-settings"
-                onClick={() => setReaderSettingsOpen((open) => !open)}
-              >Aa</button>
-              {readerSettingsOpen ? (
-                <fieldset className="settings-panel reader-settings-panel" id="reader-size-settings">
-                  <legend>Reading text</legend>
-                  <output htmlFor="reader-font-size">{readerFontSize}px</output>
-                  <div className="reader-size-slider">
-                    <span aria-hidden="true">A</span>
-                    <input
-                      id="reader-font-size"
-                      type="range"
-                      min="14"
-                      max="24"
-                      step="1"
-                      value={readerFontSize}
-                      aria-label="Reading font size"
-                      onChange={(event) => setReaderFontSize(Number(event.target.value))}
-                    />
-                    <span aria-hidden="true">A</span>
-                  </div>
-                </fieldset>
-              ) : null}
               </div>
             </div>
           </div>

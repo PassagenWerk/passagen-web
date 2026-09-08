@@ -243,9 +243,10 @@ test("changes and persists the reading text size", async () => {
   renderApp("/papers/paper-1");
   await screen.findByText("A useful research problem");
 
-  expect(screen.queryByRole("slider", { name: "Reading font size" })).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: "Reading text size" }));
-  fireEvent.change(screen.getByRole("slider", { name: "Reading font size" }), {
+  expect(screen.getAllByRole("button", { name: "Text size" })).toHaveLength(1);
+  expect(screen.queryByRole("slider", { name: "Global font size" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Text size" }));
+  fireEvent.change(screen.getByRole("slider", { name: "Global font size" }), {
     target: { value: "21" },
   });
 

@@ -15,7 +15,6 @@ import {
 } from "../../api/conversations";
 import type { Paper } from "../../api/papers";
 import { useEscapeClose } from "../../components/useEscapeClose";
-import { useDisplayPreferences } from "../preferences/displayPreferences";
 import {
   archiveQaRecord,
   fetchQaRecord,
@@ -87,7 +86,6 @@ function AskChat({
   onPrefillConsumed,
 }: AskPanelProps & { prefill: string | null; onPrefillConsumed: () => void }) {
   const queryClient = useQueryClient();
-  const { readerFontSize, setReaderFontSize } = useDisplayPreferences();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [optimisticQuestion, setOptimisticQuestion] = useState<{
@@ -97,9 +95,7 @@ function AskChat({
   const [renaming, setRenaming] = useState(false);
   const [renameDraft, setRenameDraft] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [textSettingsOpen, setTextSettingsOpen] = useState(false);
   const historyToggle = useRef<HTMLButtonElement>(null);
-  const textSettingsToggle = useRef<HTMLButtonElement>(null);
   const messageList = useRef<HTMLOListElement>(null);
 
   useEffect(() => {
@@ -107,15 +103,10 @@ function AskChat({
     setDraft("");
     setOptimisticQuestion(null);
     setHistoryOpen(false);
-    setTextSettingsOpen(false);
   }, [paper.id]);
   useEscapeClose(historyOpen, () => {
     setHistoryOpen(false);
     historyToggle.current?.focus();
-  });
-  useEscapeClose(textSettingsOpen, () => {
-    setTextSettingsOpen(false);
-    textSettingsToggle.current?.focus();
   });
   useEffect(() => {
     if (prefill !== null) {
@@ -243,43 +234,6 @@ function AskChat({
           )}
         </div>
         <div className="ask-session-actions">
-          <div className="ask-text-settings">
-            <button
-            ref={textSettingsToggle}
-            className="reader-settings-toggle"
-            type="button"
-            aria-label="Conversation text size"
-            aria-expanded={textSettingsOpen}
-            aria-controls="ask-text-size-settings"
-            onClick={() => {
-              setHistoryOpen(false);
-              setTextSettingsOpen((open) => !open);
-            }}
-          >Aa</button>
-          {textSettingsOpen ? (
-            <fieldset
-              className="settings-panel reader-settings-panel ask-text-settings-panel"
-              id="ask-text-size-settings"
-            >
-              <legend>Reading and conversation text</legend>
-              <output htmlFor="ask-font-size">{readerFontSize}px</output>
-              <div className="reader-size-slider">
-                <span aria-hidden="true">A</span>
-                <input
-                  id="ask-font-size"
-                  type="range"
-                  min="14"
-                  max="24"
-                  step="1"
-                  value={readerFontSize}
-                  aria-label="Conversation font size"
-                  onChange={(event) => setReaderFontSize(Number(event.target.value))}
-                />
-                <span aria-hidden="true">A</span>
-              </div>
-            </fieldset>
-          ) : null}
-          </div>
           <div className="ask-history">
           <button
             ref={historyToggle}
@@ -287,10 +241,7 @@ function AskChat({
             type="button"
             aria-expanded={historyOpen}
             aria-controls="ask-history-panel"
-            onClick={() => {
-              setTextSettingsOpen(false);
-              setHistoryOpen((open) => !open);
-            }}
+            onClick={() => setHistoryOpen((open) => !open)}
           >
             History {conversations.data?.items.length ?? 0}
           </button>

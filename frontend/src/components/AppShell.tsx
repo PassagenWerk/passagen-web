@@ -12,8 +12,9 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
-  const { theme, setTheme } = useDisplayPreferences();
+  const { theme, setTheme, readerFontSize, setReaderFontSize } = useDisplayPreferences();
   const [themeOpen, setThemeOpen] = useState(false);
+  const [textSizeOpen, setTextSizeOpen] = useState(false);
   const health = useQuery({ queryKey: ["health"], queryFn: fetchHealth, retry: false });
   const runs = useQuery({
     queryKey: ["processing-runs"],
@@ -64,7 +65,10 @@ export function AppShell({ children }: AppShellProps) {
               type="button"
               aria-expanded={themeOpen}
               aria-controls="theme-settings"
-              onClick={() => setThemeOpen((open) => !open)}
+              onClick={() => {
+                setTextSizeOpen(false);
+                setThemeOpen((open) => !open);
+              }}
             >Mode</button>
             {themeOpen ? (
               <fieldset className="settings-panel theme-settings-panel" id="theme-settings">
@@ -84,6 +88,39 @@ export function AppShell({ children }: AppShellProps) {
                     <span>{option}</span>
                   </label>
                 ))}
+              </fieldset>
+            ) : null}
+          </div>
+          <div className="header-text-settings">
+            <button
+              className="reader-settings-toggle"
+              type="button"
+              aria-label="Text size"
+              aria-expanded={textSizeOpen}
+              aria-controls="text-size-settings"
+              onClick={() => {
+                setThemeOpen(false);
+                setTextSizeOpen((open) => !open);
+              }}
+            >Aa</button>
+            {textSizeOpen ? (
+              <fieldset className="settings-panel reader-settings-panel" id="text-size-settings">
+                <legend>Reading and conversation text</legend>
+                <output htmlFor="reader-font-size">{readerFontSize}px</output>
+                <div className="reader-size-slider">
+                  <span aria-hidden="true">A</span>
+                  <input
+                    id="reader-font-size"
+                    type="range"
+                    min="14"
+                    max="24"
+                    step="1"
+                    value={readerFontSize}
+                    aria-label="Global font size"
+                    onChange={(event) => setReaderFontSize(Number(event.target.value))}
+                  />
+                  <span aria-hidden="true">A</span>
+                </div>
               </fieldset>
             ) : null}
           </div>
