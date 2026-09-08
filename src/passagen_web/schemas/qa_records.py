@@ -15,6 +15,10 @@ class QaRecordSummaryResponse(BaseModel):
     archive_tags: list[str]
     citation_count: int
     created_at: str
+    disposition: str
+    reused_from_qa_id: str | None
+    stale: bool
+    stale_reasons: list[str]
 
 
 class QaRecordListResponse(BaseModel):

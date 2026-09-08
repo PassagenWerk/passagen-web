@@ -36,6 +36,10 @@ export interface ConversationMessage {
   llm_call_count: number | null;
   input_tokens: number | null;
   output_tokens: number | null;
+  disposition: "generated" | "exact_reuse" | null;
+  reused_from_qa_id: string | null;
+  stale: boolean;
+  stale_reasons: string[];
 }
 
 export interface ConversationDetail {
@@ -89,11 +93,15 @@ export function fetchConversation(id: string): Promise<ConversationDetail> {
   return requestJson(`/api/conversations/${encodeURIComponent(id)}`);
 }
 
-export function submitTurn(conversationId: string, question: string): Promise<Turn> {
+export function submitTurn(
+  conversationId: string,
+  question: string,
+  options?: { forceRegenerate?: boolean },
+): Promise<Turn> {
   return requestJson(`/api/conversations/${encodeURIComponent(conversationId)}/turns`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, force_regenerate: options?.forceRegenerate ?? false }),
   });
 }
 

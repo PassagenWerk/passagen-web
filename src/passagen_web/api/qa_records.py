@@ -24,7 +24,7 @@ def search_qa_records(
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> QaRecordListResponse:
     records = assistant.search_qa_records(q, archived=archived, paper_id=paper_id, limit=limit)
-    return QaRecordListResponse(items=[_summary(record) for record in records])
+    return QaRecordListResponse(items=[_summary(assistant, record) for record in records])
 
 
 @router.get("/{qa_record_id}")
@@ -44,12 +44,14 @@ def update_qa_record_archive(
         )
     else:
         record = assistant.unarchive_qa_record(qa_record_id)
-    return _summary(record)
+    return _summary(assistant, record)
 
 
-def _summary(record: QaRecord) -> QaRecordSummaryResponse:
+def _summary(assistant: AssistantDependency, record: QaRecord) -> QaRecordSummaryResponse:
     snapshot = record.source_snapshot
     paper_id = snapshot.paper.paper_id if snapshot.paper is not None else None
+    status = assistant.source_status(record)
+    reused_from = record.context_plan.reuse_qa_id
     return QaRecordSummaryResponse(
         id=record.id,
         conversation_id=record.conversation_id,
@@ -62,4 +64,8 @@ def _summary(record: QaRecord) -> QaRecordSummaryResponse:
         archive_tags=list(record.archive_tags),
         citation_count=len(record.answer.citations),
         created_at=record.created_at,
+        disposition="exact_reuse" if reused_from else "generated",
+        reused_from_qa_id=reused_from,
+        stale=status.stale,
+        stale_reasons=status.reasons,
     )

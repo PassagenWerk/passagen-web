@@ -601,6 +601,9 @@ footer { padding-top: 12px; color: var(--footer-ink); font-size: 8px; }
 .ask-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
 .ask-source-badge { border: 1px solid var(--line); padding: 2px 6px; color: var(--muted); font: 600 8px var(--font-sans); text-transform: uppercase; letter-spacing: .04em; }
 .ask-source-badge.is-archived { color: var(--green); border-color: var(--green); }
+.ask-source-badge.is-reused { color: var(--accent); border-color: var(--accent); }
+.ask-source-badge.is-stale { color: var(--danger); border-color: var(--danger); }
+.ask-regenerate { margin-top: 8px; }
 .ask-citations { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .ask-archive { margin-top: 8px; }
 .ask-archive-form { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }

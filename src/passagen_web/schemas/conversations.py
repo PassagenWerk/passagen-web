@@ -50,6 +50,10 @@ class MessageResponse(BaseModel):
     llm_call_count: int | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
+    disposition: str | None = None
+    reused_from_qa_id: str | None = None
+    stale: bool = False
+    stale_reasons: list[str] = Field(default_factory=list)
 
 
 class ConversationDetailResponse(BaseModel):
@@ -59,6 +63,7 @@ class ConversationDetailResponse(BaseModel):
 
 class TurnCreateRequest(BaseModel):
     question: str = Field(min_length=1)
+    force_regenerate: bool = False
 
 
 class RunStatusResponse(BaseModel):

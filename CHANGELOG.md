@@ -9,6 +9,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Phase 3 Ask integration exposes exact-reuse and stale provenance from Core, displays distinct
+  Reused/Stale badges, and lets users force a fresh answer while retaining the existing
+  asynchronous turn workflow. Saved answers also show current stale state and reasons.
 - Paper Ask workspace: persistent conversations with create/rename/delete, asynchronous
   question turns (`202` + polling), pending/failed/retry states, per-answer source badges
   (Summary, Outline, Raw sections, History), and citation chips that navigate to the Summary,

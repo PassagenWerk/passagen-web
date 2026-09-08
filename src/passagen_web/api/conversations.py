@@ -71,7 +71,9 @@ def delete_conversation(conversation_id: str, assistant: AssistantDependency) ->
 def submit_turn(
     conversation_id: str, payload: TurnCreateRequest, assistant: AssistantDependency
 ) -> TurnResponse:
-    submission = assistant.submit_turn(conversation_id, payload.question)
+    submission = assistant.submit_turn(
+        conversation_id, payload.question, force_regenerate=payload.force_regenerate
+    )
     return TurnResponse(
         message=_message_response(assistant, submission.answer_message),
         run=_run_status(assistant, assistant.get_generation_run(submission.run_id)),
@@ -107,6 +109,8 @@ def _message_response(assistant: AssistantDependency, message: Message) -> Messa
     if message.run_id is not None:
         run = assistant.find_generation_run(message.run_id)
     calls = assistant.list_generation_llm_calls(run.id) if run is not None else ()
+    source_status = assistant.source_status(record) if record else None
+    reused_from = record.context_plan.reuse_qa_id if record else None
     return MessageResponse(
         id=message.id,
         role=message.role.value,
@@ -123,6 +127,10 @@ def _message_response(assistant: AssistantDependency, message: Message) -> Messa
         llm_call_count=len(calls) if run else None,
         input_tokens=sum(call.input_tokens or 0 for call in calls) if run else None,
         output_tokens=sum(call.output_tokens or 0 for call in calls) if run else None,
+        disposition="exact_reuse" if reused_from else ("generated" if record else None),
+        reused_from_qa_id=reused_from,
+        stale=source_status.stale if source_status else False,
+        stale_reasons=source_status.reasons if source_status else [],
     )
 
 

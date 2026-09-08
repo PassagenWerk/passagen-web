@@ -221,6 +221,39 @@ def test_turn_returns_202_and_completes_with_sources(data_dir: Path) -> None:
         assert run["output_tokens"] == 25
 
 
+def test_exact_reuse_and_force_regenerate_are_exposed(data_dir: Path) -> None:
+    client, _provider = make_client(data_dir)
+    with client:
+        conversation_id = client.post("/api/conversations", json={"paper_id": "paper-1"}).json()[
+            "id"
+        ]
+
+        first = client.post(
+            f"/api/conversations/{conversation_id}/turns",
+            json={"question": "主要贡献是什么？"},
+        ).json()
+        first_finished = wait_for_turn(client, conversation_id, first["message"]["id"])
+
+        second = client.post(
+            f"/api/conversations/{conversation_id}/turns",
+            json={"question": "主要贡献是什么？"},
+        ).json()
+        reused = wait_for_turn(client, conversation_id, second["message"]["id"])
+        assert reused["message"]["disposition"] == "exact_reuse"
+        assert reused["message"]["reused_from_qa_id"] == first_finished["message"]["qa_record_id"]
+        assert reused["message"]["sources"] == ["previous_qa"]
+        assert reused["message"]["llm_call_count"] == 1
+
+        third = client.post(
+            f"/api/conversations/{conversation_id}/turns",
+            json={"question": "主要贡献是什么？", "force_regenerate": True},
+        ).json()
+        regenerated = wait_for_turn(client, conversation_id, third["message"]["id"])
+        assert regenerated["message"]["disposition"] == "generated"
+        assert regenerated["message"]["reused_from_qa_id"] is None
+        assert regenerated["message"]["llm_call_count"] == 2
+
+
 def test_turn_failure_surfaces_stable_error(data_dir: Path) -> None:
     client, _provider = make_client(data_dir, fail_provider=True)
     with client:

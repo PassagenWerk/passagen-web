@@ -12,6 +12,10 @@ export interface QaRecordSummary {
   archive_tags: string[];
   citation_count: number;
   created_at: string;
+  disposition: "generated" | "exact_reuse";
+  reused_from_qa_id: string | null;
+  stale: boolean;
+  stale_reasons: string[];
 }
 
 export interface QaRecordExport {

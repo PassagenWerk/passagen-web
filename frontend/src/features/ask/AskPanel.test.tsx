@@ -79,7 +79,13 @@ const assistantMessage = {
   llm_call_count: 2,
   input_tokens: 55,
   output_tokens: 25,
+  disposition: "generated" as "generated" | "exact_reuse",
+  reused_from_qa_id: null as string | null,
+  stale: false,
+  stale_reasons: [],
 };
+
+let assistantResponse = assistantMessage;
 
 const failedMessage = {
   ...assistantMessage,
@@ -105,6 +111,10 @@ const archivedRecord = {
   archive_tags: ["eval"],
   citation_count: 1,
   created_at: "2026-01-01 10:00:02",
+  disposition: "generated",
+  reused_from_qa_id: null,
+  stale: false,
+  stale_reasons: [],
 };
 
 function response(body: unknown, status = 200): Promise<Response> {
@@ -142,6 +152,7 @@ async function openPreviousConversation() {
 
 describe("AskPanel", () => {
   beforeEach(() => {
+    assistantResponse = assistantMessage;
     vi.stubGlobal(
       "fetch",
       vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -158,7 +169,7 @@ describe("AskPanel", () => {
           }
           return response({
             conversation,
-            messages: [userMessage, assistantMessage, failedMessage],
+            messages: [userMessage, assistantResponse, failedMessage],
           });
         }
         if (url === "/api/conversations/conv-1/turns" && init?.method === "POST") {
@@ -199,6 +210,33 @@ describe("AskPanel", () => {
     );
   });
 
+  test("shows reused provenance and can force a fresh answer", async () => {
+    assistantResponse = {
+      ...assistantMessage,
+      disposition: "exact_reuse",
+      reused_from_qa_id: "qa-original",
+      sources: ["previous_qa"],
+    };
+    renderPanel();
+    await openPreviousConversation();
+
+    expect(await screen.findByText("Reused")).toBeTruthy();
+    fireEvent.click(screen.getByText("Generate fresh answer"));
+
+    await waitFor(() => {
+      const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+      const submitCall = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          String(url) === "/api/conversations/conv-1/turns" &&
+          (init as RequestInit | undefined)?.method === "POST",
+      );
+      expect(JSON.parse(String(submitCall![1]?.body))).toEqual({
+        question: "主要贡献是什么？",
+        force_regenerate: true,
+      });
+    });
+  });
+
   test("submits with Enter and keeps Shift+Enter as a newline", async () => {
     renderPanel();
     await screen.findByText("Read with a second set of eyes.");
@@ -217,6 +255,7 @@ describe("AskPanel", () => {
       expect(submitCall).toBeTruthy();
       expect(JSON.parse(String(submitCall![1]?.body))).toEqual({
         question: "What workload was used?",
+        force_regenerate: false,
       });
     });
 

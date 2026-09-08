@@ -152,18 +152,21 @@ function AskChat({
     },
   });
   const ask = useMutation({
-    mutationFn: async (question: string) => {
+    mutationFn: async ({ question, forceRegenerate = false }: {
+      question: string;
+      forceRegenerate?: boolean;
+    }) => {
       const created = selectedId ? null : await createConversation(paper.id);
       const targetId = selectedId ?? created!.id;
       try {
-        const turn = await submitTurn(targetId, question);
+        const turn = await submitTurn(targetId, question, { forceRegenerate });
         return { turn, conversationId: targetId };
       } catch (error) {
         if (created) await deleteConversation(created.id).catch(() => undefined);
         throw error;
       }
     },
-    onMutate: (question) => {
+    onMutate: ({ question }) => {
       setOptimisticQuestion({ question, answerMessageId: null });
     },
     onSuccess: ({ turn, conversationId: targetId }) => {
@@ -191,7 +194,8 @@ function AskChat({
   useEffect(() => {
     if (messageList.current) messageList.current.scrollTop = messageList.current.scrollHeight;
   }, [messages, optimisticQuestion]);
-  const askAnother = (question: string) => ask.mutate(question);
+  const askAnother = (question: string, forceRegenerate = false) =>
+    ask.mutate({ question, forceRegenerate });
 
   return (
     <div className="ask-chat">
@@ -318,6 +322,10 @@ function AskChat({
               const question = [...messages.slice(0, index)].reverse().find((m) => m.role === "user");
               if (question) askAnother(question.content);
             }}
+            onRegenerate={() => {
+              const question = [...messages.slice(0, index)].reverse().find((m) => m.role === "user");
+              if (question) askAnother(question.content, true);
+            }}
             onArchived={invalidateArchived}
           />
         ))}
@@ -339,7 +347,7 @@ function AskChat({
         className="ask-composer"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!isRunning && draft.trim()) ask.mutate(draft.trim());
+          if (!isRunning && draft.trim()) ask.mutate({ question: draft.trim() });
         }}
       >
           <textarea
@@ -373,6 +381,7 @@ function AskMessage({
   onOpenPdf,
   onView,
   onRetry,
+  onRegenerate,
   onArchived,
 }: {
   message: ConversationMessage;
@@ -381,6 +390,7 @@ function AskMessage({
   onOpenPdf: () => void;
   onView: (view: "summary" | "outline" | "note") => void;
   onRetry: () => void;
+  onRegenerate: () => void;
   onArchived: () => void;
 }) {
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -421,6 +431,17 @@ function AskMessage({
             <ReactMarkdown>{message.content}</ReactMarkdown>
           </div>
           <div className="ask-meta">
+            {message.disposition === "exact_reuse" ? (
+              <span className="ask-source-badge is-reused">Reused</span>
+            ) : null}
+            {message.stale ? (
+              <span
+                className="ask-source-badge is-stale"
+                title={message.stale_reasons.join(", ")}
+              >
+                Stale
+              </span>
+            ) : null}
             {message.sources?.map((source) => (
               <span key={source} className="ask-source-badge">
                 {SOURCE_LABELS[source] ?? source}
@@ -436,6 +457,11 @@ function AskMessage({
               </span>
             ) : null}
           </div>
+          {message.disposition === "exact_reuse" || message.stale ? (
+            <button type="button" className="ask-regenerate" onClick={onRegenerate}>
+              Generate fresh answer
+            </button>
+          ) : null}
           {message.citations && message.citations.length > 0 ? (
             <div className="ask-citations">
               {message.citations.map((citation) => (
@@ -598,6 +624,11 @@ function SavedAnswers({ paper, onAsk }: { paper: Paper; onAsk: (question: string
           <li key={record.id} className="ask-saved-item">
             <div className="ask-saved-heading">
               <strong>{record.archive_title ?? record.standalone_question}</strong>
+              {record.stale ? (
+                <span className="ask-source-badge is-stale" title={record.stale_reasons.join(", ")}>
+                  Stale
+                </span>
+              ) : null}
               {record.archive_tags.map((tag) => (
                 <span className="tag-chip" key={`${record.id}-${tag}`}>{tag}</span>
               ))}
