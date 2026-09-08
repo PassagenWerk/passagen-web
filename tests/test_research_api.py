@@ -235,7 +235,7 @@ def make_client(data_dir: Path) -> TestClient:
         provider=provider,
     )
     client = TestClient(create_app(settings, dispatcher=dispatcher))
-    client.collection_id = collection_id  # type: ignore[attr-defined]
+    client.collection_id = collection_id
     return client
 
 
@@ -251,7 +251,7 @@ def wait_for_run(client: TestClient, run_id: str) -> dict:
 
 def test_collection_conversation_scope_and_turn(data_dir: Path) -> None:
     client = make_client(data_dir)
-    collection_id = client.collection_id  # type: ignore[attr-defined]
+    collection_id = client.collection_id
     with client:
         both = client.post(
             "/api/conversations", json={"paper_id": "paper-a", "collection_id": collection_id}
@@ -295,7 +295,7 @@ def test_collection_conversation_scope_and_turn(data_dir: Path) -> None:
 
 def test_synthesis_submit_poll_reuse_and_stale(data_dir: Path) -> None:
     client = make_client(data_dir)
-    collection_id = client.collection_id  # type: ignore[attr-defined]
+    collection_id = client.collection_id
     with client:
         missing = client.get(f"/api/collections/{collection_id}/synthesis")
         assert missing.status_code == 404
@@ -340,7 +340,7 @@ def test_synthesis_submit_poll_reuse_and_stale(data_dir: Path) -> None:
 
 def test_synthesis_partial_requires_explicit_opt_in(data_dir: Path) -> None:
     client = make_client(data_dir)
-    collection_id = client.collection_id  # type: ignore[attr-defined]
+    collection_id = client.collection_id
     with connect_database(data_dir / "passagen.db") as connection:
         connection.execute("DELETE FROM artifacts WHERE id = 'art-paper-c-summary_json'")
     with client:
@@ -362,7 +362,7 @@ def test_synthesis_partial_requires_explicit_opt_in(data_dir: Path) -> None:
 
 def test_report_submit_history_detail_and_custom(data_dir: Path) -> None:
     client = make_client(data_dir)
-    collection_id = client.collection_id  # type: ignore[attr-defined]
+    collection_id = client.collection_id
     with client:
         invalid = client.post(f"/api/collections/{collection_id}/reports", json={"kind": "custom"})
         assert invalid.status_code == 422
@@ -420,7 +420,7 @@ def test_report_submit_history_detail_and_custom(data_dir: Path) -> None:
 
 def test_collection_run_history(data_dir: Path) -> None:
     client = make_client(data_dir)
-    collection_id = client.collection_id  # type: ignore[attr-defined]
+    collection_id = client.collection_id
     with client:
         synthesis = client.post(f"/api/collections/{collection_id}/synthesis", json={})
         assert wait_for_run(client, synthesis.json()["run_id"])["status"] == "completed"
@@ -437,7 +437,7 @@ def test_collection_run_history(data_dir: Path) -> None:
 
 def test_restart_interrupts_active_runs_and_reports(data_dir: Path) -> None:
     client = make_client(data_dir)
-    collection_id = client.collection_id  # type: ignore[attr-defined]
+    collection_id = client.collection_id
     with client:
         submitted = client.post(
             f"/api/collections/{collection_id}/reports", json={"kind": "review"}
