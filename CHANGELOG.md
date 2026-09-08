@@ -9,36 +9,27 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
-- Phase 5 collection research workspace: `Synthesis | Reports | Ask` tabs alongside the existing
-  Papers tab. Synthesis shows the latest citation-checked collection overview with
-  generated/reused provenance, strategy, stale and partial-coverage badges, and a polling
-  generate/regenerate flow with an explicit partial opt-in. Reports support review, comparison,
-  gaps, and custom kinds (with prompt), a persistent history with queued/running/failed/
-  interrupted states, and a detail view with coverage and citation navigation.
-- Collection Ask: persistent collection-scoped conversations reusing the paper Ask chat and
-  saved-answer archive; answers display the papers actually selected for retrieval, and
-  citations navigate to the cited paper or exact PDF page inside the collection.
-- `/api/collections/{id}/synthesis` latest/submit (`202` + polling, reuse returns `200`),
-  `/api/collections/{id}/reports` submit/history/detail, and
-  `/api/collections/{id}/runs` run history, as thin adapters over the Core synthesis and report
-  services; all stale/partial/reuse state comes from Core source-status responses.
-- `/api/conversations` now accepts exactly one of `paper_id` or `collection_id`, and responses
-  carry `scope` plus both nullable IDs; message citations expose `paper_id` and completed answers
-  expose `selected_paper_ids`. `/api/qa-records` search accepts a `collection_id` filter.
-- Phase 3 Ask integration exposes exact-reuse and stale provenance from Core, displays distinct
-  Reused/Stale badges, and lets users force a fresh answer while retaining the existing
-  asynchronous turn workflow. Saved answers also show current stale state and reasons.
-- Paper Ask workspace: persistent conversations with create/rename/delete, asynchronous
-  question turns (`202` + polling), pending/failed/retry states, per-answer source badges
-  (Summary, Outline, Raw sections, History), and citation chips that navigate to the Summary,
-  Outline, or the exact PDF page. User questions render optimistically, and completed answers
-  show their generation run and aggregate LLM call/token usage.
-- Structured answer archive: archive a turn with title and tags, search saved answers from the
-  Saved tab, reuse a saved question, unarchive, and export the full structured QA record JSON.
-- `/api/conversations` CRUD, `/api/conversations/{id}/turns` submission and polling,
-  `/api/qa-records` search/archive/export, and `/api/generation-runs/{id}` status with per-stage
-  token usage, backed by a single in-process `GenerationRunner`; legacy active generation runs
-  are marked interrupted on startup.
+- Added a collection research workspace with `Synthesis`, `Reports`, and `Ask` tabs alongside the
+  existing Papers tab. Synthesis shows the latest citation-checked collection overview with
+  generated or reused provenance, generation strategy, stale and partial-coverage badges, and a
+  polling generate/regenerate flow with an explicit partial opt-in.
+- Added collection reports for review, comparison, research gaps, and custom prompts, including a
+  persistent history, queued/running/failed/interrupted states, detail views, coverage
+  information, and citation navigation.
+- Added collection-scoped Ask conversations using the existing chat and saved-answer workflow.
+  Answers show the papers selected for retrieval, and citations navigate to the cited paper or
+  exact PDF page inside the collection.
+- Added paper Ask conversations with create/rename/delete, asynchronous question turns
+  (`202` + polling), pending/failed/retry states, source badges, citation chips that navigate to
+  Summary, Outline, or an exact PDF page, optimistic question rendering, and aggregate generation
+  run and token usage.
+- Added a structured answer archive with titles, tags, saved-answer search, question reuse,
+  unarchive, and full structured JSON export.
+- Added generated/reused and stale provenance to answers, distinct `Reused` and `Stale` badges,
+  and an explicit fresh-answer action. Saved answers also display current stale state and reasons.
+- Added collection synthesis and report APIs with asynchronous submission, polling, history,
+  detail views, and reuse responses, plus scope-aware conversation and QA-record APIs carrying
+  collection IDs, citation paper IDs, and selected retrieval papers.
 
 ### Fixed
 
@@ -47,9 +38,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
-- Web generation runs are executed through the Core `GenerationRunDispatcher`, so answer,
-  synthesis, and report runs share claim/execute semantics, and startup recovery interrupts
-  leftover runs, pending answers, and queued/running reports consistently.
+- Answer, synthesis, and report runs now share the Core generation dispatcher, so they use the
+  same claim, execution, and startup-recovery semantics; leftover queued or running products are
+  interrupted consistently instead of appearing to run forever.
 - Reworked paper reading as a three-pane model that displays at most two panes: Reader alone,
   Reader with Ask, Reader with PDF, or Ask with PDF. Ask now opens beside the active Summary,
   Outline, or Note; opening cited PDF evidence shifts Ask left without losing conversation state.
