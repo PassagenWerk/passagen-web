@@ -4,6 +4,7 @@ export interface QaRecordSummary {
   id: string;
   conversation_id: string;
   paper_id: string | null;
+  collection_id: string | null;
   standalone_question: string;
   answer_markdown: string;
   intent: string;
@@ -28,11 +29,13 @@ export function searchQaRecords(params: {
   q?: string;
   archived?: boolean;
   paperId?: string;
+  collectionId?: string;
 }): Promise<{ items: QaRecordSummary[] }> {
   const query = new URLSearchParams();
   if (params.q) query.set("q", params.q);
   if (params.archived !== undefined) query.set("archived", String(params.archived));
   if (params.paperId) query.set("paper_id", params.paperId);
+  if (params.collectionId) query.set("collection_id", params.collectionId);
   return requestJson(`/api/qa-records?${query.toString()}`);
 }
 

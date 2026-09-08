@@ -363,11 +363,14 @@ export function PaperDetail({
                 </button>
               </div>
               <AskPanel
-                paper={paper}
-                paperPath={currentPaperPath}
-                readerView={view}
-                onOpenPdf={onOpenPdf}
-                onView={onView}
+                scope={{
+                  kind: "paper",
+                  paper,
+                  paperPath: currentPaperPath,
+                  readerView: view,
+                  onOpenPdf,
+                  onView,
+                }}
               />
             </>
           ) : null}

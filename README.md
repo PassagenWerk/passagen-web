@@ -13,6 +13,10 @@ README 中的仓库链接指向 GitHub；在 GitLab 或 Gitea 镜像中，对应
 - 对 Metadata、Abstract clean、Summary 和 Outline 执行定向 reprocess。
 - 并排阅读 Summary、Outline 和 PDF evidence page。
 - 编辑受保护的用户元数据，管理标签和有序集合。
+- 对单篇论文或整个 collection 进行持久化对话问答，回答带可验证 citation 并导航到对应
+  论文/PDF 页。
+- Collection workspace：Synthesis（跨论文综述，含 stale/partial 状态与轮询生成）、Reports
+  （review/comparison/gaps/custom，含历史与详情）和 Ask 三个标签页。
 - 在桌面和移动浏览器中使用 Light/Dark Mode。
 
 ## 环境要求

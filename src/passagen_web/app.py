@@ -28,6 +28,7 @@ from passagen.catalog import (
     IncompatibleSchemaError,
     InvalidArtifactError,
 )
+from passagen.generation import GenerationRunDispatcher
 from passagen.processing import (
     ProcessingError,
     ProcessingService,
@@ -44,6 +45,7 @@ from passagen_web.api.health import router as health_router
 from passagen_web.api.papers import router as papers_router
 from passagen_web.api.processing import router as processing_router
 from passagen_web.api.qa_records import router as qa_records_router
+from passagen_web.api.research import router as research_router
 from passagen_web.api.tags import router as tags_router
 from passagen_web.config import Settings
 from passagen_web.runner import GenerationRunner, ProcessingRunner
@@ -57,25 +59,29 @@ def create_app(
     *,
     static_dir: Path | None = None,
     assistant: ConversationService | None = None,
+    dispatcher: GenerationRunDispatcher | None = None,
 ) -> FastAPI:
     processing = ProcessingService(settings.core)
-    assistant = assistant or ConversationService(
-        settings.database_path,
-        settings.data_dir,
-        settings.core.providers.llm,
-        settings.core.assistant,
-    )
+    if dispatcher is None:
+        dispatcher = GenerationRunDispatcher(
+            settings.database_path,
+            settings.data_dir,
+            settings.core.providers.llm,
+            settings.core.assistant,
+            provider=assistant.provider if assistant is not None else None,
+        )
+    assistant = assistant or dispatcher.conversations
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         interrupted = processing.interrupt_active_runs()
         for run in interrupted:
             logger.info("processing_run_interrupted", extra={"run_id": run.id})
-        interrupted_generation = assistant.interrupt_active_runs()
+        interrupted_generation = dispatcher.interrupt_active_runs()
         if interrupted_generation:
             logger.info("generation_runs_interrupted", extra={"count": interrupted_generation})
         runner = ProcessingRunner(processing)
-        generation_runner = GenerationRunner(assistant)
+        generation_runner = GenerationRunner(dispatcher)
         runner.start()
         generation_runner.start()
         try:
@@ -95,6 +101,7 @@ def create_app(
     app.state.catalog = CatalogService(settings.database_path, settings.data_dir)
     app.state.processing = processing
     app.state.assistant = assistant
+    app.state.dispatcher = dispatcher
     app.include_router(health_router, prefix="/api")
     app.include_router(papers_router, prefix="/api")
     app.include_router(tags_router, prefix="/api")
@@ -103,6 +110,7 @@ def create_app(
     app.include_router(conversations_router, prefix="/api")
     app.include_router(qa_records_router, prefix="/api")
     app.include_router(generation_runs_router, prefix="/api")
+    app.include_router(research_router, prefix="/api")
     _install_error_handlers(app)
     _install_origin_protection(app, settings)
     _install_static_routes(app, static_dir or Path(__file__).with_name("static"))

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 
-from passagen.assistant import ConversationService
+from passagen.generation import GenerationRunDispatcher
 from passagen.processing import ProcessingService
 from passagen.providers import check_provider_health
 
@@ -50,10 +50,10 @@ class ProcessingRunner:
 
 
 class GenerationRunner:
-    """Execute queued conversation/generation runs one at a time."""
+    """Execute queued answer, synthesis, and report runs one at a time."""
 
-    def __init__(self, service: ConversationService, *, poll_interval: float = 0.2) -> None:
-        self._service = service
+    def __init__(self, dispatcher: GenerationRunDispatcher, *, poll_interval: float = 0.2) -> None:
+        self._dispatcher = dispatcher
         self._poll_interval = poll_interval
         self._stop = threading.Event()
         self._thread = threading.Thread(
@@ -69,13 +69,13 @@ class GenerationRunner:
 
     def _loop(self) -> None:
         while not self._stop.is_set():
-            run = self._service.claim_next_queued_run()
+            run = self._dispatcher.claim_next_queued_run()
             if run is None:
                 self._stop.wait(self._poll_interval)
                 continue
-            logger.info("generation_run_dequeued", extra={"run_id": run.id})
+            logger.info("generation_run_dequeued", extra={"run_id": run.id, "kind": run.kind})
             try:
-                self._service.execute_turn(run.id)
+                self._dispatcher.execute_run(run.id)
             except Exception:
-                # execute_turn already persisted the failure; this is a safety net.
+                # execute_run already persisted the failure; this is a safety net.
                 logger.exception("generation_run_crashed", extra={"run_id": run.id})

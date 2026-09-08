@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 
 
 class ConversationCreateRequest(BaseModel):
-    paper_id: str
+    paper_id: str | None = None
+    collection_id: str | None = None
     title: str | None = None
 
 
@@ -14,7 +15,9 @@ class ConversationRenameRequest(BaseModel):
 
 class ConversationResponse(BaseModel):
     id: str
-    paper_id: str
+    scope: str
+    paper_id: str | None
+    collection_id: str | None
     title: str
     created_at: str
     updated_at: str
@@ -26,6 +29,7 @@ class ConversationListResponse(BaseModel):
 
 class CitationResponse(BaseModel):
     citation_id: str
+    paper_id: str
     artifact_kind: str
     summary_path: str | None
     section: str | None
@@ -43,6 +47,7 @@ class MessageResponse(BaseModel):
     created_at: str
     qa_record_id: str | None = None
     sources: list[str] | None = None
+    selected_paper_ids: list[str] | None = None
     archived: bool = False
     citations: list[CitationResponse] | None = None
     error_code: str | None = None

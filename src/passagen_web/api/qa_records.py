@@ -21,9 +21,12 @@ def search_qa_records(
     q: Annotated[str | None, Query()] = None,
     archived: Annotated[bool | None, Query()] = None,
     paper_id: Annotated[str | None, Query()] = None,
+    collection_id: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> QaRecordListResponse:
-    records = assistant.search_qa_records(q, archived=archived, paper_id=paper_id, limit=limit)
+    records = assistant.search_qa_records(
+        q, archived=archived, paper_id=paper_id, collection_id=collection_id, limit=limit
+    )
     return QaRecordListResponse(items=[_summary(assistant, record) for record in records])
 
 
@@ -50,12 +53,14 @@ def update_qa_record_archive(
 def _summary(assistant: AssistantDependency, record: QaRecord) -> QaRecordSummaryResponse:
     snapshot = record.source_snapshot
     paper_id = snapshot.paper.paper_id if snapshot.paper is not None else None
+    collection_id = snapshot.collection.collection_id if snapshot.collection is not None else None
     status = assistant.source_status(record)
     reused_from = record.context_plan.reuse_qa_id
     return QaRecordSummaryResponse(
         id=record.id,
         conversation_id=record.conversation_id,
         paper_id=paper_id,
+        collection_id=collection_id,
         standalone_question=record.standalone_question,
         answer_markdown=record.answer.answer_markdown,
         intent=record.intent.value,

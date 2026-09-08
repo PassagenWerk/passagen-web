@@ -1,8 +1,12 @@
 import { requestJson } from "./papers";
 
+export type ConversationScope = "paper" | "collection";
+
 export interface Conversation {
   id: string;
-  paper_id: string;
+  scope: ConversationScope;
+  paper_id: string | null;
+  collection_id: string | null;
   title: string;
   created_at: string;
   updated_at: string;
@@ -10,6 +14,7 @@ export interface Conversation {
 
 export interface Citation {
   citation_id: string;
+  paper_id: string;
   artifact_kind: string;
   summary_path: string | null;
   section: string | null;
@@ -29,6 +34,7 @@ export interface ConversationMessage {
   created_at: string;
   qa_record_id: string | null;
   sources: string[] | null;
+  selected_paper_ids: string[] | null;
   archived: boolean;
   citations: Citation[] | null;
   error_code: string | null;
@@ -62,15 +68,26 @@ export interface Turn {
   run: RunStatus | null;
 }
 
-export function fetchConversations(paperId: string): Promise<{ items: Conversation[] }> {
-  return requestJson(`/api/conversations?paper_id=${encodeURIComponent(paperId)}`);
+/** Scope selector: exactly one of paperId / collectionId. */
+export type AskScopeRef = { paperId: string } | { collectionId: string };
+
+function scopeQuery(scope: AskScopeRef): string {
+  return "paperId" in scope
+    ? `paper_id=${encodeURIComponent(scope.paperId)}`
+    : `collection_id=${encodeURIComponent(scope.collectionId)}`;
 }
 
-export function createConversation(paperId: string): Promise<Conversation> {
+export function fetchConversations(scope: AskScopeRef): Promise<{ items: Conversation[] }> {
+  return requestJson(`/api/conversations?${scopeQuery(scope)}`);
+}
+
+export function createConversation(scope: AskScopeRef): Promise<Conversation> {
+  const body =
+    "paperId" in scope ? { paper_id: scope.paperId } : { collection_id: scope.collectionId };
   return requestJson("/api/conversations", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ paper_id: paperId }),
+    body: JSON.stringify(body),
   });
 }
 

@@ -8,7 +8,7 @@ Paper 与 Collection 的持久化问答、结构化问答归档、上下文路�
 和浏览器 workflow，不在 FastAPI 或 React 中复制 prompt、检索、引用验证、重复问题检测或
 stale 逻辑。
 
-对应 Web 工作按以下顺序推进：
+对应 Web 工作按以下顺序推进（1–4 已交付）：
 
 1. Paper Ask 面板、conversation/turn API、持久化状态轮询和 citation navigation。
 2. QaRecord archive/unarchive、搜索、结构化导出和 Previous answer 来源展示。

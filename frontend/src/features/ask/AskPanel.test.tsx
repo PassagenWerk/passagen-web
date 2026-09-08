@@ -133,11 +133,14 @@ function renderPanel() {
       <DisplayPreferencesProvider>
         <MemoryRouter>
           <AskPanel
-            paper={paper}
-            paperPath="/papers/paper-1"
-            readerView="summary"
-            onOpenPdf={() => {}}
-            onView={() => {}}
+            scope={{
+              kind: "paper",
+              paper,
+              paperPath: "/papers/paper-1",
+              readerView: "summary",
+              onOpenPdf: () => {},
+              onView: () => {},
+            }}
           />
         </MemoryRouter>
       </DisplayPreferencesProvider>
@@ -417,5 +420,104 @@ describe("AskPanel", () => {
     expect(screen.getByText("eval")).toBeTruthy();
     expect(screen.getByText("Ask again")).toBeTruthy();
     expect(screen.getByText("Export JSON")).toBeTruthy();
+  });
+});
+
+describe("AskPanel collection scope", () => {
+  const collectionConversation = {
+    ...conversation,
+    scope: "collection",
+    paper_id: null,
+    collection_id: "col-1",
+  };
+  const collectionAnswer = {
+    ...assistantMessage,
+    selected_paper_ids: ["paper-a", "paper-b"],
+    citations: [
+      {
+        citation_id: "c-1",
+        paper_id: "paper-b",
+        artifact_kind: "summary_json",
+        summary_path: "evaluation.results[0]",
+        section: null,
+        page_start: 4,
+        page_end: null,
+        excerpt: null,
+      },
+    ],
+  };
+  const collectionPapers = [
+    { id: "paper-a", title: "Fast Scheduler" },
+    { id: "paper-b", title: "Better Compiler" },
+  ];
+
+  function renderCollectionPanel() {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <DisplayPreferencesProvider>
+          <MemoryRouter>
+            <AskPanel
+              scope={{ kind: "collection", collectionId: "col-1", papers: collectionPapers }}
+            />
+          </MemoryRouter>
+        </DisplayPreferencesProvider>
+      </QueryClientProvider>,
+    );
+  }
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === "/api/conversations?collection_id=col-1") {
+          return response({ items: [collectionConversation] });
+        }
+        if (url === "/api/conversations/conv-1") {
+          return response({
+            conversation: collectionConversation,
+            messages: [userMessage, collectionAnswer],
+          });
+        }
+        if (url.startsWith("/api/qa-records?")) {
+          return response({ items: [] });
+        }
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }),
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("lists collection conversations and navigates citations to the cited paper", async () => {
+    renderCollectionPanel();
+
+    fireEvent.click(await screen.findByRole("button", { name: "History 1" }));
+    fireEvent.click(screen.getByRole("button", { name: /Latency/ }));
+
+    expect(await screen.findByText(/12 ms/)).toBeTruthy();
+    const citation = screen.getByText(/Better Compiler · Summary p\.4/);
+    expect(citation.getAttribute("href")).toBe("/collections/col-1/papers/paper-b/pdf?page=4");
+    const selected = screen.getAllByText("Fast Scheduler");
+    expect(selected.some((element) => element.closest(".ask-selected-papers") !== null)).toBe(true);
+  });
+
+  test("scopes saved answers to the collection", async () => {
+    renderCollectionPanel();
+
+    fireEvent.click(await screen.findByRole("tab", { name: "Saved" }));
+
+    await waitFor(() => {
+      const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+      expect(
+        fetchMock.mock.calls.some(([url]) =>
+          String(url).startsWith("/api/qa-records?") &&
+          String(url).includes("collection_id=col-1"),
+        ),
+      ).toBe(true);
+    });
   });
 });

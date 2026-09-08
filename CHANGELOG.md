@@ -9,6 +9,22 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Phase 5 collection research workspace: `Synthesis | Reports | Ask` tabs alongside the existing
+  Papers tab. Synthesis shows the latest citation-checked collection overview with
+  generated/reused provenance, strategy, stale and partial-coverage badges, and a polling
+  generate/regenerate flow with an explicit partial opt-in. Reports support review, comparison,
+  gaps, and custom kinds (with prompt), a persistent history with queued/running/failed/
+  interrupted states, and a detail view with coverage and citation navigation.
+- Collection Ask: persistent collection-scoped conversations reusing the paper Ask chat and
+  saved-answer archive; answers display the papers actually selected for retrieval, and
+  citations navigate to the cited paper or exact PDF page inside the collection.
+- `/api/collections/{id}/synthesis` latest/submit (`202` + polling, reuse returns `200`),
+  `/api/collections/{id}/reports` submit/history/detail, and
+  `/api/collections/{id}/runs` run history, as thin adapters over the Core synthesis and report
+  services; all stale/partial/reuse state comes from Core source-status responses.
+- `/api/conversations` now accepts exactly one of `paper_id` or `collection_id`, and responses
+  carry `scope` plus both nullable IDs; message citations expose `paper_id` and completed answers
+  expose `selected_paper_ids`. `/api/qa-records` search accepts a `collection_id` filter.
 - Phase 3 Ask integration exposes exact-reuse and stale provenance from Core, displays distinct
   Reused/Stale badges, and lets users force a fresh answer while retaining the existing
   asynchronous turn workflow. Saved answers also show current stale state and reasons.
@@ -31,6 +47,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- Web generation runs are executed through the Core `GenerationRunDispatcher`, so answer,
+  synthesis, and report runs share claim/execute semantics, and startup recovery interrupts
+  leftover runs, pending answers, and queued/running reports consistently.
 - Reworked paper reading as a three-pane model that displays at most two panes: Reader alone,
   Reader with Ask, Reader with PDF, or Ask with PDF. Ask now opens beside the active Summary,
   Outline, or Note; opening cited PDF evidence shifts Ask left without losing conversation state.

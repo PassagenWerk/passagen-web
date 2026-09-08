@@ -10,6 +10,7 @@ import {
   fetchConversations,
   renameConversation,
   submitTurn,
+  type AskScopeRef,
   type Citation,
   type ConversationMessage,
 } from "../../api/conversations";
@@ -21,6 +22,7 @@ import {
   searchQaRecords,
   unarchiveQaRecord,
 } from "../../api/qaRecords";
+import { citationLabel } from "./citations";
 
 const SOURCE_LABELS: Record<string, string> = {
   conversation: "History",
@@ -32,19 +34,35 @@ const SOURCE_LABELS: Record<string, string> = {
   paper_summaries: "Summaries",
 };
 
-interface AskPanelProps {
-  paper: Paper;
-  paperPath: string;
-  readerView: "summary" | "outline" | "note";
-  onOpenPdf: () => void;
-  onView: (view: "summary" | "outline" | "note") => void;
+export type AskScope =
+  | {
+      kind: "paper";
+      paper: Paper;
+      paperPath: string;
+      readerView: "summary" | "outline" | "note";
+      onOpenPdf: () => void;
+      onView: (view: "summary" | "outline" | "note") => void;
+    }
+  | {
+      kind: "collection";
+      collectionId: string;
+      papers: { id: string; title: string | null }[];
+    };
+
+function scopeRef(scope: AskScope): AskScopeRef {
+  return scope.kind === "paper" ? { paperId: scope.paper.id } : { collectionId: scope.collectionId };
 }
 
-export function AskPanel({ paper, paperPath, readerView, onOpenPdf, onView }: AskPanelProps) {
+function scopeKey(scope: AskScope): string {
+  return scope.kind === "paper" ? `paper:${scope.paper.id}` : `collection:${scope.collectionId}`;
+}
+
+export function AskPanel({ scope }: { scope: AskScope }) {
   const [mode, setMode] = useState<"chat" | "saved">("chat");
   const [prefill, setPrefill] = useState<string | null>(null);
+  const label = scope.kind === "paper" ? "Ask about this paper" : "Ask about this collection";
   return (
-    <section className="ask-panel" aria-label="Ask about this paper">
+    <section className="ask-panel" aria-label={label}>
       <div className="abstract-version-toggle ask-mode" role="tablist" aria-label="Ask mode">
         <button type="button" role="tab" aria-selected={mode === "chat"} onClick={() => setMode("chat")}>
           Chat
@@ -55,17 +73,13 @@ export function AskPanel({ paper, paperPath, readerView, onOpenPdf, onView }: As
       </div>
       {mode === "chat" ? (
         <AskChat
-          paper={paper}
-          paperPath={paperPath}
-          readerView={readerView}
-          onOpenPdf={onOpenPdf}
-          onView={onView}
+          scope={scope}
           prefill={prefill}
           onPrefillConsumed={() => setPrefill(null)}
         />
       ) : (
         <SavedAnswers
-          paper={paper}
+          scope={scope}
           onAsk={(question) => {
             setPrefill(question);
             setMode("chat");
@@ -77,14 +91,14 @@ export function AskPanel({ paper, paperPath, readerView, onOpenPdf, onView }: As
 }
 
 function AskChat({
-  paper,
-  paperPath,
-  readerView,
-  onOpenPdf,
-  onView,
+  scope,
   prefill,
   onPrefillConsumed,
-}: AskPanelProps & { prefill: string | null; onPrefillConsumed: () => void }) {
+}: {
+  scope: AskScope;
+  prefill: string | null;
+  onPrefillConsumed: () => void;
+}) {
   const queryClient = useQueryClient();
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -98,12 +112,15 @@ function AskChat({
   const historyToggle = useRef<HTMLButtonElement>(null);
   const messageList = useRef<HTMLOListElement>(null);
 
+  const key = scopeKey(scope);
+  const ref = scopeRef(scope);
+
   useEffect(() => {
     setConversationId(null);
     setDraft("");
     setOptimisticQuestion(null);
     setHistoryOpen(false);
-  }, [paper.id]);
+  }, [key]);
   useEscapeClose(historyOpen, () => {
     setHistoryOpen(false);
     historyToggle.current?.focus();
@@ -116,8 +133,8 @@ function AskChat({
   }, [prefill, onPrefillConsumed]);
 
   const conversations = useQuery({
-    queryKey: ["conversations", paper.id],
-    queryFn: () => fetchConversations(paper.id),
+    queryKey: ["conversations", key],
+    queryFn: () => fetchConversations(ref),
   });
   const selectedId = conversationId;
   const detail = useQuery({
@@ -130,11 +147,11 @@ function AskChat({
 
   const invalidate = (targetId = selectedId) => {
     if (targetId) void queryClient.invalidateQueries({ queryKey: ["conversation", targetId] });
-    void queryClient.invalidateQueries({ queryKey: ["conversations", paper.id] });
+    void queryClient.invalidateQueries({ queryKey: ["conversations", key] });
   };
   const invalidateArchived = () => {
     invalidate();
-    void queryClient.invalidateQueries({ queryKey: ["qa-records", paper.id] });
+    void queryClient.invalidateQueries({ queryKey: ["qa-records", key] });
   };
   const rename = useMutation({
     mutationFn: (title: string) => renameConversation(selectedId!, title),
@@ -156,7 +173,7 @@ function AskChat({
       question: string;
       forceRegenerate?: boolean;
     }) => {
-      const created = selectedId ? null : await createConversation(paper.id);
+      const created = selectedId ? null : await createConversation(ref);
       const targetId = selectedId ?? created!.id;
       try {
         const turn = await submitTurn(targetId, question, { forceRegenerate });
@@ -196,6 +213,11 @@ function AskChat({
   }, [messages, optimisticQuestion]);
   const askAnother = (question: string, forceRegenerate = false) =>
     ask.mutate({ question, forceRegenerate });
+
+  const welcome =
+    scope.kind === "paper"
+      ? "Ask about a claim, method, result, or limitation. Answers stay grounded in this paper."
+      : "Ask across the collection. Answers cite the papers they use.";
 
   return (
     <div className="ask-chat">
@@ -305,7 +327,7 @@ function AskChat({
         <div className="ask-welcome">
           <span aria-hidden="true">?</span>
           <strong>Read with a second set of eyes.</strong>
-          <p>Ask about a claim, method, result, or limitation. Answers stay grounded in this paper.</p>
+          <p>{welcome}</p>
         </div>
       ) : null}
 
@@ -314,10 +336,7 @@ function AskChat({
           <AskMessage
             key={message.id}
             message={message}
-            paperPath={paperPath}
-            readerView={readerView}
-            onOpenPdf={onOpenPdf}
-            onView={onView}
+            scope={scope}
             onRetry={() => {
               const question = [...messages.slice(0, index)].reverse().find((m) => m.role === "user");
               if (question) askAnother(question.content);
@@ -353,7 +372,11 @@ function AskChat({
           <textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Ask about the problem, methods, experiments, or limitations..."
+            placeholder={
+              scope.kind === "paper"
+                ? "Ask about the problem, methods, experiments, or limitations..."
+                : "Ask across papers, themes, methods, or results..."
+            }
             aria-label="Question"
             rows={2}
             onKeyDown={(event) => {
@@ -376,19 +399,13 @@ function AskChat({
 
 function AskMessage({
   message,
-  paperPath,
-  readerView,
-  onOpenPdf,
-  onView,
+  scope,
   onRetry,
   onRegenerate,
   onArchived,
 }: {
   message: ConversationMessage;
-  paperPath: string;
-  readerView: "summary" | "outline" | "note";
-  onOpenPdf: () => void;
-  onView: (view: "summary" | "outline" | "note") => void;
+  scope: AskScope;
   onRetry: () => void;
   onRegenerate: () => void;
   onArchived: () => void;
@@ -416,6 +433,10 @@ function AskMessage({
       </li>
     );
   }
+  const paperTitles =
+    scope.kind === "collection"
+      ? new Map(scope.papers.map((paper) => [paper.id, paper.title ?? paper.id]))
+      : null;
   return (
     <li className={`ask-message is-assistant is-${message.status}`}>
       {message.status === "pending" ? <ThinkingIndicator /> : null}
@@ -457,6 +478,22 @@ function AskMessage({
               </span>
             ) : null}
           </div>
+          {scope.kind === "collection" &&
+          message.selected_paper_ids &&
+          message.selected_paper_ids.length > 0 ? (
+            <div className="ask-selected-papers">
+              Papers:{" "}
+              {message.selected_paper_ids.map((paperId) => (
+                <Link
+                  key={paperId}
+                  className="ask-source-badge"
+                  to={`/collections/${scope.collectionId}/papers/${paperId}`}
+                >
+                  {paperTitles?.get(paperId) ?? paperId}
+                </Link>
+              ))}
+            </div>
+          ) : null}
           {message.disposition === "exact_reuse" || message.stale ? (
             <button type="button" className="ask-regenerate" onClick={onRegenerate}>
               Generate fresh answer
@@ -465,14 +502,7 @@ function AskMessage({
           {message.citations && message.citations.length > 0 ? (
             <div className="ask-citations">
               {message.citations.map((citation) => (
-                <CitationLink
-                  key={citation.citation_id}
-                  citation={citation}
-                  paperPath={paperPath}
-                  readerView={readerView}
-                  onOpenPdf={onOpenPdf}
-                  onView={onView}
-                />
+                <CitationLink key={citation.citation_id} citation={citation} scope={scope} />
               ))}
             </div>
           ) : null}
@@ -529,40 +559,43 @@ function ThinkingIndicator() {
   );
 }
 
-function CitationLink({
-  citation,
-  paperPath,
-  readerView,
-  onOpenPdf,
-  onView,
-}: {
-  citation: Citation;
-  paperPath: string;
-  readerView: "summary" | "outline" | "note";
-  onOpenPdf: () => void;
-  onView: (view: "summary" | "outline" | "note") => void;
-}) {
-  const kindLabel =
-    citation.artifact_kind === "summary_json"
-      ? "Summary"
-      : citation.artifact_kind === "outline_md"
-        ? "Outline"
-        : "Raw";
-  const pageLabel = citation.page_start
-    ? ` p.${citation.page_start}${citation.page_end && citation.page_end !== citation.page_start ? `-${citation.page_end}` : ""}`
-    : "";
-  const label = `${kindLabel}${citation.section ? ` §${citation.section}` : ""}${pageLabel}`;
+function CitationLink({ citation, scope }: { citation: Citation; scope: AskScope }) {
+  const label = citationLabel(citation);
+  if (scope.kind === "collection") {
+    const base = `/collections/${scope.collectionId}/papers/${citation.paper_id}`;
+    const paper = scope.papers.find((item) => item.id === citation.paper_id);
+    const title = citation.excerpt ?? paper?.title ?? undefined;
+    if (citation.page_start) {
+      return (
+        <Link
+          className="evidence-page-link"
+          to={`${base}/pdf?page=${citation.page_start}`}
+          title={title}
+        >
+          {paper ? `${paper.title ?? paper.id} · ` : ""}
+          {label}
+        </Link>
+      );
+    }
+    return (
+      <Link className="evidence-page-link" to={base} title={title}>
+        {paper ? `${paper.title ?? paper.id} · ` : ""}
+        {label}
+      </Link>
+    );
+  }
   if (citation.page_start) {
-    const evidenceView = citation.artifact_kind === "summary_json"
-      ? "summary"
-      : citation.artifact_kind === "outline_md"
-        ? "outline"
-        : readerView;
+    const evidenceView =
+      citation.artifact_kind === "summary_json"
+        ? "summary"
+        : citation.artifact_kind === "outline_md"
+          ? "outline"
+          : scope.readerView;
     return (
       <Link
         className="evidence-page-link"
-        to={`${paperPath}/pdf?view=${evidenceView}&ask=true&page=${citation.page_start}`}
-        onClick={onOpenPdf}
+        to={`${scope.paperPath}/pdf?view=${evidenceView}&ask=true&page=${citation.page_start}`}
+        onClick={scope.onOpenPdf}
         title={citation.excerpt ?? undefined}
       >
         {label}
@@ -574,23 +607,30 @@ function CitationLink({
       type="button"
       className="evidence-page-link"
       title={citation.excerpt ?? undefined}
-      onClick={() => onView(citation.artifact_kind === "outline_md" ? "outline" : "summary")}
+      onClick={() => scope.onView(citation.artifact_kind === "outline_md" ? "outline" : "summary")}
     >
       {label}
     </button>
   );
 }
 
-function SavedAnswers({ paper, onAsk }: { paper: Paper; onAsk: (question: string) => void }) {
+function SavedAnswers({ scope, onAsk }: { scope: AskScope; onAsk: (question: string) => void }) {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
+  const key = scopeKey(scope);
+  const ref = scopeRef(scope);
   const saved = useQuery({
-    queryKey: ["qa-records", paper.id, query],
-    queryFn: () => searchQaRecords({ q: query || undefined, archived: true, paperId: paper.id }),
+    queryKey: ["qa-records", key, query],
+    queryFn: () =>
+      searchQaRecords({
+        q: query || undefined,
+        archived: true,
+        ...("paperId" in ref ? { paperId: ref.paperId } : { collectionId: ref.collectionId }),
+      }),
   });
   const unarchive = useMutation({
     mutationFn: (id: string) => unarchiveQaRecord(id),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["qa-records", paper.id] }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["qa-records", key] }),
   });
 
   const exportJson = async (id: string) => {

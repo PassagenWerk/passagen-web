@@ -30,15 +30,22 @@ router = APIRouter(prefix="/conversations", tags=["conversations"])
 def create_conversation(
     payload: ConversationCreateRequest, assistant: AssistantDependency
 ) -> ConversationResponse:
-    return _conversation_model(assistant.create_conversation(payload.paper_id, title=payload.title))
+    conversation = assistant.create_conversation(
+        payload.paper_id, collection_id=payload.collection_id, title=payload.title
+    )
+    return _conversation_model(conversation)
 
 
 @router.get("", response_model=ConversationListResponse)
-def list_conversations(paper_id: str, assistant: AssistantDependency) -> ConversationListResponse:
+def list_conversations(
+    assistant: AssistantDependency,
+    paper_id: str | None = None,
+    collection_id: str | None = None,
+) -> ConversationListResponse:
     return ConversationListResponse(
         items=[
             _conversation_model(conversation)
-            for conversation in assistant.list_conversations(paper_id)
+            for conversation in assistant.list_conversations(paper_id, collection_id=collection_id)
         ]
     )
 
@@ -96,7 +103,9 @@ def get_turn(conversation_id: str, message_id: str, assistant: AssistantDependen
 def _conversation_model(conversation: Conversation) -> ConversationResponse:
     return ConversationResponse(
         id=conversation.id,
-        paper_id=conversation.paper_id or "",
+        scope=conversation.scope.value,
+        paper_id=conversation.paper_id,
+        collection_id=conversation.collection_id,
         title=conversation.title,
         created_at=conversation.created_at,
         updated_at=conversation.updated_at,
@@ -120,6 +129,7 @@ def _message_response(assistant: AssistantDependency, message: Message) -> Messa
         created_at=message.created_at,
         qa_record_id=record.id if record else None,
         sources=[source.value for source in record.context_plan.sources] if record else None,
+        selected_paper_ids=list(record.context_plan.paper_ids) if record else None,
         archived=record.archived_at is not None if record else False,
         citations=[_citation_model(c) for c in record.answer.citations] if record else None,
         error_code=run.error_code if run else None,
@@ -137,6 +147,7 @@ def _message_response(assistant: AssistantDependency, message: Message) -> Messa
 def _citation_model(citation: Citation) -> CitationResponse:
     return CitationResponse(
         citation_id=citation.citation_id,
+        paper_id=citation.paper_id,
         artifact_kind=citation.artifact_kind.value,
         summary_path=citation.summary_path,
         section=citation.section,

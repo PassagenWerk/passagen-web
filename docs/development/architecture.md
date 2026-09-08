@@ -9,6 +9,7 @@ Passagen Web 是 Core 的本地 HTTP 与浏览器适配器。它负责服务生�
 React UI -> /api -> FastAPI routes -> passagen.catalog
                                 \-> passagen.processing
                                 \-> passagen.assistant
+                                \-> passagen.research / passagen.generation
 ```
 
 Web 不导入 Core ORM model、不直接打开 SQLite、不扫描 artifact 目录，也不依赖 Passagen CLI。
@@ -25,9 +26,20 @@ Passagen Core 仓库的 docs/development/architecture.md。
 run 标记为 interrupted。
 
 对话问答沿用同一模式：`POST /api/conversations/{id}/turns` 持久化用户消息、pending 回答和
-queued generation run 并返回 `202`；进程内 `GenerationRunner` 通过 Core `ConversationService`
-认领并执行 run。浏览器轮询 turn 或 `/api/generation-runs/{id}` 获取状态，失败时用户消息保留
-并展示稳定错误码，可重试。
+queued generation run 并返回 `202`；进程内 `GenerationRunner` 通过 Core
+`GenerationRunDispatcher` 认领并执行 run。浏览器轮询 turn 或 `/api/generation-runs/{id}`
+获取状态，失败时用户消息保留并展示稳定错误码，可重试。
+
+Collection 研究功能同样只做 HTTP 适配：`POST /api/collections/{id}/synthesis` 和
+`POST /api/collections/{id}/reports` 复用 fingerprint 匹配的结果（`200`）或持久化 queued
+run（`202`），由同一 dispatcher 执行 answer、synthesis 和 report run。最新 synthesis、report
+历史/详情和 `/api/collections/{id}/runs` run 历史直接读取 Core service 的持久化状态；stale、
+partial coverage 和 reuse 判定全部留在 Core，Web 从不重算 fingerprint。服务重启通过
+`interrupt_active_runs` 把遗留 run、pending answer 和 queued/running report 一致标记为
+interrupted/failed。
+
+Conversation API 接受 `paper_id` 或 `collection_id` 之一；collection conversation 与 paper
+conversation 共用 turn、archive 和 QA record 搜索语义。
 
 ## HTTP Boundary
 

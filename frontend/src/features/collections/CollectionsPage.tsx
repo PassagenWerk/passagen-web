@@ -13,7 +13,13 @@ import {
   type Collection,
 } from "../../api/collections";
 import { fetchTags } from "../../api/papers";
+import { AskPanel } from "../ask/AskPanel";
 import { PaperDetail } from "../papers/PaperDetail";
+import { ReportsPanel } from "./ReportsPanel";
+import { SynthesisPanel } from "./SynthesisPanel";
+
+const WORKSPACE_TABS = ["papers", "synthesis", "reports", "ask"] as const;
+type WorkspaceTab = (typeof WORKSPACE_TABS)[number];
 
 export function CollectionsPage() {
   const { collectionId, paperId } = useParams();
@@ -123,7 +129,7 @@ export function CollectionsPage() {
           <span>{index >= 0 && detail.data ? `${index + 1} / ${detail.data.papers.length}` : "..."}</span>
           <div>
             {index > 0 ? <Link to={`/collections/${collectionId}/papers/${detail.data!.papers[index - 1].paper.id}`}>Previous</Link> : <span>Previous</span>}
-            {detail.data && index >= 0 && index < detail.data.papers.length - 1 ? <Link to={`/collections/${collectionId}/papers/${detail.data.papers[index + 1].paper.id}`}>Next</Link> : <span>Next</span>}
+            {detail.data && index >= 0 && index < detail.data.papers.length - 1 ? <Link to={`/collections/${collectionId}/papers/${detail.data!.papers[index + 1].paper.id}`}>Next</Link> : <span>Next</span>}
           </div>
         </nav>
         <PaperDetail
@@ -145,6 +151,20 @@ export function CollectionsPage() {
         />
       </div>
     );
+  }
+
+  const currentTab = search.get("tab");
+  const tab: WorkspaceTab = (WORKSPACE_TABS as readonly string[]).includes(currentTab ?? "")
+    ? (currentTab as WorkspaceTab)
+    : "papers";
+  const memberPapers =
+    detail.data?.papers.map((member) => ({ id: member.paper.id, title: member.paper.title })) ?? [];
+
+  function selectTab(option: WorkspaceTab) {
+    const next = new URLSearchParams(search);
+    if (option === "papers") next.delete("tab");
+    else next.set("tab", option);
+    setSearch(next);
   }
 
   return (
@@ -188,32 +208,60 @@ export function CollectionsPage() {
               </div>
               <Link className="primary-button" to={`/?addToCollection=${detail.data.id}`}>Add papers</Link>
             </header>
-            <form className="collection-editor" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
-              <label><span>Name</span><input value={name} onChange={(event) => setName(event.target.value)} /></label>
-              <label><span>Description</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Purpose, scope, or reading goal..." /></label>
-              <div>
-                <button type="submit" disabled={!name.trim() || save.isPending}>{save.isPending ? "Saving..." : "Save details"}</button>
-                <button className="danger-button" type="button" onClick={() => { if (window.confirm(`Delete ${detail.data!.name}?`)) destroy.mutate(); }}>Delete collection</button>
-              </div>
-              {save.isSuccess ? <span className="form-status is-saved">Saved</span> : null}
-              {save.error ? <span className="form-status is-error">{save.error.message}</span> : null}
-            </form>
-            <div className="collection-members">
-              <div className="collection-members-heading"><span>Order</span><span>Paper</span><span>Actions</span></div>
-              {detail.data.papers.map((member, index) => (
-                <article className="collection-member" key={member.paper.id}>
-                  <span className="member-position">{String(index + 1).padStart(2, "0")}</span>
-                  <div><Link to={`/collections/${detail.data!.id}/papers/${member.paper.id}`}>{member.paper.title ?? member.paper.original_filename}</Link><p>{member.paper.authors.join(", ") || "Unknown authors"}</p></div>
-                  <div className="member-actions">
-                    <button aria-label={`Move ${member.paper.title} up`} type="button" disabled={index === 0 || reorder.isPending} onClick={() => move(index, -1)}>Up</button>
-                    <button aria-label={`Move ${member.paper.title} down`} type="button" disabled={index === detail.data!.papers.length - 1 || reorder.isPending} onClick={() => move(index, 1)}>Down</button>
-                    <button aria-label={`Remove ${member.paper.title}`} type="button" disabled={remove.isPending} onClick={() => remove.mutate(member.paper.id)}>Remove</button>
-                  </div>
-                </article>
+            <div className="abstract-version-toggle collection-tabs" role="tablist" aria-label="Collection workspace">
+              {WORKSPACE_TABS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === option}
+                  onClick={() => selectTab(option)}
+                >
+                  {option === "ask" ? "Ask" : option[0].toUpperCase() + option.slice(1)}
+                </button>
               ))}
-              {detail.data.papers.length === 0 ? <div className="panel-message"><strong>This collection is empty.</strong><span>Add papers from the Library.</span></div> : null}
-              {reorder.error || remove.error ? <span className="form-status is-error">{(reorder.error ?? remove.error)?.message}</span> : null}
             </div>
+            {tab === "synthesis" ? (
+              <SynthesisPanel collectionId={detail.data.id} papers={memberPapers} />
+            ) : null}
+            {tab === "reports" ? (
+              <ReportsPanel collectionId={detail.data.id} papers={memberPapers} />
+            ) : null}
+            {tab === "ask" ? (
+              <AskPanel
+                scope={{ kind: "collection", collectionId: detail.data.id, papers: memberPapers }}
+              />
+            ) : null}
+            {tab === "papers" ? (
+              <>
+                <form className="collection-editor" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
+                  <label><span>Name</span><input value={name} onChange={(event) => setName(event.target.value)} /></label>
+                  <label><span>Description</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Purpose, scope, or reading goal..." /></label>
+                  <div>
+                    <button type="submit" disabled={!name.trim() || save.isPending}>{save.isPending ? "Saving..." : "Save details"}</button>
+                    <button className="danger-button" type="button" onClick={() => { if (window.confirm(`Delete ${detail.data!.name}?`)) destroy.mutate(); }}>Delete collection</button>
+                  </div>
+                  {save.isSuccess ? <span className="form-status is-saved">Saved</span> : null}
+                  {save.error ? <span className="form-status is-error">{save.error.message}</span> : null}
+                </form>
+                <div className="collection-members">
+                  <div className="collection-members-heading"><span>Order</span><span>Paper</span><span>Actions</span></div>
+                  {detail.data.papers.map((member, index) => (
+                    <article className="collection-member" key={member.paper.id}>
+                      <span className="member-position">{String(index + 1).padStart(2, "0")}</span>
+                      <div><Link to={`/collections/${detail.data!.id}/papers/${member.paper.id}`}>{member.paper.title ?? member.paper.original_filename}</Link><p>{member.paper.authors.join(", ") || "Unknown authors"}</p></div>
+                      <div className="member-actions">
+                        <button aria-label={`Move ${member.paper.title} up`} type="button" disabled={index === 0 || reorder.isPending} onClick={() => move(index, -1)}>Up</button>
+                        <button aria-label={`Move ${member.paper.title} down`} type="button" disabled={index === detail.data!.papers.length - 1 || reorder.isPending} onClick={() => move(index, 1)}>Down</button>
+                        <button aria-label={`Remove ${member.paper.title}`} type="button" disabled={remove.isPending} onClick={() => remove.mutate(member.paper.id)}>Remove</button>
+                      </div>
+                    </article>
+                  ))}
+                  {detail.data.papers.length === 0 ? <div className="panel-message"><strong>This collection is empty.</strong><span>Add papers from the Library.</span></div> : null}
+                  {reorder.error || remove.error ? <span className="form-status is-error">{(reorder.error ?? remove.error)?.message}</span> : null}
+                </div>
+              </>
+            ) : null}
           </>
         ) : null}
       </section>

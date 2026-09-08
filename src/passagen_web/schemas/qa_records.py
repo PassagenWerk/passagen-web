@@ -7,6 +7,7 @@ class QaRecordSummaryResponse(BaseModel):
     id: str
     conversation_id: str
     paper_id: str | None
+    collection_id: str | None
     standalone_question: str
     answer_markdown: str
     intent: str
