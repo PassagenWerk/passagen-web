@@ -60,7 +60,10 @@ def create_app(
 ) -> FastAPI:
     processing = ProcessingService(settings.core)
     assistant = assistant or ConversationService(
-        settings.database_path, settings.data_dir, settings.core.providers.llm
+        settings.database_path,
+        settings.data_dir,
+        settings.core.providers.llm,
+        settings.core.assistant,
     )
 
     @asynccontextmanager
