@@ -259,6 +259,9 @@ describe("ReportsPanel", () => {
         if (url === "/api/collections/col-1/reports") {
           return response({ items: [reportView, queuedReportView] });
         }
+        if (url === "/api/collections/col-1/reports/report-1" && init?.method === "DELETE") {
+          return Promise.resolve(new Response(null, { status: 204 }));
+        }
         if (url === "/api/collections/col-1/reports/report-1") {
           return response(reportView);
         }
@@ -270,13 +273,58 @@ describe("ReportsPanel", () => {
   afterEach(() => cleanup());
 
   test("lists report history with states and opens the detail", async () => {
-    renderPanel(<ReportsPanel collectionId="col-1" papers={papers} />);
+    const onFocusChange = vi.fn();
+    renderPanel(
+      <ReportsPanel collectionId="col-1" papers={papers} onFocusChange={onFocusChange} />,
+    );
 
     expect(await screen.findByText("Literature review: Systems reading list")).toBeTruthy();
     expect(screen.getAllByText("Queued...").length).toBeGreaterThan(0);
     expect(await screen.findByText("The papers study systems [c-1].")).toBeTruthy();
     const link = screen.getByText(/Fast Scheduler · Summary p\.5/);
     expect(link.getAttribute("href")).toBe("/collections/col-1/papers/paper-a/pdf?page=5");
+    fireEvent.click(screen.getByRole("button", { name: "Open reading view" }));
+    expect(onFocusChange).toHaveBeenCalledWith(true, "report-1");
+  });
+
+  test("opens and controls the focused document reading view", async () => {
+    const onFocusChange = vi.fn();
+    renderPanel(
+      <ReportsPanel
+        collectionId="col-1"
+        papers={papers}
+        focused
+        initialSelectedId="report-1"
+        onFocusChange={onFocusChange}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { name: "Literature review: Systems reading list" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Create document" })).toBeNull();
+    expect(screen.queryByLabelText("Research document history")).toBeNull();
+    expect(screen.getByRole("combobox", { name: "Choose research document" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Back to research desk" }));
+
+    expect(onFocusChange).toHaveBeenCalledWith(false);
+  });
+
+  test("confirms and deletes the selected research document", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderPanel(<ReportsPanel collectionId="col-1" papers={papers} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Delete document" }));
+
+    await waitFor(() => {
+      const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
+      expect(fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url) === "/api/collections/col-1/reports/report-1" &&
+          (init as RequestInit | undefined)?.method === "DELETE",
+      )).toBe(true);
+    });
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Delete research document "Literature review: Systems reading list"?',
+    );
   });
 
   test("requires a prompt for custom reports and submits the selected kind", async () => {

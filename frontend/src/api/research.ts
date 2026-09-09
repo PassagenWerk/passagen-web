@@ -1,5 +1,5 @@
 import type { Citation } from "./conversations";
-import { requestJson } from "./papers";
+import { requestJson, responseError } from "./papers";
 
 export interface SourceStatus {
   stale: boolean;
@@ -245,6 +245,14 @@ export function fetchReport(
   return requestJson(
     `/api/collections/${encodeURIComponent(collectionId)}/reports/${encodeURIComponent(reportId)}`,
   );
+}
+
+export async function deleteReport(collectionId: string, reportId: string): Promise<void> {
+  const response = await fetch(
+    `/api/collections/${encodeURIComponent(collectionId)}/reports/${encodeURIComponent(reportId)}`,
+    { method: "DELETE" },
+  );
+  if (!response.ok) throw await responseError(response);
 }
 
 export function fetchCollectionRuns(collectionId: string): Promise<{ items: CollectionRun[] }> {

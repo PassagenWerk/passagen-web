@@ -87,6 +87,15 @@ def get_report(
     return view
 
 
+@router.delete("/reports/{report_id}", status_code=204)
+def delete_report(collection_id: str, report_id: str, dispatcher: DispatcherDependency) -> Response:
+    view = dispatcher.reports.get_report(report_id)
+    if view.record.collection_id != collection_id:
+        raise AssistantNotFoundError(f"Collection report not found: {report_id}")
+    dispatcher.reports.delete_report(report_id)
+    return Response(status_code=204)
+
+
 @router.get("/runs", response_model=CollectionRunListResponse)
 def list_collection_runs(
     collection_id: str, dispatcher: DispatcherDependency

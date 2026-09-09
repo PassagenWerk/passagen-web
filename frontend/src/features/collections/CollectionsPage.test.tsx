@@ -87,28 +87,48 @@ describe("CollectionsPage research desk", () => {
   afterEach(() => cleanup());
 
   test("keeps collection management separate from the research desk", async () => {
-    renderPage();
+    const { container } = renderPage();
 
     expect(await screen.findByText("Fast Scheduler")).toBeTruthy();
     expect(screen.queryByRole("tablist", { name: "Collection workspace" })).toBeNull();
     fireEvent.click(screen.getByRole("link", { name: "Open research desk" }));
 
     expect(await screen.findByRole("heading", { name: "Research desk" })).toBeTruthy();
-    expect(screen.getByRole("navigation").textContent).toContain("Collection intelligence");
+    expect(container.querySelector(".collection-research-desk")?.className).toContain("is-motion-forward");
+    expect(screen.getByRole("complementary", { name: "Collection papers" })).toBeTruthy();
+    expect(screen.queryByRole("navigation")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Show papers" }));
+    expect(screen.getByRole("navigation").textContent).not.toContain("Collection intelligence");
+    expect(screen.getByRole("link", { name: "Research desk" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Hide collection papers" }));
+    expect(screen.queryByRole("navigation")).toBeNull();
     expect(await screen.findByText("No collection intelligence yet.")).toBeTruthy();
     expect(screen.getByText("No research documents yet.")).toBeTruthy();
     expect(await screen.findByText(/Ask across the collection/)).toBeTruthy();
   });
 
   test("expands Ask into the research canvas and returns to intelligence", async () => {
-    renderPage("/collections/col-1/research");
+    const { container } = renderPage("/collections/col-1/research");
 
     expect(await screen.findByRole("heading", { name: "Collection intelligence" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Expand collection Ask" }));
 
     expect(screen.queryByRole("heading", { name: "Collection intelligence" })).toBeNull();
+    expect(container.querySelector(".collection-research-desk")?.className).toContain("is-motion-forward");
     expect(screen.getByRole("button", { name: "Back to collection intelligence" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Back to collection intelligence" }));
+
+    expect(await screen.findByRole("heading", { name: "Collection intelligence" })).toBeTruthy();
+    expect(container.querySelector(".collection-research-desk")?.className).toContain("is-motion-back");
+  });
+
+  test("opens Research Documents as a URL-driven reading view", async () => {
+    renderPage("/collections/col-1/research?view=document");
+
+    expect(await screen.findByRole("button", { name: "Back to research desk" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Collection intelligence" })).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Collection assistant" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Back to research desk" }));
 
     expect(await screen.findByRole("heading", { name: "Collection intelligence" })).toBeTruthy();
   });

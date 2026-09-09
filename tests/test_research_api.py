@@ -393,7 +393,7 @@ def test_report_submit_history_detail_and_custom(data_dir: Path) -> None:
         history = client.get(f"/api/collections/{collection_id}/reports").json()
         assert [item["record"]["id"] for item in history["items"]] == [report_id]
         assert history["items"][0]["record"]["status"] == "completed"
-        assert history["items"][0]["record"]["title"] == "Literature review: Systems reading list"
+        assert history["items"][0]["record"]["title"] == "Generated title"
         assert history["items"][0]["source_status"]["stale"] is False
 
         detail = client.get(f"/api/collections/{collection_id}/reports/{report_id}")
@@ -442,6 +442,30 @@ def test_collection_run_history(data_dir: Path) -> None:
         assert by_kind["collection_synthesis"]["status"] == "completed"
         assert by_kind["report"]["report_id"] == report.json()["report_id"]
         assert runs[0]["created_at"] >= runs[-1]["created_at"]
+
+
+def test_delete_research_document(data_dir: Path) -> None:
+    client = make_client(data_dir)
+    collection_id = client.collection_id
+    with client:
+        submitted = client.post(
+            f"/api/collections/{collection_id}/reports", json={"kind": "review"}
+        )
+        report_id = submitted.json()["report_id"]
+        assert wait_for_run(client, submitted.json()["run_id"])["status"] == "completed"
+        detail = client.get(f"/api/collections/{collection_id}/reports/{report_id}").json()
+        artifact_paths = [data_dir / item["path"] for item in detail["artifacts"]]
+
+        wrong_scope = client.delete(f"/api/collections/other/reports/{report_id}")
+        assert wrong_scope.status_code == 404
+        deleted = client.delete(f"/api/collections/{collection_id}/reports/{report_id}")
+
+        assert deleted.status_code == 204
+        assert (
+            client.get(f"/api/collections/{collection_id}/reports/{report_id}").status_code == 404
+        )
+        assert client.get(f"/api/collections/{collection_id}/reports").json()["items"] == []
+        assert all(not path.exists() for path in artifact_paths)
 
 
 def test_restart_interrupts_active_runs_and_reports(data_dir: Path) -> None:

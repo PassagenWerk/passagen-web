@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
@@ -95,10 +95,38 @@ export function CollectionsPage() {
     })) ?? [];
   const researchHome = Boolean(collectionId && location.pathname.endsWith("/research"));
   const askFocused = researchHome && search.get("view") === "ask";
+  const documentFocused = researchHome && search.get("view") === "document";
+  const workspaceFocused = askFocused || documentFocused;
+  const [paperRailCollapsed, setPaperRailCollapsed] = useState(researchHome);
+  const viewLevel = researchHome
+    ? workspaceFocused ? 2 : 1
+    : paperId ? location.pathname.endsWith("/pdf") ? 3 : 2
+    : 0;
+  const previousViewLevel = useRef(viewLevel);
+  const [viewMotion, setViewMotion] = useState<{
+    direction: "forward" | "back" | null;
+    sequence: number;
+  }>({ direction: null, sequence: 0 });
+  const motionClass = viewMotion.direction
+    ? `is-motion-${viewMotion.direction}-${viewMotion.sequence % 2}`
+    : "";
+
+  useEffect(() => {
+    setPaperRailCollapsed(researchHome);
+  }, [collectionId, researchHome]);
+
+  useLayoutEffect(() => {
+    if (viewLevel === previousViewLevel.current) return;
+    const direction = viewLevel > previousViewLevel.current ? "forward" : "back";
+    previousViewLevel.current = viewLevel;
+    setViewMotion((current) => ({ direction, sequence: current.sequence + 1 }));
+  }, [viewLevel]);
+
   function askCollection(question: string) {
     const next = new URLSearchParams(search);
     next.set("question", question);
     next.set("view", "ask");
+    next.delete("report");
     setSearch(next);
   }
 
@@ -106,6 +134,19 @@ export function CollectionsPage() {
     const next = new URLSearchParams(search);
     if (focused) next.set("view", "ask");
     else next.delete("view");
+    next.delete("report");
+    setSearch(next);
+  }
+
+  function setDocumentFocused(focused: boolean, reportId?: string) {
+    const next = new URLSearchParams(search);
+    if (focused) {
+      next.set("view", "document");
+      if (reportId) next.set("report", reportId);
+    } else {
+      next.delete("view");
+      next.delete("report");
+    }
     setSearch(next);
   }
 
@@ -164,8 +205,13 @@ export function CollectionsPage() {
       void navigate({ pathname: pdfView ? base : `${base}/pdf`, search: next.toString() });
     }
     return (
-      <div className={`collection-research-desk ${askFocused ? "is-ask-focus" : ""}`}>
-        <CollectionResearchRail collection={detail.data} selectedPaperId={paperId} />
+      <div className={`collection-research-desk ${paperRailCollapsed ? "is-paper-rail-collapsed" : ""} ${workspaceFocused ? "is-workspace-focus" : ""} ${motionClass}`}>
+        <CollectionResearchRail
+          collection={detail.data}
+          selectedPaperId={paperId}
+          collapsed={paperRailCollapsed}
+          onCollapsedChange={setPaperRailCollapsed}
+        />
         <section className="collection-research-canvas" aria-label="Collection research canvas">
           {detail.isPending ? <div className="panel-message">Opening research desk...</div> : null}
           {detail.error ? <div className="panel-message is-error">{detail.error.message}</div> : null}
@@ -179,8 +225,19 @@ export function CollectionsPage() {
                 </div>
                 <Link className="primary-button" to={`/collections/${collectionId}`}>Manage collection</Link>
               </header>
-              <div className={`collection-intelligence-layout ${askFocused ? "is-ask-focus" : ""}`}>
-                {!askFocused ? <main className="collection-intelligence-main">
+              <div className={`collection-intelligence-layout ${askFocused ? "is-ask-focus" : ""} ${documentFocused ? "is-document-focus" : ""}`}>
+                {documentFocused ? (
+                  <main className="collection-document-focus">
+                    <ReportsPanel
+                      key={detail.data.id}
+                      collectionId={detail.data.id}
+                      papers={memberPapers}
+                      focused
+                      initialSelectedId={search.get("report")}
+                      onFocusChange={setDocumentFocused}
+                    />
+                  </main>
+                ) : !askFocused ? <main className="collection-intelligence-main">
                   <section className="intelligence-section" aria-labelledby="synthesis-heading">
                     <div className="intelligence-heading">
                       <span>01 / Shared understanding</span>
@@ -200,10 +257,15 @@ export function CollectionsPage() {
                       <h2 id="documents-heading">Research documents</h2>
                       <p>Create and revisit literature reviews, comparisons, gap analyses, and custom briefs.</p>
                     </div>
-                    <ReportsPanel key={detail.data.id} collectionId={detail.data.id} papers={memberPapers} />
+                    <ReportsPanel
+                      key={detail.data.id}
+                      collectionId={detail.data.id}
+                      papers={memberPapers}
+                      onFocusChange={setDocumentFocused}
+                    />
                   </section>
                 </main> : null}
-                <aside className="collection-research-assistant" aria-label="Collection assistant">
+                {!documentFocused ? <aside className="collection-research-assistant" aria-label="Collection assistant">
                   <div className="companion-heading">
                     <div><span>Whole collection</span><strong>Ask</strong></div>
                     <button
@@ -218,7 +280,7 @@ export function CollectionsPage() {
                     scope={{ kind: "collection", collectionId: detail.data.id, papers: memberPapers }}
                     initialQuestion={search.get("question")}
                   />
-                </aside>
+                </aside> : null}
               </div>
             </>
           ) : null}
@@ -260,7 +322,7 @@ export function CollectionsPage() {
   }
 
   return (
-    <div className="collections-grid">
+    <div className={`collections-grid ${motionClass}`}>
       <aside className="collections-nav" aria-label="Collections">
         <div className="panel-heading">
           <span className="index-number">01</span>
@@ -356,27 +418,44 @@ export function CollectionsPage() {
 function CollectionResearchRail({
   collection,
   selectedPaperId,
+  collapsed,
+  onCollapsedChange,
 }: {
   collection: Collection | undefined;
   selectedPaperId: string | undefined;
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
 }) {
   return (
-    <aside className="collection-paper-rail" aria-label="Collection papers">
+    <aside
+      className={`collection-paper-rail ${collapsed ? "is-collapsed" : ""}`}
+      aria-label="Collection papers"
+    >
       <div className="collection-rail-header">
-        <Link to={collection ? `/collections/${collection.id}` : "/collections"}>Back to collection</Link>
-        <span>Research desk</span>
-        <h2>{collection?.name ?? "Opening collection..."}</h2>
+        {!collapsed ? (
+          <>
+            <div className="collection-rail-actions">
+              <Link to={collection ? `/collections/${collection.id}` : "/collections"}>Back to collection</Link>
+              <button type="button" onClick={() => onCollapsedChange(true)} aria-label="Hide collection papers">
+                Hide papers
+              </button>
+            </div>
+            <Link
+              className="collection-research-home-link"
+              to={collection ? `/collections/${collection.id}/research` : "/collections"}
+            >
+              Research desk
+            </Link>
+            <h2>{collection?.name ?? "Opening collection..."}</h2>
+          </>
+        ) : (
+          <button type="button" className="collection-rail-expand" onClick={() => onCollapsedChange(false)}>
+            Show papers
+          </button>
+        )}
       </div>
-      {collection ? (
+      {collection && !collapsed ? (
         <nav className="collection-research-list">
-          <Link
-            className={selectedPaperId ? "" : "is-active"}
-            to={`/collections/${collection.id}/research`}
-            aria-current={selectedPaperId ? undefined : "page"}
-          >
-            <span className="member-position">00</span>
-            <div><strong>Collection intelligence</strong><small>Synthesis, documents, and questions</small></div>
-          </Link>
           {collection.papers.map((member, index) => (
             <Link
               key={member.paper.id}

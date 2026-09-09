@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 import {
+  deleteReport,
   fetchReport,
   fetchReports,
   submitReport,
@@ -28,15 +29,21 @@ const KIND_DESCRIPTIONS: Record<ReportKind, string> = {
 export function ReportsPanel({
   collectionId,
   papers,
+  focused = false,
+  initialSelectedId = null,
+  onFocusChange,
 }: {
   collectionId: string;
   papers: PaperRef[];
+  focused?: boolean;
+  initialSelectedId?: string | null;
+  onFocusChange?: (focused: boolean, reportId?: string) => void;
 }) {
   const queryClient = useQueryClient();
   const [kind, setKind] = useState<ReportKind>("review");
   const [prompt, setPrompt] = useState("");
   const [allowPartial, setAllowPartial] = useState(false);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
 
   const reports = useQuery({
     queryKey: ["collection-reports", collectionId],
@@ -81,17 +88,80 @@ export function ReportsPanel({
     },
   });
 
+  const remove = useMutation({
+    mutationFn: (reportId: string) => deleteReport(collectionId, reportId),
+    onSuccess: (_result, reportId) => {
+      queryClient.removeQueries({ queryKey: ["collection-report", collectionId, reportId] });
+      const nextId = items.find((item) => item.record.id !== reportId)?.record.id ?? null;
+      setSelectedId(nextId);
+      invalidate();
+      if (focused) onFocusChange?.(nextId !== null, nextId ?? undefined);
+    },
+  });
+
   const items = reports.data?.items ?? [];
   const missingSummaryCount = papers.filter((paper) => paper.summaryReady === false).length;
   const active = items.find((item) => ["queued", "running"].includes(item.record.status));
 
   useEffect(() => {
-    if (selectedId === null && items.length > 0) setSelectedId(items[0].record.id);
-  }, [items, selectedId]);
+    if (items.length === 0 || items.some((item) => item.record.id === selectedId)) return;
+    const reportId = items[0].record.id;
+    setSelectedId(reportId);
+    if (focused) onFocusChange?.(true, reportId);
+  }, [focused, items, onFocusChange, selectedId]);
+
+  useEffect(() => {
+    if (initialSelectedId !== null) setSelectedId(initialSelectedId);
+  }, [initialSelectedId]);
+
+  function selectReport(reportId: string) {
+    setSelectedId(reportId);
+    if (focused) onFocusChange?.(true, reportId);
+  }
+
+  function confirmDelete() {
+    if (!detail.data || ["queued", "running"].includes(detail.data.record.status)) return;
+    if (window.confirm(`Delete research document "${detail.data.record.title}"?`)) {
+      remove.mutate(detail.data.record.id);
+    }
+  }
 
   return (
-    <section className="research-panel" aria-label="Collection reports">
-      <form
+    <section
+      className={`research-panel ${focused ? "is-document-focus" : ""}`}
+      aria-label="Collection reports"
+    >
+      {focused ? (
+        <header className="document-focus-header">
+          <div>
+            <span>Research documents</span>
+            <strong>{detail.data?.report?.title ?? "Reading view"}</strong>
+          </div>
+          <label>
+            <span>Document</span>
+            <select
+              value={selectedId ?? ""}
+              onChange={(event) => selectReport(event.target.value)}
+              aria-label="Choose research document"
+            >
+              {items.map((item) => (
+                <option key={item.record.id} value={item.record.id}>{item.record.title}</option>
+              ))}
+            </select>
+          </label>
+          <div className="document-focus-actions">
+            {detail.data && !["queued", "running"].includes(detail.data.record.status) ? (
+              <button type="button" className="is-danger" onClick={confirmDelete} disabled={remove.isPending}>
+                {remove.isPending ? "Deleting..." : "Delete"}
+              </button>
+            ) : null}
+            <button type="button" onClick={() => onFocusChange?.(false)}>
+              Back to research desk
+            </button>
+          </div>
+        </header>
+      ) : null}
+      {!focused ? <form
         className="research-toolbar"
         onSubmit={(event) => {
           event.preventDefault();
@@ -141,7 +211,7 @@ export function ReportsPanel({
             rows={2}
           />
         ) : null}
-      </form>
+      </form> : null}
       {generate.error ? (
         <span className="form-status is-error">{generate.error.message}</span>
       ) : null}
@@ -151,9 +221,24 @@ export function ReportsPanel({
       {active ? (
         <RunStateLine status={active.record.status} error={active.record.error} />
       ) : null}
+      {!focused && selectedId && detail.data ? (
+        <div className="research-document-view-actions">
+          {detail.data.record.status === "completed" ? (
+            <button type="button" onClick={() => onFocusChange?.(true, selectedId)}>
+              Open reading view
+            </button>
+          ) : null}
+          {!["queued", "running"].includes(detail.data.record.status) ? (
+            <button type="button" className="is-danger" onClick={confirmDelete} disabled={remove.isPending}>
+              {remove.isPending ? "Deleting..." : "Delete document"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {remove.error ? <span className="form-status is-error">{remove.error.message}</span> : null}
 
       <div className="research-reports">
-        <div className="research-report-list" aria-label="Research document history">
+        {!focused ? <div className="research-report-list" aria-label="Research document history">
           {reports.isPending ? <div className="panel-message">Loading reports...</div> : null}
           {items.length === 0 && !reports.isPending ? (
             <div className="panel-message">
@@ -166,7 +251,7 @@ export function ReportsPanel({
               key={item.record.id}
               type="button"
               className={`research-report-item ${item.record.id === selectedId ? "is-active" : ""}`}
-              onClick={() => setSelectedId(item.record.id)}
+              onClick={() => selectReport(item.record.id)}
             >
               <strong>{item.record.title}</strong>
               <span className="research-report-meta">
@@ -182,7 +267,7 @@ export function ReportsPanel({
               </span>
             </button>
           ))}
-        </div>
+        </div> : null}
         <div>
           {detail.isPending ? <div className="panel-message">Opening report...</div> : null}
           {detail.error ? (
