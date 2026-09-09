@@ -57,9 +57,14 @@ function scopeKey(scope: AskScope): string {
   return scope.kind === "paper" ? `paper:${scope.paper.id}` : `collection:${scope.collectionId}`;
 }
 
-export function AskPanel({ scope }: { scope: AskScope }) {
+export function AskPanel({ scope, initialQuestion }: { scope: AskScope; initialQuestion?: string | null }) {
   const [mode, setMode] = useState<"chat" | "saved">("chat");
   const [prefill, setPrefill] = useState<string | null>(null);
+  useEffect(() => {
+    if (!initialQuestion) return;
+    setPrefill(initialQuestion);
+    setMode("chat");
+  }, [initialQuestion]);
   const label = scope.kind === "paper" ? "Ask about this paper" : "Ask about this collection";
   return (
     <section className="ask-panel" aria-label={label}>

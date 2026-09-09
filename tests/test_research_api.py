@@ -103,8 +103,17 @@ class CollectionProvider:
         citation_ids = [str(citation["citation_id"]) for citation in citations]
         return json.dumps(
             {
-                "schema_version": "1",
-                "overview": "The collection studies systems.",
+                "schema_version": "2",
+                "executive_overview": "The collection studies systems.",
+                "paper_roles": [
+                    {
+                        "paper_id": paper_id,
+                        "role": "Systems evidence",
+                        "contribution": "Contributes a systems result.",
+                        "citation_ids": [citation_ids[index]],
+                    }
+                    for index, paper_id in enumerate(paper_ids)
+                ],
                 "themes": [
                     {
                         "name": "Systems",
@@ -310,7 +319,7 @@ def test_synthesis_submit_poll_reuse_and_stale(data_dir: Path) -> None:
         latest = client.get(f"/api/collections/{collection_id}/synthesis")
         assert latest.status_code == 200
         synthesis = latest.json()
-        assert synthesis["synthesis"]["overview"] == "The collection studies systems."
+        assert synthesis["synthesis"]["executive_overview"] == "The collection studies systems."
         assert synthesis["synthesis"]["coverage"]["partial"] is False
         assert synthesis["source_status"]["stale"] is False
         assert synthesis["synthesis"]["citations"][0]["paper_id"] == "paper-a"

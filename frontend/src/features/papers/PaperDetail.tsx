@@ -13,7 +13,7 @@ import {
   type Tag,
 } from "../../api/papers";
 import { useEscapeClose } from "../../components/useEscapeClose";
-import { AskPanel } from "../ask/AskPanel";
+import { AskPanel, type AskScope } from "../ask/AskPanel";
 import { PdfReader } from "../reader/PdfReader";
 import { PaperLibraryEditor } from "./PaperLibraryEditor";
 import {
@@ -40,6 +40,7 @@ interface PaperDetailProps {
   focused: boolean;
   onExitFocus: () => void;
   paperPath?: string;
+  collectionAskScope?: Extract<AskScope, { kind: "collection" }>;
 }
 
 export function PaperDetail({
@@ -58,16 +59,19 @@ export function PaperDetail({
   focused,
   onExitFocus,
   paperPath,
+  collectionAskScope,
 }: PaperDetailProps) {
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const [abstractExpanded, setAbstractExpanded] = useState(true);
   const [abstractVersion, setAbstractVersion] = useState<"cleaned" | "original">("cleaned");
+  const [askScope, setAskScope] = useState<"paper" | "collection">("paper");
   const tagPickerToggle = useRef<HTMLButtonElement>(null);
   const paperId = paper?.id;
   useEffect(() => setTagPickerOpen(false), [paperId]);
   useEffect(() => {
     setAbstractExpanded(true);
     setAbstractVersion("cleaned");
+    setAskScope("paper");
   }, [paperId]);
   useEscapeClose(tagPickerOpen, () => {
     setTagPickerOpen(false);
@@ -355,22 +359,30 @@ export function PaperDetail({
             <>
               <div className="companion-heading">
                 <div>
-                  <span>Paper companion</span>
+                  <span>{askScope === "collection" ? "Whole collection" : "Current paper"}</span>
                   <strong>Ask</strong>
                 </div>
                 <button type="button" onClick={onReaderOnly}>
                   <span aria-hidden="true">←</span> Paper only
                 </button>
               </div>
+              {collectionAskScope ? (
+                <div className="ask-scope-switch" role="group" aria-label="Assistant scope">
+                  <button type="button" aria-pressed={askScope === "paper"} onClick={() => setAskScope("paper")}>This paper</button>
+                  <button type="button" aria-pressed={askScope === "collection"} onClick={() => setAskScope("collection")}>Whole collection</button>
+                </div>
+              ) : null}
               <AskPanel
-                scope={{
-                  kind: "paper",
-                  paper,
-                  paperPath: currentPaperPath,
-                  readerView: view,
-                  onOpenPdf,
-                  onView,
-                }}
+                scope={askScope === "collection" && collectionAskScope
+                  ? collectionAskScope
+                  : {
+                      kind: "paper",
+                      paper,
+                      paperPath: currentPaperPath,
+                      readerView: view,
+                      onOpenPdf,
+                      onView,
+                    }}
               />
             </>
           ) : null}

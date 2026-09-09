@@ -53,6 +53,7 @@ export function App() {
       />
       <Route path="/collections" element={<AppShell><CollectionsPage /></AppShell>} />
       <Route path="/collections/:collectionId" element={<AppShell><CollectionsPage /></AppShell>} />
+      <Route path="/collections/:collectionId/research" element={<AppShell><CollectionsPage /></AppShell>} />
       <Route path="/collections/:collectionId/papers/:paperId" element={<AppShell><CollectionsPage /></AppShell>} />
       <Route path="/collections/:collectionId/papers/:paperId/pdf" element={<AppShell><CollectionsPage /></AppShell>} />
       <Route path="/tags" element={<AppShell><TagsPage /></AppShell>} />

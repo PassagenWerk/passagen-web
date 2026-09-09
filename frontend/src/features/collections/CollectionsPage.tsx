@@ -18,9 +18,6 @@ import { PaperDetail } from "../papers/PaperDetail";
 import { ReportsPanel } from "./ReportsPanel";
 import { SynthesisPanel } from "./SynthesisPanel";
 
-const WORKSPACE_TABS = ["papers", "synthesis", "reports", "ask"] as const;
-type WorkspaceTab = (typeof WORKSPACE_TABS)[number];
-
 export function CollectionsPage() {
   const { collectionId, paperId } = useParams();
   const location = useLocation();
@@ -90,10 +87,45 @@ export function CollectionsPage() {
     reorder.mutate(ids);
   }
 
-  if (paperId && collectionId) {
+  const memberPapers =
+    detail.data?.papers.map((member) => ({
+      id: member.paper.id,
+      title: member.paper.title,
+      summaryReady: member.paper.artifacts.summary,
+    })) ?? [];
+  const researchHome = Boolean(collectionId && location.pathname.endsWith("/research"));
+  function askCollection(question: string) {
+    const next = new URLSearchParams(search);
+    next.set("question", question);
+    setSearch(next);
+  }
+
+  useEffect(() => {
+    if (!collectionId || (!paperId && !researchHome)) return;
+    function handleNavigation(event: KeyboardEvent) {
+      const target = event.target;
+      if (target instanceof Element && target.closest("input, select, textarea, button, a")) return;
+      if (!["ArrowDown", "ArrowUp", "j", "k"].includes(event.key)) return;
+      const members = detail.data?.papers ?? [];
+      if (members.length === 0) return;
+      event.preventDefault();
+      const current = members.findIndex((member) => member.paper.id === paperId);
+      const forward = event.key === "ArrowDown" || event.key === "j";
+      const nextIndex = forward
+        ? Math.min(current + 1, members.length - 1)
+        : current < 0
+          ? members.length - 1
+          : Math.max(current - 1, 0);
+      void navigate(`/collections/${collectionId}/papers/${members[nextIndex].paper.id}`);
+    }
+    window.addEventListener("keydown", handleNavigation);
+    return () => window.removeEventListener("keydown", handleNavigation);
+  }, [collectionId, detail.data?.papers, navigate, paperId, researchHome]);
+
+  if (collectionId && (paperId || researchHome)) {
     const index = detail.data?.papers.findIndex((member) => member.paper.id === paperId) ?? -1;
     const paper = index >= 0 ? detail.data?.papers[index].paper : undefined;
-    const base = `/collections/${collectionId}/papers/${paperId}`;
+    const base = paperId ? `/collections/${collectionId}/papers/${paperId}` : "";
     const pdfView = location.pathname.endsWith("/pdf");
     const askOpen = search.get("ask") === "true" || search.get("view") === "ask";
     function changeView(view: "summary" | "outline" | "note") {
@@ -123,48 +155,92 @@ export function CollectionsPage() {
       void navigate({ pathname: pdfView ? base : `${base}/pdf`, search: next.toString() });
     }
     return (
-      <div className="collection-reader-view is-focus">
-        <nav className="collection-reader-nav" aria-label="Collection reading navigation">
-          <Link to={`/collections/${collectionId}`}>Back to {detail.data?.name ?? "collection"}</Link>
-          <span>{index >= 0 && detail.data ? `${index + 1} / ${detail.data.papers.length}` : "..."}</span>
-          <div>
-            {index > 0 ? <Link to={`/collections/${collectionId}/papers/${detail.data!.papers[index - 1].paper.id}`}>Previous</Link> : <span>Previous</span>}
-            {detail.data && index >= 0 && index < detail.data.papers.length - 1 ? <Link to={`/collections/${collectionId}/papers/${detail.data!.papers[index + 1].paper.id}`}>Next</Link> : <span>Next</span>}
-          </div>
-        </nav>
-        <PaperDetail
-          paper={paper}
-          tags={tags.data ?? []}
-          search={search}
-          pending={detail.isPending}
-          error={detail.error}
-          pdfView={pdfView}
-          askOpen={askOpen}
-          onView={changeView}
-          onToggleAsk={toggleAsk}
-          onReaderOnly={showReaderOnly}
-          onTogglePdf={togglePdf}
-          onOpenPdf={() => undefined}
-          focused
-          onExitFocus={() => void navigate(`/collections/${collectionId}`)}
-          paperPath={base}
-        />
+      <div className="collection-research-desk">
+        <CollectionResearchRail collection={detail.data} selectedPaperId={paperId} />
+        <section className="collection-research-canvas" aria-label="Collection research canvas">
+          {detail.isPending ? <div className="panel-message">Opening research desk...</div> : null}
+          {detail.error ? <div className="panel-message is-error">{detail.error.message}</div> : null}
+          {researchHome && detail.data ? (
+            <>
+              <header className="research-desk-header">
+                <div>
+                  <span className="paper-kicker">Collection intelligence / {detail.data.paper_count} papers</span>
+                  <h1>Research desk</h1>
+                  <p>{detail.data.description || `Synthesize, compare, and question ${detail.data.name}.`}</p>
+                </div>
+                <Link className="primary-button" to={`/collections/${collectionId}`}>Manage collection</Link>
+              </header>
+              <div className="collection-intelligence-layout">
+                <main className="collection-intelligence-main">
+                  <section className="intelligence-section" aria-labelledby="synthesis-heading">
+                    <div className="intelligence-heading">
+                      <span>01 / Shared understanding</span>
+                      <h2 id="synthesis-heading">Collection intelligence</h2>
+                      <p>A source-grounded overview of themes and differences across this reading set.</p>
+                    </div>
+                    <SynthesisPanel
+                      key={detail.data.id}
+                      collectionId={detail.data.id}
+                      papers={memberPapers}
+                      onAsk={askCollection}
+                    />
+                  </section>
+                  <section className="intelligence-section" aria-labelledby="documents-heading">
+                    <div className="intelligence-heading">
+                      <span>02 / Durable outputs</span>
+                      <h2 id="documents-heading">Research documents</h2>
+                      <p>Create and revisit literature reviews, comparisons, gap analyses, and custom briefs.</p>
+                    </div>
+                    <ReportsPanel key={detail.data.id} collectionId={detail.data.id} papers={memberPapers} />
+                  </section>
+                </main>
+                <aside className="collection-research-assistant" aria-label="Collection assistant">
+                  <div className="companion-heading">
+                    <div><span>Whole collection</span><strong>Ask</strong></div>
+                  </div>
+                  <AskPanel
+                    scope={{ kind: "collection", collectionId: detail.data.id, papers: memberPapers }}
+                    initialQuestion={search.get("question")}
+                  />
+                </aside>
+              </div>
+            </>
+          ) : null}
+          {paperId ? (
+            <>
+              <nav className="collection-reader-nav" aria-label="Collection reading navigation">
+                <Link to={`/collections/${collectionId}`}>Back to {detail.data?.name ?? "collection"}</Link>
+                <span>{index >= 0 && detail.data ? `${index + 1} / ${detail.data.papers.length}` : "..."}</span>
+                <div>
+                  {index > 0 ? <Link to={`/collections/${collectionId}/papers/${detail.data!.papers[index - 1].paper.id}`}>Previous</Link> : <span>Previous</span>}
+                  {detail.data && index >= 0 && index < detail.data.papers.length - 1 ? <Link to={`/collections/${collectionId}/papers/${detail.data!.papers[index + 1].paper.id}`}>Next</Link> : <span>Next</span>}
+                </div>
+              </nav>
+              <div className="collection-reader-view is-focus">
+                <PaperDetail
+                  paper={paper}
+                  tags={tags.data ?? []}
+                  search={search}
+                  pending={detail.isPending}
+                  error={detail.error}
+                  pdfView={pdfView}
+                  askOpen={askOpen}
+                  onView={changeView}
+                  onToggleAsk={toggleAsk}
+                  onReaderOnly={showReaderOnly}
+                  onTogglePdf={togglePdf}
+                  onOpenPdf={() => undefined}
+                  focused
+                  onExitFocus={() => void navigate(`/collections/${collectionId}/research`)}
+                  paperPath={base}
+                  collectionAskScope={{ kind: "collection", collectionId, papers: memberPapers }}
+                />
+              </div>
+            </>
+          ) : null}
+        </section>
       </div>
     );
-  }
-
-  const currentTab = search.get("tab");
-  const tab: WorkspaceTab = (WORKSPACE_TABS as readonly string[]).includes(currentTab ?? "")
-    ? (currentTab as WorkspaceTab)
-    : "papers";
-  const memberPapers =
-    detail.data?.papers.map((member) => ({ id: member.paper.id, title: member.paper.title })) ?? [];
-
-  function selectTab(option: WorkspaceTab) {
-    const next = new URLSearchParams(search);
-    if (option === "papers") next.delete("tab");
-    else next.set("tab", option);
-    setSearch(next);
   }
 
   return (
@@ -205,35 +281,13 @@ export function CollectionsPage() {
               <div>
                 <span className="paper-kicker">Ordered collection / {detail.data.paper_count} papers</span>
                 <h1 id="collection-heading">{detail.data.name}</h1>
+                {detail.data.description ? <p>{detail.data.description}</p> : null}
               </div>
-              <Link className="primary-button" to={`/?addToCollection=${detail.data.id}`}>Add papers</Link>
+              <div className="collection-header-actions">
+                <Link className="secondary-button" to={`/collections/${detail.data.id}/research`}>Open research desk</Link>
+                <Link className="primary-button" to={`/?addToCollection=${detail.data.id}`}>Add papers</Link>
+              </div>
             </header>
-            <div className="abstract-version-toggle collection-tabs" role="tablist" aria-label="Collection workspace">
-              {WORKSPACE_TABS.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === option}
-                  onClick={() => selectTab(option)}
-                >
-                  {option === "ask" ? "Ask" : option[0].toUpperCase() + option.slice(1)}
-                </button>
-              ))}
-            </div>
-            {tab === "synthesis" ? (
-              <SynthesisPanel key={detail.data.id} collectionId={detail.data.id} papers={memberPapers} />
-            ) : null}
-            {tab === "reports" ? (
-              <ReportsPanel key={detail.data.id} collectionId={detail.data.id} papers={memberPapers} />
-            ) : null}
-            {tab === "ask" ? (
-              <AskPanel
-                scope={{ kind: "collection", collectionId: detail.data.id, papers: memberPapers }}
-              />
-            ) : null}
-            {tab === "papers" ? (
-              <>
                 <form className="collection-editor" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
                   <label><span>Name</span><input value={name} onChange={(event) => setName(event.target.value)} /></label>
                   <label><span>Description</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Purpose, scope, or reading goal..." /></label>
@@ -247,10 +301,26 @@ export function CollectionsPage() {
                 <div className="collection-members">
                   <div className="collection-members-heading"><span>Order</span><span>Paper</span><span>Actions</span></div>
                   {detail.data.papers.map((member, index) => (
-                    <article className="collection-member" key={member.paper.id}>
+                    <article
+                      className="collection-member"
+                      key={member.paper.id}
+                      onDoubleClick={(event) => {
+                        if (event.target instanceof Element && event.target.closest("a, button")) return;
+                        void navigate(`/collections/${detail.data!.id}/papers/${member.paper.id}`);
+                      }}
+                    >
                       <span className="member-position">{String(index + 1).padStart(2, "0")}</span>
-                      <div><Link to={`/collections/${detail.data!.id}/papers/${member.paper.id}`}>{member.paper.title ?? member.paper.original_filename}</Link><p>{member.paper.authors.join(", ") || "Unknown authors"}</p></div>
+                      <div>
+                        <Link to={`/collections/${detail.data!.id}/papers/${member.paper.id}`}>{member.paper.title ?? member.paper.original_filename}</Link>
+                        <p>{member.paper.authors.join(", ") || "Unknown authors"}</p>
+                        <div className="member-artifacts">
+                          <span className={member.paper.artifacts.summary ? "is-ready" : ""}>Summary</span>
+                          <span className={member.paper.artifacts.outline ? "is-ready" : ""}>Outline</span>
+                          <span className={member.paper.artifacts.pdf ? "is-ready" : ""}>PDF</span>
+                        </div>
+                      </div>
                       <div className="member-actions">
+                        <Link className="member-open" to={`/collections/${detail.data!.id}/papers/${member.paper.id}`}>Open</Link>
                         <button aria-label={`Move ${member.paper.title} up`} type="button" disabled={index === 0 || reorder.isPending} onClick={() => move(index, -1)}>Up</button>
                         <button aria-label={`Move ${member.paper.title} down`} type="button" disabled={index === detail.data!.papers.length - 1 || reorder.isPending} onClick={() => move(index, 1)}>Down</button>
                         <button aria-label={`Remove ${member.paper.title}`} type="button" disabled={remove.isPending} onClick={() => remove.mutate(member.paper.id)}>Remove</button>
@@ -260,11 +330,53 @@ export function CollectionsPage() {
                   {detail.data.papers.length === 0 ? <div className="panel-message"><strong>This collection is empty.</strong><span>Add papers from the Library.</span></div> : null}
                   {reorder.error || remove.error ? <span className="form-status is-error">{(reorder.error ?? remove.error)?.message}</span> : null}
                 </div>
-              </>
-            ) : null}
           </>
         ) : null}
       </section>
     </div>
+  );
+}
+
+function CollectionResearchRail({
+  collection,
+  selectedPaperId,
+}: {
+  collection: Collection | undefined;
+  selectedPaperId: string | undefined;
+}) {
+  return (
+    <aside className="collection-paper-rail" aria-label="Collection papers">
+      <div className="collection-rail-header">
+        <Link to={collection ? `/collections/${collection.id}` : "/collections"}>Back to collection</Link>
+        <span>Research desk</span>
+        <h2>{collection?.name ?? "Opening collection..."}</h2>
+      </div>
+      {collection ? (
+        <nav className="collection-research-list">
+          <Link
+            className={selectedPaperId ? "" : "is-active"}
+            to={`/collections/${collection.id}/research`}
+            aria-current={selectedPaperId ? undefined : "page"}
+          >
+            <span className="member-position">00</span>
+            <div><strong>Collection intelligence</strong><small>Synthesis, documents, and questions</small></div>
+          </Link>
+          {collection.papers.map((member, index) => (
+            <Link
+              key={member.paper.id}
+              className={member.paper.id === selectedPaperId ? "is-active" : ""}
+              to={`/collections/${collection.id}/papers/${member.paper.id}`}
+              aria-current={member.paper.id === selectedPaperId ? "page" : undefined}
+            >
+              <span className="member-position">{String(index + 1).padStart(2, "0")}</span>
+              <div>
+                <strong>{member.paper.title ?? member.paper.original_filename}</strong>
+                <small>{member.paper.authors.join(", ") || `${member.paper.year ?? "Undated"} paper`}</small>
+              </div>
+            </Link>
+          ))}
+        </nav>
+      ) : null}
+    </aside>
   );
 }

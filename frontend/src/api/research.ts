@@ -24,6 +24,28 @@ export interface SynthesisTheme {
   citation_ids: string[];
 }
 
+export interface SynthesisPaperRole {
+  paper_id: string;
+  role: string;
+  contribution: string;
+  method: string | null;
+  citation_ids: string[];
+}
+
+export interface SynthesisInsight {
+  name: string;
+  description: string;
+  paper_ids: string[];
+  citation_ids: string[];
+}
+
+export interface SynthesisOpenQuestion {
+  question: string;
+  rationale: string;
+  paper_ids: string[];
+  citation_ids: string[];
+}
+
 export interface ComparisonCell {
   dimension: string;
   value: string;
@@ -42,9 +64,15 @@ export interface ComparisonMatrix {
 
 export interface CollectionSynthesis {
   schema_version: string;
-  overview: string;
+  executive_overview: string;
+  paper_roles: SynthesisPaperRole[];
   themes: SynthesisTheme[];
   comparison_matrix: ComparisonMatrix;
+  agreements: SynthesisInsight[];
+  disagreements: SynthesisInsight[];
+  complementary_contributions: SynthesisInsight[];
+  gaps: SynthesisInsight[];
+  open_questions: SynthesisOpenQuestion[];
   claims: AnswerClaim[];
   citations: Citation[];
   coverage: SynthesisCoverage;

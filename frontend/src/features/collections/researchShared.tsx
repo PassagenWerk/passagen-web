@@ -7,6 +7,7 @@ import { citationLabel } from "../ask/citations";
 export interface PaperRef {
   id: string;
   title: string | null;
+  summaryReady?: boolean;
 }
 
 /** Stale/partial/disposition badges shared by synthesis and report views. */

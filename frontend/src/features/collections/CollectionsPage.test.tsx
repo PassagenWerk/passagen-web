@@ -50,20 +50,22 @@ function response(body: unknown, status = 200): Promise<Response> {
   );
 }
 
-function renderPage() {
+function renderPage(path = "/collections/col-1") {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={["/collections/col-1"]}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/collections/:collectionId" element={<CollectionsPage />} />
+          <Route path="/collections/:collectionId/research" element={<CollectionsPage />} />
+          <Route path="/collections/:collectionId/papers/:paperId" element={<CollectionsPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
-describe("CollectionsPage workspace tabs", () => {
+describe("CollectionsPage research desk", () => {
   beforeEach(() => {
     vi.stubGlobal(
       "fetch",
@@ -84,24 +86,29 @@ describe("CollectionsPage workspace tabs", () => {
 
   afterEach(() => cleanup());
 
-  test("keeps Papers as the default tab and switches workspace tabs", async () => {
+  test("keeps collection management separate from the research desk", async () => {
     renderPage();
 
     expect(await screen.findByText("Fast Scheduler")).toBeTruthy();
-    const tablist = screen.getByRole("tablist", { name: "Collection workspace" });
-    expect(tablist).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Papers" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.queryByRole("tablist", { name: "Collection workspace" })).toBeNull();
+    fireEvent.click(screen.getByRole("link", { name: "Open research desk" }));
 
-    fireEvent.click(screen.getByRole("tab", { name: "Synthesis" }));
-    expect(await screen.findByText("No synthesis yet.")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("tab", { name: "Reports" }));
-    expect(await screen.findByText("No reports yet.")).toBeTruthy();
-
-    fireEvent.click(screen.getByRole("tab", { name: "Ask" }));
+    expect(await screen.findByRole("heading", { name: "Research desk" })).toBeTruthy();
+    expect(screen.getByRole("navigation").textContent).toContain("Collection intelligence");
+    expect(await screen.findByText("No collection intelligence yet.")).toBeTruthy();
+    expect(screen.getByText("No research documents yet.")).toBeTruthy();
     expect(await screen.findByText(/Ask across the collection/)).toBeTruthy();
+  });
 
-    fireEvent.click(screen.getByRole("tab", { name: "Papers" }));
-    expect(await screen.findByText("Better Compiler")).toBeTruthy();
+  test("opens a paper in a two-column collection reader", async () => {
+    renderPage();
+
+    const title = await screen.findByRole("link", { name: "Fast Scheduler" });
+    fireEvent.doubleClick(title.closest("article")!);
+
+    expect(await screen.findByRole("heading", { name: "Fast Scheduler", level: 1 })).toBeTruthy();
+    expect(screen.getByRole("complementary", { name: "Collection papers" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /Better Compiler/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Back to Systems reading list" })).toBeTruthy();
   });
 });

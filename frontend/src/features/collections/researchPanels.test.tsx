@@ -25,8 +25,17 @@ const citation = {
 
 const synthesisResult = {
   synthesis: {
-    schema_version: "1",
-    overview: "The collection studies systems.",
+    schema_version: "2",
+    executive_overview: "The collection studies systems.",
+    paper_roles: [
+      {
+        paper_id: "paper-a",
+        role: "Systems evidence",
+        contribution: "Contributes the scheduler design.",
+        method: "Prototype evaluation",
+        citation_ids: ["c-1"],
+      },
+    ],
     themes: [
       {
         name: "Systems",
@@ -36,6 +45,18 @@ const synthesisResult = {
       },
     ],
     comparison_matrix: { dimensions: [], rows: [] },
+    agreements: [],
+    disagreements: [],
+    complementary_contributions: [],
+    gaps: [],
+    open_questions: [
+      {
+        question: "How do the systems compare?",
+        rationale: "A shared workload would clarify the difference.",
+        paper_ids: ["paper-a"],
+        citation_ids: ["c-1"],
+      },
+    ],
     claims: [{ text: "The collection covers systems.", citation_ids: ["c-1"] }],
     citations: [citation],
     coverage: {
@@ -155,7 +176,7 @@ describe("SynthesisPanel", () => {
     expect(await screen.findByText("The collection studies systems.")).toBeTruthy();
     expect(screen.getByText("Stale")).toBeTruthy();
     expect(screen.getByText("Partial (2/3 papers)")).toBeTruthy();
-    expect(screen.getByText("Generated · direct")).toBeTruthy();
+    expect(screen.getByText("Current")).toBeTruthy();
     const link = screen.getByText(/Fast Scheduler · Summary p\.5/);
     expect(link.getAttribute("href")).toBe("/collections/col-1/papers/paper-a/pdf?page=5");
   });
@@ -163,7 +184,7 @@ describe("SynthesisPanel", () => {
   test("submits regeneration and polls the queued run", async () => {
     renderPanel(<SynthesisPanel collectionId="col-1" papers={papers} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Regenerate synthesis" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Refresh intelligence" }));
 
     await waitFor(() => {
       const fetchMock = fetch as unknown as ReturnType<typeof vi.fn>;
@@ -207,8 +228,22 @@ describe("SynthesisPanel empty state", () => {
   test("offers generation when no synthesis exists", async () => {
     renderPanel(<SynthesisPanel collectionId="col-1" papers={papers} />);
 
-    expect(await screen.findByText("No synthesis yet.")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Generate synthesis" })).toBeTruthy();
+    expect(await screen.findByText("No collection intelligence yet.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Generate intelligence" })).toBeTruthy();
+  });
+
+  test("requires an explicit partial-coverage choice when summaries are missing", async () => {
+    renderPanel(
+      <SynthesisPanel
+        collectionId="col-1"
+        papers={papers.map((paper, index) => ({ ...paper, summaryReady: index !== 2 }))}
+      />,
+    );
+
+    const generate = await screen.findByRole("button", { name: "Generate intelligence" });
+    expect(generate).toBeDisabled();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Continue with 2 of 3 papers" }));
+    expect(generate).not.toBeDisabled();
   });
 });
 
@@ -247,12 +282,12 @@ describe("ReportsPanel", () => {
   test("requires a prompt for custom reports and submits the selected kind", async () => {
     renderPanel(<ReportsPanel collectionId="col-1" papers={papers} />);
 
-    const submit = await screen.findByRole("button", { name: "Generate report" });
-    fireEvent.click(screen.getByRole("button", { name: "Custom" }));
-    expect(screen.getByLabelText("Custom report prompt")).toBeTruthy();
+    const submit = await screen.findByRole("button", { name: "Create document" });
+    fireEvent.click(screen.getByRole("radio", { name: /Custom/ }));
+    expect(screen.getByLabelText("Custom document brief")).toBeTruthy();
     expect(submit).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText("Custom report prompt"), {
+    fireEvent.change(screen.getByLabelText("Custom document brief"), {
       target: { value: "Compare evaluation setups" },
     });
     fireEvent.click(submit);

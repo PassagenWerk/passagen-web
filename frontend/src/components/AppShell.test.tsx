@@ -683,4 +683,7 @@ test("manages ordered collection members and opens collection-context reading", 
     "href",
     "/collections/collection-1/papers/paper-2",
   );
+  fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+  fireEvent.click(screen.getByRole("button", { name: "Whole collection" }));
+  expect(screen.getByRole("region", { name: "Ask about this collection" })).toBeInTheDocument();
 });

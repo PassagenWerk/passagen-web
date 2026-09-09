@@ -18,6 +18,13 @@ const KIND_LABELS: Record<ReportKind, string> = {
   custom: "Custom",
 };
 
+const KIND_DESCRIPTIONS: Record<ReportKind, string> = {
+  review: "Connect the questions, methods, and contributions into a coherent literature review.",
+  comparison: "Compare methods, datasets, evaluation designs, and reported results.",
+  gaps: "Surface limitations, tensions, missing evidence, and useful next directions.",
+  custom: "Write a source-grounded document from your own research brief.",
+};
+
 export function ReportsPanel({
   collectionId,
   papers,
@@ -75,6 +82,7 @@ export function ReportsPanel({
   });
 
   const items = reports.data?.items ?? [];
+  const missingSummaryCount = papers.filter((paper) => paper.summaryReady === false).length;
   const active = items.find((item) => ["queued", "running"].includes(item.record.status));
 
   useEffect(() => {
@@ -91,40 +99,45 @@ export function ReportsPanel({
         }}
       >
         <div className="research-actions">
-          <div className="abstract-version-toggle" role="group" aria-label="Report kind">
+          <div className="research-document-kinds" role="radiogroup" aria-label="Document type">
             {(Object.keys(KIND_LABELS) as ReportKind[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={kind === option}
-                onClick={() => setKind(option)}
-              >
-                {KIND_LABELS[option]}
-              </button>
+              <label key={option} className={kind === option ? "is-selected" : ""}>
+                <input
+                  type="radio"
+                  name="report-kind"
+                  value={option}
+                  checked={kind === option}
+                  onChange={() => setKind(option)}
+                />
+                <strong>{KIND_LABELS[option]}</strong>
+                <span>{KIND_DESCRIPTIONS[option]}</span>
+              </label>
             ))}
           </div>
-          <label className="research-option">
-            <input
-              type="checkbox"
-              checked={allowPartial}
-              onChange={(event) => setAllowPartial(event.target.checked)}
-            />
-            Allow partial coverage
-          </label>
+          {missingSummaryCount > 0 ? (
+            <label className="research-option">
+              <input
+                type="checkbox"
+                checked={allowPartial}
+                onChange={(event) => setAllowPartial(event.target.checked)}
+              />
+              Continue with {papers.length - missingSummaryCount} of {papers.length} papers
+            </label>
+          ) : null}
           <button
             type="submit"
             className="primary-button"
-            disabled={generate.isPending || (kind === "custom" && !prompt.trim())}
+            disabled={generate.isPending || papers.length === 0 || (missingSummaryCount > 0 && !allowPartial) || (kind === "custom" && !prompt.trim())}
           >
-            {generate.isPending ? "Submitting..." : "Generate report"}
+            {generate.isPending ? "Creating..." : "Create document"}
           </button>
         </div>
         {kind === "custom" ? (
           <textarea
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
-            placeholder="Describe the research task for this collection..."
-            aria-label="Custom report prompt"
+            placeholder="Describe the question, audience, and emphasis for this research document..."
+            aria-label="Custom document brief"
             rows={2}
           />
         ) : null}
@@ -140,12 +153,12 @@ export function ReportsPanel({
       ) : null}
 
       <div className="research-reports">
-        <div className="research-report-list" aria-label="Report history">
+        <div className="research-report-list" aria-label="Research document history">
           {reports.isPending ? <div className="panel-message">Loading reports...</div> : null}
           {items.length === 0 && !reports.isPending ? (
             <div className="panel-message">
-              <strong>No reports yet.</strong>
-              <span>Generate a review, comparison, gaps, or custom report.</span>
+              <strong>No research documents yet.</strong>
+              <span>Choose a document type above to create a durable research output.</span>
             </div>
           ) : null}
           {items.map((item) => (
