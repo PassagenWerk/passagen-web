@@ -19,5 +19,9 @@ frontend/vitest.config.js
 frontend/vitest.config.d.ts
 frontend/playwright-report/
 frontend/test-results/
+data/
+.env
+.env.*
+!.env.example
 src/passagen_web/static/*
 *.py[cod]

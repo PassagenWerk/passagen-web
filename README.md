@@ -97,6 +97,17 @@ uv run passagen-web serve --data-dir /path/to/library
 默认使用 DeepSeek `deepseek-flash-v4`。完整 DeepSeek、GROBID、Crossref、arXiv 和 pipeline 配置
 见 Passagen Core 仓库的 docs/user/configuration.md（[Passagen Core](https://github.com/PassagenWerk/passagen-core)）。
 
+## Docker
+
+Passagen Web 可以构建为只暴露 8765 端口并挂载 `/data` 的单容器服务。构建、`.env`、
+局域网 origin、目录权限和更新步骤见 [Docker 部署](docs/user/docker.md)。
+
+```bash
+cp .env.example .env
+docker compose build
+docker compose up -d
+```
+
 ## 故障排查
 
 ### 页面显示 Library unavailable
