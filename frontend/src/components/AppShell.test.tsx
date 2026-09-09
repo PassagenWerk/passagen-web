@@ -636,7 +636,13 @@ test("browses all, collection, and unfiled papers from the Library", async () =>
 test("selects filtered Library papers and adds them to a collection", async () => {
   renderApp("/?addToCollection=collection-1");
 
-  fireEvent.click(await screen.findByRole("checkbox", { name: "Select A Useful Paper" }));
+  const checkbox = await screen.findByRole("checkbox", { name: "Select A Useful Paper" });
+  fireEvent.click(screen.getByRole("link", { name: /A Useful Paper/ }));
+
+  expect(await screen.findByRole("heading", { name: "A Useful Paper", level: 1 })).toBeInTheDocument();
+  expect(checkbox).not.toBeChecked();
+
+  fireEvent.click(checkbox);
   fireEvent.click(screen.getByRole("button", { name: "Add selected papers" }));
 
   await waitFor(() => {

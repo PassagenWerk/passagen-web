@@ -128,15 +128,29 @@ export function PaperList({
             <span className="paper-arrow" aria-hidden="true">↗</span>
           </>;
           return selectionMode ? (
-            <label key={paper.id} className={`paper-row selection-row ${selectedIds.has(paper.id) ? "is-checked" : ""}`}>
+            <div
+              key={paper.id}
+              className={`paper-row selection-row ${paper.id === selectedId ? "is-selected" : ""} ${selectedIds.has(paper.id) ? "is-checked" : ""}`}
+            >
               <input
                 type="checkbox"
                 aria-label={`Select ${paper.title ?? paper.original_filename}`}
                 checked={selectedIds.has(paper.id)}
                 onChange={() => onToggleSelection(paper.id)}
               />
-              {content}
-            </label>
+              <Link
+                to={{ pathname: `/papers/${paper.id}`, search }}
+                className="selection-paper-link"
+                aria-current={paper.id === selectedId ? "page" : undefined}
+                title="Open paper details"
+                onDoubleClick={(event) => {
+                  event.preventDefault();
+                  onFocusPaper(paper.id);
+                }}
+              >
+                {content}
+              </Link>
+            </div>
           ) : (
             <Link
               key={paper.id}
