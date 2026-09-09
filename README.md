@@ -15,8 +15,8 @@ README 中的仓库链接指向 GitHub；在 GitLab 或 Gitea 镜像中，对应
 - 编辑受保护的用户元数据，管理标签和有序集合。
 - 对单篇论文或整个 collection 进行持久化对话问答，回答带可验证 citation 并导航到对应
   论文/PDF 页。
-- Collection workspace：Synthesis（跨论文综述，含 stale/partial 状态与轮询生成）、Reports
-  （review/comparison/gaps/custom，含历史与详情）和 Ask 三个标签页。
+- Collection Research Desk：跨论文 synthesis、可持久化的 Research Documents、collection Ask、
+  可折叠 paper rail，以及适合长内容的全宽 reading/focus mode。
 - 在桌面和移动浏览器中使用 Light/Dark Mode。
 
 ## 环境要求
@@ -96,6 +96,8 @@ uv run passagen-web serve --data-dir /path/to/library
 
 默认使用 DeepSeek `deepseek-flash-v4`。完整 DeepSeek、GROBID、Crossref、arXiv 和 pipeline 配置
 见 Passagen Core 仓库的 docs/user/configuration.md（[Passagen Core](https://github.com/PassagenWerk/passagen-core)）。
+Passagen 同时支持 DeepSeek API 和 OpenAI Responses API 兼容端点，并可通过 task route 混合
+使用不同 provider/profile；只需为实际启用的 provider 注入对应环境变量。
 
 ## Docker
 
@@ -104,8 +106,17 @@ Passagen Web 可以构建为只暴露 8765 端口并挂载 `/data` 的单容器�
 
 ```bash
 cp .env.example .env
+# 编辑 .env，至少设置 PASSAGEN_API_KEY 和 PASSAGEN_DATA_DIR
 docker compose build
 docker compose up -d
+```
+
+默认仅监听 `127.0.0.1:8765`。局域网使用时，在 `.env` 中设置：
+
+```dotenv
+PASSAGEN_BIND=0.0.0.0
+PASSAGEN_ALLOWED_ORIGIN=http://192.168.1.110:8765
+PASSAGEN_DATA_DIR=/absolute/path/to/library
 ```
 
 ## 故障排查

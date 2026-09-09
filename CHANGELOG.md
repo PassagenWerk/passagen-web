@@ -5,7 +5,9 @@ All notable changes to Passagen Web are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.7.0] - 2026-09-10
+
+Requires `passagen-core` `0.7.x` and Passagen Schema version 10.
 
 ### Added
 
@@ -13,6 +15,17 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   compiled frontend and Python runtime, exposes only port 8765, mounts the initialized library at
   `/data`, and receives the LLM key, bind address, browser origin, and volume ownership through
   local environment configuration.
+- Added URL-driven full-width focus modes for Collection Ask and Research Document reading, with
+  responsive document selection and directional transitions between research layers.
+- Added deletion for completed and failed Research Documents, including confirmation, automatic
+  selection of the next document, and cleanup through the Core service.
+
+### Changed
+
+- Reworked Collections into a dedicated Research Desk with full-width synthesis and document
+  workspaces, a collapsible paper rail, and focused long-form reading layouts on desktop/mobile.
+- Research Document titles are now generated from document content instead of remaining fixed to
+  the report kind and collection name.
 
 ## [0.6.0] - 2026-09-09
 
