@@ -94,9 +94,18 @@ export function CollectionsPage() {
       summaryReady: member.paper.artifacts.summary,
     })) ?? [];
   const researchHome = Boolean(collectionId && location.pathname.endsWith("/research"));
+  const askFocused = researchHome && search.get("view") === "ask";
   function askCollection(question: string) {
     const next = new URLSearchParams(search);
     next.set("question", question);
+    next.set("view", "ask");
+    setSearch(next);
+  }
+
+  function setAskFocused(focused: boolean) {
+    const next = new URLSearchParams(search);
+    if (focused) next.set("view", "ask");
+    else next.delete("view");
     setSearch(next);
   }
 
@@ -155,7 +164,7 @@ export function CollectionsPage() {
       void navigate({ pathname: pdfView ? base : `${base}/pdf`, search: next.toString() });
     }
     return (
-      <div className="collection-research-desk">
+      <div className={`collection-research-desk ${askFocused ? "is-ask-focus" : ""}`}>
         <CollectionResearchRail collection={detail.data} selectedPaperId={paperId} />
         <section className="collection-research-canvas" aria-label="Collection research canvas">
           {detail.isPending ? <div className="panel-message">Opening research desk...</div> : null}
@@ -170,8 +179,8 @@ export function CollectionsPage() {
                 </div>
                 <Link className="primary-button" to={`/collections/${collectionId}`}>Manage collection</Link>
               </header>
-              <div className="collection-intelligence-layout">
-                <main className="collection-intelligence-main">
+              <div className={`collection-intelligence-layout ${askFocused ? "is-ask-focus" : ""}`}>
+                {!askFocused ? <main className="collection-intelligence-main">
                   <section className="intelligence-section" aria-labelledby="synthesis-heading">
                     <div className="intelligence-heading">
                       <span>01 / Shared understanding</span>
@@ -193,10 +202,17 @@ export function CollectionsPage() {
                     </div>
                     <ReportsPanel key={detail.data.id} collectionId={detail.data.id} papers={memberPapers} />
                   </section>
-                </main>
+                </main> : null}
                 <aside className="collection-research-assistant" aria-label="Collection assistant">
                   <div className="companion-heading">
                     <div><span>Whole collection</span><strong>Ask</strong></div>
+                    <button
+                      type="button"
+                      onClick={() => setAskFocused(!askFocused)}
+                      aria-label={askFocused ? "Back to collection intelligence" : "Expand collection Ask"}
+                    >
+                      {askFocused ? "Back to intelligence" : "Expand"}
+                    </button>
                   </div>
                   <AskPanel
                     scope={{ kind: "collection", collectionId: detail.data.id, papers: memberPapers }}

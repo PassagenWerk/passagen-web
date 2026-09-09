@@ -100,6 +100,19 @@ describe("CollectionsPage research desk", () => {
     expect(await screen.findByText(/Ask across the collection/)).toBeTruthy();
   });
 
+  test("expands Ask into the research canvas and returns to intelligence", async () => {
+    renderPage("/collections/col-1/research");
+
+    expect(await screen.findByRole("heading", { name: "Collection intelligence" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Expand collection Ask" }));
+
+    expect(screen.queryByRole("heading", { name: "Collection intelligence" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Back to collection intelligence" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Back to collection intelligence" }));
+
+    expect(await screen.findByRole("heading", { name: "Collection intelligence" })).toBeTruthy();
+  });
+
   test("opens a paper in a two-column collection reader", async () => {
     renderPage();
 
