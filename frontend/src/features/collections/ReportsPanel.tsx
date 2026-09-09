@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 import {
@@ -77,6 +77,10 @@ export function ReportsPanel({
   const items = reports.data?.items ?? [];
   const active = items.find((item) => ["queued", "running"].includes(item.record.status));
 
+  useEffect(() => {
+    if (selectedId === null && items.length > 0) setSelectedId(items[0].record.id);
+  }, [items, selectedId]);
+
   return (
     <section className="research-panel" aria-label="Collection reports">
       <form
@@ -128,12 +132,16 @@ export function ReportsPanel({
       {generate.error ? (
         <span className="form-status is-error">{generate.error.message}</span>
       ) : null}
+      {reports.error ? (
+        <div className="panel-message is-error">{reports.error.message}</div>
+      ) : null}
       {active ? (
         <RunStateLine status={active.record.status} error={active.record.error} />
       ) : null}
 
       <div className="research-reports">
         <div className="research-report-list" aria-label="Report history">
+          {reports.isPending ? <div className="panel-message">Loading reports...</div> : null}
           {items.length === 0 && !reports.isPending ? (
             <div className="panel-message">
               <strong>No reports yet.</strong>
@@ -162,7 +170,13 @@ export function ReportsPanel({
             </button>
           ))}
         </div>
-        <ReportDetail view={detail.data ?? null} collectionId={collectionId} papers={papers} />
+        <div>
+          {detail.isPending ? <div className="panel-message">Opening report...</div> : null}
+          {detail.error ? (
+            <div className="panel-message is-error">{detail.error.message}</div>
+          ) : null}
+          <ReportDetail view={detail.data ?? null} collectionId={collectionId} papers={papers} />
+        </div>
       </div>
     </section>
   );

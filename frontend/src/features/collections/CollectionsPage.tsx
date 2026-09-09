@@ -222,10 +222,10 @@ export function CollectionsPage() {
               ))}
             </div>
             {tab === "synthesis" ? (
-              <SynthesisPanel collectionId={detail.data.id} papers={memberPapers} />
+              <SynthesisPanel key={detail.data.id} collectionId={detail.data.id} papers={memberPapers} />
             ) : null}
             {tab === "reports" ? (
-              <ReportsPanel collectionId={detail.data.id} papers={memberPapers} />
+              <ReportsPanel key={detail.data.id} collectionId={detail.data.id} papers={memberPapers} />
             ) : null}
             {tab === "ask" ? (
               <AskPanel

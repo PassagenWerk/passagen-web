@@ -239,9 +239,6 @@ describe("ReportsPanel", () => {
 
     expect(await screen.findByText("Literature review: Systems reading list")).toBeTruthy();
     expect(screen.getAllByText("Queued...").length).toBeGreaterThan(0);
-
-    fireEvent.click(screen.getByText("Literature review: Systems reading list"));
-
     expect(await screen.findByText("The papers study systems [c-1].")).toBeTruthy();
     const link = screen.getByText(/Fast Scheduler · Summary p\.5/);
     expect(link.getAttribute("href")).toBe("/collections/col-1/papers/paper-a/pdf?page=5");
