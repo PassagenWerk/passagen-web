@@ -5,6 +5,21 @@ All notable changes to Passagen Web are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-09-10
+
+Requires `passagen-core` `0.7.x` and Passagen Schema version 10.
+
+### Added
+
+- Added Docker Hub release publishing for amd64 and arm64 images, plus a pull-based Compose stack
+  that starts a pinned GROBID service and configures Passagen to reach it over the Compose network.
+- Added `docker-compose.build.yaml` for developers who need to build Web with adjacent Core and CLI
+  checkouts locally.
+- Included Passagen CLI in the runtime image and added idempotent database initialization so a new
+  Compose volume is ready on first startup while existing libraries remain intact.
+- Reorganized the README around Docker-first and source-based quick starts, separated shared and
+  runtime-specific configuration, and moved build/release instructions into development docs.
+
 ## [0.7.0] - 2026-09-10
 
 Requires `passagen-core` `0.7.x` and Passagen Schema version 10.

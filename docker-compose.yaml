@@ -2,21 +2,30 @@ name: passagen-web
 
 services:
   passagen-web:
-    image: passagen-web:local
-    build:
-      context: .
-      dockerfile: Dockerfile
-      additional_contexts:
-        passagen-core: ../passagen-core
+    image: ${PASSAGEN_IMAGE:-docker.io/sycstudio/passagen:latest}
     container_name: passagen-web
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"
     environment:
       PASSAGEN_API_KEY: ${PASSAGEN_API_KEY:?Set PASSAGEN_API_KEY in passagen-web/.env}
+      PASSAGEN_PROVIDERS__GROBID__BASE_URL: http://grobid:8070
     command:
       - --allow-origin
       - ${PASSAGEN_ALLOWED_ORIGIN:-http://127.0.0.1:8765}
     ports:
       - "${PASSAGEN_BIND:-127.0.0.1}:8765:8765"
     volumes:
-      - ${PASSAGEN_DATA_DIR:-./data}:/data
+      - ${PASSAGEN_DATA_DIR:-passagen-data}:/data
+    depends_on:
+      - grobid
+
+  grobid:
+    image: ${GROBID_IMAGE:-docker.io/lfoppiano/grobid:0.9.1-crf}
+    container_name: passagen-grobid
+    restart: unless-stopped
+    init: true
+    expose:
+      - "8070"
+
+volumes:
+  passagen-data:

@@ -19,105 +19,116 @@ README 中的仓库链接指向 GitHub；在 GitLab 或 Gitea 镜像中，对应
   可折叠 paper rail，以及适合长内容的全宽 reading/focus mode。
 - 在桌面和移动浏览器中使用 Light/Dark Mode。
 
-## 环境要求
+## Quick Start
 
-- Python 3.12+
-- [uv](https://docs.astral.sh/uv/)
-- 已通过 Passagen CLI 初始化的 data directory
-- 从源码修改前端时需要 Node.js `>=24 <25` 和 npm `>=11 <12`
+### Docker（推荐）
 
-## 安装
-
-源码环境使用相邻的 Core checkout：
-
-以下 URL 可替换为你使用的 GitHub、GitLab 或 Gitea 镜像地址：
+需要 Docker Engine、Docker Compose 和至少 4 GB 可用内存。Compose 会拉取 Passagen Web，
+同时启动 GROBID；Web 镜像已经包含 Passagen CLI。
 
 ```bash
-git clone https://github.com/PassagenWerk/passagen-core.git
-git clone https://github.com/PassagenWerk/passagen-web.git
-cd passagen-web
-uv sync --frozen
-```
-
-如需创建和初始化论文库，请安装
-[Passagen CLI](https://github.com/PassagenWerk/passagen-cli)，然后运行：
-
-```bash
-cd ../passagen-cli
-uv sync --frozen
-uv run passagen --data-dir /path/to/library db init
-```
-
-## 启动
-
-仅本机访问：
-
-```bash
-uv run passagen-web serve --data-dir /path/to/library
-```
-
-默认监听 `127.0.0.1:8765` 并打开浏览器。
-
-局域网或反向代理场景：
-
-```bash
-uv run passagen-web serve \
-  --data-dir ../passagen-cli/data \
-  --host 192.168.1.110 \
-  --port 8765 \
-  --no-open \
-  --allow-origin http://you-domain-or-ip:8765
-```
-
-| 参数 | 说明 |
-|---|---|
-| `--data-dir PATH` | 必填，包含 `passagen.db` 和 managed artifacts 的目录。 |
-| `--config PATH` | 显式配置文件；默认使用 `<data-dir>/passagen.yaml`。 |
-| `--host ADDRESS` | 监听地址；默认 `127.0.0.1`。 |
-| `--port PORT` | 监听端口；默认 `8765`。 |
-| `--no-open` | 启动后不自动打开本机浏览器。 |
-| `--allow-origin URL` | 允许额外 browser origin 执行写请求；可重复指定。 |
-
-`--allow-origin` 必须填写浏览器地址栏页面的完整 origin，即 protocol、host 和 port，不能填写
-客户端设备 IP。浏览器直接打开服务自身地址时无需额外设置；通过反向代理、域名或 Vite 访问
-时才需要添加对应 origin。
-
-同一个 data directory 同时只能由一个 Passagen Web 进程持有。修改配置、API key 或后端代码
-后必须重启服务；重新构建前端后刷新浏览器。
-
-## 配置
-
-Web 与 CLI 读取同一个 `<data-dir>/passagen.yaml`，并从配置指定的环境变量读取 LLM API key：
-
-```bash
-export PASSAGEN_API_KEY=your-deepseek-api-key
-uv run passagen-web serve --data-dir /path/to/library
-```
-
-默认使用 DeepSeek `deepseek-flash-v4`。完整 DeepSeek、GROBID、Crossref、arXiv 和 pipeline 配置
-见 Passagen Core 仓库的 docs/user/configuration.md（[Passagen Core](https://github.com/PassagenWerk/passagen-core)）。
-Passagen 同时支持 DeepSeek API 和 OpenAI Responses API 兼容端点，并可通过 task route 混合
-使用不同 provider/profile；只需为实际启用的 provider 注入对应环境变量。
-
-## Docker
-
-Passagen Web 可以构建为只暴露 8765 端口并挂载 `/data` 的单容器服务。构建、`.env`、
-局域网 origin、目录权限和更新步骤见 [Docker 部署](docs/user/docker.md)。
-
-```bash
-cp .env.example .env
-# 编辑 .env，至少设置 PASSAGEN_API_KEY 和 PASSAGEN_DATA_DIR
-docker compose build
+mkdir passagen
+cd passagen
+curl -fsSLO https://raw.githubusercontent.com/PassagenWerk/passagen-web/main/docker-compose.yaml
+curl -fsSL https://raw.githubusercontent.com/PassagenWerk/passagen-web/main/.env.example -o .env
+# 在 .env 中填写 PASSAGEN_API_KEY以及进行其它配置（见下面 configuration 章节）
+docker compose pull
 docker compose up -d
 ```
 
-默认仅监听 `127.0.0.1:8765`。局域网使用时，在 `.env` 中设置：
+浏览器打开 <http://127.0.0.1:8765>。默认 `passagen-data` volume 会自动创建，首次启动自动
+初始化数据库，后续启动直接使用并按需迁移原有数据库。挂载已有论文库、使用容器内 CLI、
+局域网访问、更新和回滚见 [Docker 部署](docs/user/docker.md)。
+
+### 从源码启动
+
+需要 Python 3.12、[uv](https://docs.astral.sh/uv/)、Node.js `>=24 <25` 和 npm `>=11 <12`。
+源码 checkout 使用相邻的 Core；CLI 用于初始化和维护同一个论文库。以下 URL 可替换为 GitLab
+或 Gitea 上同组的镜像地址。
+
+```bash
+git clone https://github.com/PassagenWerk/passagen-core.git
+git clone https://github.com/PassagenWerk/passagen-cli.git
+git clone https://github.com/PassagenWerk/passagen-web.git
+
+cd passagen-cli
+uv sync --frozen
+uv run passagen --data-dir ./data db init
+
+cd ../passagen-web
+uv sync --frozen
+npm ci --prefix frontend
+npm --prefix frontend run build
+export PASSAGEN_API_KEY=your-deepseek-api-key
+uv run passagen-web serve --data-dir ../passagen-cli/data
+```
+
+默认监听 `127.0.0.1:8765` 并打开浏览器。GROBID 需要单独运行；也可以在共享配置中将 parser
+设为 `pymupdf`。贡献代码、运行检查和构建产物见[开发构建指南](docs/development/building.md)。
+
+## Configuration
+
+### 共通配置
+
+Docker 和源码运行都读取 data directory 中的 `passagen.yaml`，并使用同一套 Core 配置格式。
+没有该文件时使用默认值。默认 LLM 是 DeepSeek `deepseek-flash-v4`，API key 从配置中
+`providers.llm.default.api_key_env` 指定的环境变量读取，默认变量名是 `PASSAGEN_API_KEY`；
+不要将 key 写入 YAML。
+
+完整 DeepSeek、OpenAI-compatible provider、GROBID、Crossref、arXiv、pipeline 和 task route
+配置见 Passagen Core 仓库的
+[configuration.md](https://github.com/PassagenWerk/passagen-core/blob/main/docs/user/configuration.md)。
+
+无论采用哪种运行方式：
+
+- 同一个 data directory 同时只能由一个 Passagen Web 实例持有。
+- 修改 `passagen.yaml` 或 API key 后需要重启 Web。
+- 额外允许的 browser origin 必须是地址栏中的完整 protocol、host 和 port，不能填写客户端 IP。
+
+### Docker 配置
+
+Compose 从 `.env` 读取部署参数：
+
+| 变量 | 说明 |
+|---|---|
+| `PASSAGEN_API_KEY` | 默认 LLM provider 使用的 secret，必填。 |
+| `PASSAGEN_IMAGE` | Web 镜像版本；生产部署建议固定版本标签。 |
+| `GROBID_IMAGE` | GROBID 镜像版本。 |
+| `PASSAGEN_DATA_DIR` | 默认 `passagen-data` named volume，也可设为已有论文库的绝对路径。 |
+| `PASSAGEN_BIND` | 宿主机监听地址；默认 `127.0.0.1`。 |
+| `PASSAGEN_ALLOWED_ORIGIN` | 浏览器访问服务时使用的完整 origin。 |
+| `PUID` / `PGID` | Web 读写 bind-mounted data directory 时使用的 UID/GID。 |
+
+Compose 自动将 GROBID URL 覆盖为 `http://grobid:8070`，无需修改 `passagen.yaml`。局域网示例：
 
 ```dotenv
 PASSAGEN_BIND=0.0.0.0
 PASSAGEN_ALLOWED_ORIGIN=http://192.168.1.110:8765
 PASSAGEN_DATA_DIR=/absolute/path/to/library
 ```
+
+### 源码运行配置
+
+源码运行时在启动 Web 的 shell 中导出 API key，并通过命令行选择 data directory 和网络参数：
+
+```bash
+export PASSAGEN_API_KEY=your-deepseek-api-key
+uv run passagen-web serve \
+  --data-dir /path/to/library \
+  --host 192.168.1.110 \
+  --port 8765 \
+  --no-open \
+  --allow-origin http://192.168.1.110:8765
+```
+
+| 参数 | 说明 |
+|---|---|
+| `--data-dir PATH` | 必填，包含数据库和 managed artifacts 的目录。 |
+| `--config PATH` | 显式配置文件；默认使用 `<data-dir>/passagen.yaml`。 |
+| `--host ADDRESS` | 监听地址；默认 `127.0.0.1`。 |
+| `--port PORT` | 监听端口；默认 `8765`。 |
+| `--no-open` | 启动后不自动打开本机浏览器。 |
+| `--allow-origin URL` | 允许额外 browser origin 执行写请求；可重复指定。 |
 
 ## 故障排查
 
@@ -150,7 +161,9 @@ PASSAGEN_DATA_DIR=/absolute/path/to/library
 
 ## 文档
 
+- [Docker 部署](docs/user/docker.md)
 - [Web 运行、备份与恢复](docs/user/operations.md)
+- [开发与构建](docs/development/building.md)
 - [Web 架构](docs/development/architecture.md)
 - [Passagen Core](https://github.com/PassagenWerk/passagen-core) 的 docs/user/configuration.md
 - [Roadmap](docs/roadmap/README.md)

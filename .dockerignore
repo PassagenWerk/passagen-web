@@ -9,6 +9,7 @@ htmlcov
 reports
 dist
 data
+_build
 .env
 .env.*
 !.env.example

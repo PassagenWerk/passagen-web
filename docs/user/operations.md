@@ -41,14 +41,9 @@ passagen-web serve \
 Web 与 CLI 使用同一个 YAML。完整字段见
 Passagen Core 仓库的 docs/user/configuration.md。
 
-服务只读取启动时继承的环境变量和加载的 Python 代码。修改 API key、配置或后端代码后必须
-重启。修改前端源码后先构建：
-
-```bash
-npm --prefix frontend run build
-```
-
-然后刷新浏览器；仍显示旧资源时执行 hard refresh。
+服务只读取启动时继承的环境变量。修改 API key 或配置后必须重启。源码开发和前端构建见
+[开发构建指南](../development/building.md)；部署新前端后刷新浏览器，仍显示旧资源时执行
+hard refresh。
 
 ## 备份与升级
 

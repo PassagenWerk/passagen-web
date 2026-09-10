@@ -4,12 +4,14 @@
 
 ## 用户文档
 
+- [Docker deployment](user/docker.md)
 - [Web operations, upgrade, and recovery](user/operations.md)
 - 共享配置见 Passagen Core 仓库的 docs/user/configuration.md
 
 ## 开发文档
 
 - [Architecture](development/architecture.md)
+- [Development and build](development/building.md)
 
 ## Roadmap
 

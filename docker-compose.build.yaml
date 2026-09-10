@@ -1,0 +1,9 @@
+services:
+  passagen-web:
+    image: passagen-web:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      additional_contexts:
+        passagen-core: ../passagen-core
+        passagen-cli: ../passagen-cli
