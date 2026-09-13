@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
+import type { CollectionSummary } from "../../api/collections";
 import {
   fetchNote,
   fetchOutline,
@@ -15,6 +16,7 @@ import {
 import { useEscapeClose } from "../../components/useEscapeClose";
 import { AskPanel, type AskScope } from "../ask/AskPanel";
 import { PdfReader } from "../reader/PdfReader";
+import { PaperCollectionPicker } from "./PaperCollectionPicker";
 import { PaperLibraryEditor } from "./PaperLibraryEditor";
 import {
   PaperProcessingStatus,
@@ -27,6 +29,7 @@ import { usePaperProcessing } from "./usePaperProcessing";
 interface PaperDetailProps {
   paper: Paper | undefined;
   tags: Tag[];
+  collections: CollectionSummary[];
   search: URLSearchParams;
   pending: boolean;
   error: Error | null;
@@ -46,6 +49,7 @@ interface PaperDetailProps {
 export function PaperDetail({
   paper,
   tags,
+  collections,
   search,
   pending,
   error,
@@ -159,6 +163,11 @@ export function PaperDetail({
               </div>
             ) : null}
             <div className="paper-header-actions">
+              <PaperCollectionPicker
+                key={`collection-${paper.id}`}
+                paperId={paper.id}
+                collections={collections}
+              />
               <PaperLibraryEditor key={paper.id} paper={paper} />
               {paper.status === "outlined" ? (
                 <StageReprocessButton

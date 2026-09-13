@@ -55,10 +55,19 @@ let tagFixtures: Array<{
   created_at: string;
   paper_count: number;
 }>;
+let collectionFixtures: Array<Omit<typeof collection, "papers">>;
 let processingRuns: unknown[];
 
 beforeEach(() => {
   processingRuns = [];
+  collectionFixtures = [{
+    id: collection.id,
+    name: collection.name,
+    description: collection.description,
+    created_at: collection.created_at,
+    updated_at: collection.updated_at,
+    paper_count: collection.paper_count,
+  }];
   tagFixtures = [
     { id: "tag-1", name: "Systems", color: "#395b64", created_at: "2026-01-01", paper_count: 1 },
     { id: "tag-2", name: "Priority", color: "#6b705c", created_at: "2026-01-02", paper_count: 0 },
@@ -73,14 +82,7 @@ beforeEach(() => {
       if (url.startsWith("/api/qa-records?")) return response({ items: [] });
       if (url === "/api/collections" && init?.method === "POST") return response(collection);
       if (url === "/api/collections") {
-        return response([{
-          id: collection.id,
-          name: collection.name,
-          description: collection.description,
-          created_at: collection.created_at,
-          updated_at: collection.updated_at,
-          paper_count: collection.paper_count,
-        }]);
+        return response(collectionFixtures);
       }
       if (url === "/api/collections/collection-1/papers/order" && init?.method === "PATCH") {
         return response({ ...collection, papers: [...collection.papers].reverse() });
@@ -614,6 +616,50 @@ test("saves user metadata from the paper header", async () => {
     );
   });
   expect(screen.queryByRole("dialog", { name: "Edit paper metadata" })).not.toBeInTheDocument();
+});
+
+test("adds the current paper to a collection from the paper header", async () => {
+  renderApp("/papers/paper-1");
+  await screen.findByText("A useful research problem");
+
+  const trigger = screen.getByRole("button", { name: "Add to Collection" });
+  fireEvent.click(trigger);
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(screen.queryByRole("dialog", { name: "Add paper to collection" })).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+
+  fireEvent.click(trigger);
+  const dialog = screen.getByRole("dialog", { name: "Add paper to collection" });
+  fireEvent.change(within(dialog).getByRole("combobox", { name: "Collection for current paper" }), {
+    target: { value: "collection-1" },
+  });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
+
+  await waitFor(() => {
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      "/api/collections/collection-1/papers",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ paper_ids: ["paper-1"] }),
+      }),
+    );
+  });
+  expect(screen.queryByRole("dialog", { name: "Add paper to collection" })).not.toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Database Survey" }))
+    .toHaveAttribute("href", "/collections/collection-1");
+});
+
+test("links to collection management when no collection exists", async () => {
+  collectionFixtures = [];
+  renderApp("/papers/paper-1");
+  await screen.findByText("A useful research problem");
+
+  fireEvent.click(screen.getByRole("button", { name: "Add to Collection" }));
+  const dialog = screen.getByRole("dialog", { name: "Add paper to collection" });
+  expect(within(dialog).getByText("No collections yet.")).toBeInTheDocument();
+  expect(within(dialog).getByRole("link", { name: "Manage collections" }))
+    .toHaveAttribute("href", "/collections");
+  expect(within(dialog).queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
 });
 
 test("browses all, collection, and unfiled papers from the Library", async () => {

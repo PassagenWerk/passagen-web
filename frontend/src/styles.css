@@ -246,6 +246,14 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); font: 9px var(--font-mono
 .stage-reprocess-panel > button { justify-self: start; margin-top: 2px; }
 .editor-section { display: grid; gap: 9px; padding: 13px; border: 1px solid var(--soft-line); background: var(--surface); }
 .metadata-action-panel { border-color: var(--line); background: var(--paper); }
+.collection-action-panel { width: min(280px, calc(100vw - 44px)); border-color: var(--line); background: var(--paper); }
+.collection-action-panel label { display: grid; gap: 5px; padding: 0; cursor: default; }
+.collection-action-panel label > span { color: var(--metadata); font: 600 8px var(--font-sans); text-transform: uppercase; letter-spacing: .08em; }
+.collection-action-panel select { min-width: 0; border: 1px solid var(--line); padding: 7px; color: var(--ink); background: var(--paper); font: 10px var(--font-sans); }
+.collection-action-panel > span { color: var(--muted); font: 10px/1.4 var(--font-sans); }
+.collection-action-panel > button:disabled { opacity: .45; cursor: default; }
+.paper-collection-status { margin-left: -8px; color: var(--green); font: 10px/1.35 var(--font-sans); }
+.paper-collection-status a { color: inherit; }
 .editor-section + .editor-section { margin-top: 10px; }
 .editor-heading { display: grid; gap: 3px; }
 .editor-heading strong { font: 600 11px var(--font-sans); text-transform: uppercase; letter-spacing: .06em; }

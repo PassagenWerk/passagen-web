@@ -298,6 +298,7 @@ export function CollectionsPage() {
                 <PaperDetail
                   paper={paper}
                   tags={tags.data ?? []}
+                  collections={collections.data ?? []}
                   search={search}
                   pending={detail.isPending}
                   error={detail.error}

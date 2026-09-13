@@ -241,6 +241,7 @@ export function LibraryPage({
       <PaperDetail
         paper={selectedPaper}
         tags={tags.data ?? []}
+        collections={collections.data ?? []}
         search={search}
         pending={Boolean(paperId && !listedPaper && detail.isPending)}
         error={detail.error}
