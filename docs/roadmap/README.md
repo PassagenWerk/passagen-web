@@ -7,5 +7,6 @@
 ## 计划中
 
 - [后续产品能力](planned/next-capabilities.md)
+- [PDF 标记与标注](planned/pdf-annotations.md)
 
 计划中文档描述产品方向，不代表承诺的发布日期。

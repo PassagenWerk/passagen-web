@@ -20,6 +20,7 @@ stale 逻辑。
 
 - 会议论文发现、获取审查和筛选 workflow。
 - 覆盖结构化 artifact 内容的全文检索。
-- 当浏览器原生 PDF 行为无法提供一致导航时引入专用 rendering layer。
+- [PDF 标记与标注](pdf-annotations.md)，包括专用 rendering layer、sidecar persistence 和
+  后续 Ask 上下文集成。
 
 这些能力尚未在 Web 中提供。共享业务行为必须先在 Core 实现，再增加浏览器 workflow。
