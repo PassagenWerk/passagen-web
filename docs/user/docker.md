@@ -8,12 +8,17 @@ Passagen Web 发布到 `docker.io/sycstudio/passagen`。仓库中的 Compose 配
 
 - `passagen-web`：Web API 和已经编译的前端，只向宿主机发布 8765 端口。
 - `passagen`：与 Web/Core 同版本的 CLI，安装在 Web 镜像的可执行 `PATH` 中。
+- `passagen-mcp-server`：可选的独立只读 companion image，不包含在 Web 镜像中。
 - `grobid`：PDF header 和全文 TEI 解析服务，只在 Compose 网络内暴露 8070 端口。
 - `docker-compose.yaml`：普通用户使用的 pull-based 部署配置。
 - `.env.example`：镜像版本、访问地址、论文库路径和 secret 的环境变量样例。
 
 GROBID 镜像体积较大，首次拉取和首次启动会花费一些时间。建议为整个部署至少准备 4 GB
 可用内存。
+
+需要让 LibreChat 或其他 Agent 读取论文库时，单独部署 MCP companion 并挂载同一个 data
+directory；不要在 Web 容器内启动第二个服务进程。示例和维护边界见
+[MCP companion 与 Agent 集成](mcp.md)。
 
 ## 首次准备
 
