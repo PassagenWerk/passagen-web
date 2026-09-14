@@ -5,6 +5,22 @@ All notable changes to Passagen Web are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2026-09-14
+
+Requires `passagen-core` `0.7.x` and Passagen Schema version 10.
+
+### Added
+
+- Added existing collection memberships to paper responses and the paper detail collection picker,
+  with links to each collection and duplicate-add prevention.
+- Documented Passagen MCP Server as an independently deployed, read-only companion for compatible
+  Agent Hosts and multi-tool research workflows.
+- Added Docker Hub overview documentation and a roadmap for PDF annotations.
+
+### Changed
+
+- Updated Docker release defaults to the compatible Core and CLI `0.7.1` patch releases.
+
 ## [0.7.1] - 2026-09-10
 
 Requires `passagen-core` `0.7.x` and Passagen Schema version 10.
