@@ -24,6 +24,7 @@ const paper: Paper = {
   updated_at: "2026-01-01 10:00:00",
   metadata_sources: {},
   tag_ids: [],
+  collection_ids: [],
   artifacts: { summary: true, outline: true, pdf: true },
 };
 

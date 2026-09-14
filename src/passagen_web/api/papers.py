@@ -268,6 +268,7 @@ def _paper_response(paper: PaperView, *, cleaned_abstract: str | None = None) ->
         updated_at=paper.updated_at,
         metadata_sources=paper.metadata_sources,
         tag_ids=list(paper.tag_ids),
+        collection_ids=list(paper.collection_ids),
         artifacts=ArtifactAvailability(
             summary="summary_json" in kinds,
             outline="outline_md" in kinds,

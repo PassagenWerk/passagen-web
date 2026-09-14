@@ -167,6 +167,7 @@ export function PaperDetail({
                 key={`collection-${paper.id}`}
                 paperId={paper.id}
                 collections={collections}
+                collectionIds={paper.collection_ids}
               />
               <PaperLibraryEditor key={paper.id} paper={paper} />
               {paper.status === "outlined" ? (

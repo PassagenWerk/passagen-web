@@ -11,17 +11,21 @@ import { useEscapeClose } from "../../components/useEscapeClose";
 interface PaperCollectionPickerProps {
   paperId: string;
   collections: CollectionSummary[];
+  collectionIds: string[];
 }
 
 export function PaperCollectionPicker({
   paperId,
   collections,
+  collectionIds,
 }: PaperCollectionPickerProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [destination, setDestination] = useState("");
   const [addedTo, setAddedTo] = useState<{ id: string; name: string } | null>(null);
+  const [knownMemberships, setKnownMemberships] = useState(() => new Set(collectionIds));
   const trigger = useRef<HTMLButtonElement>(null);
+  const memberships = collections.filter((collection) => knownMemberships.has(collection.id));
   useEscapeClose(open, () => {
     setOpen(false);
     trigger.current?.focus();
@@ -32,10 +36,16 @@ export function PaperCollectionPicker({
     onMutate: () => setAddedTo(null),
     onSuccess: async (collection) => {
       queryClient.setQueryData(["collection", collection.id], collection);
+      setKnownMemberships((current) => new Set(current).add(collection.id));
+      setDestination("");
       setAddedTo({ id: collection.id, name: collection.name });
       setOpen(false);
       trigger.current?.focus();
-      await queryClient.invalidateQueries({ queryKey: ["collections"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["collections"] }),
+        queryClient.invalidateQueries({ queryKey: ["paper", paperId] }),
+        queryClient.invalidateQueries({ queryKey: ["papers"] }),
+      ]);
     },
   });
 
@@ -56,6 +66,21 @@ export function PaperCollectionPicker({
           role="dialog"
           aria-label="Add paper to collection"
         >
+          {memberships.length > 0 ? (
+            <div className="collection-memberships">
+              <strong>Already in</strong>
+              <span>
+                {memberships.map((collection, index) => (
+                  <span key={collection.id}>
+                    {index > 0 ? ", " : null}
+                    <Link to={`/collections/${collection.id}`}>{collection.name}</Link>
+                  </span>
+                ))}
+              </span>
+            </div>
+          ) : collections.length > 0 ? (
+            <span>This paper is not in a collection yet.</span>
+          ) : null}
           {collections.length > 0 ? (
             <>
               <label>
@@ -68,7 +93,13 @@ export function PaperCollectionPicker({
                 >
                   <option value="">Choose collection...</option>
                   {collections.map((collection) => (
-                    <option key={collection.id} value={collection.id}>{collection.name}</option>
+                    <option
+                      key={collection.id}
+                      value={collection.id}
+                      disabled={knownMemberships.has(collection.id)}
+                    >
+                      {collection.name}{knownMemberships.has(collection.id) ? " (Already added)" : ""}
+                    </option>
                   ))}
                 </select>
               </label>

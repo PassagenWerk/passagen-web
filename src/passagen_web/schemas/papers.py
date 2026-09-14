@@ -28,6 +28,7 @@ class PaperResponse(BaseModel):
     updated_at: str
     metadata_sources: dict[str, str]
     tag_ids: list[str]
+    collection_ids: list[str]
     artifacts: ArtifactAvailability
 
 

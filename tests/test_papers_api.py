@@ -93,6 +93,7 @@ def test_list_papers_filters_sorts_and_never_returns_paths(data_dir: Path) -> No
         "outline": False,
         "pdf": False,
     }
+    assert body["items"][0]["collection_ids"] == [collection.id]
     assert "summaries/b.json" not in response.text
 
 

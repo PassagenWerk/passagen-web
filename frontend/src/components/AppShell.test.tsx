@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { App } from "../App";
+import type { CollectionSummary } from "../api/collections";
 
 const paper = {
   id: "paper-1",
@@ -22,6 +23,7 @@ const paper = {
   updated_at: "2026-01-01 10:00:00",
   metadata_sources: {},
   tag_ids: ["tag-1"],
+  collection_ids: ["collection-1"],
   artifacts: { summary: true, outline: true, pdf: true },
 };
 
@@ -48,6 +50,15 @@ const collection = {
   })),
 };
 
+const secondCollection = {
+  ...collection,
+  id: "collection-2",
+  name: "Reading Queue",
+  description: null,
+  paper_count: 0,
+  papers: [],
+};
+
 let tagFixtures: Array<{
   id: string;
   name: string;
@@ -55,7 +66,7 @@ let tagFixtures: Array<{
   created_at: string;
   paper_count: number;
 }>;
-let collectionFixtures: Array<Omit<typeof collection, "papers">>;
+let collectionFixtures: CollectionSummary[];
 let processingRuns: unknown[];
 
 beforeEach(() => {
@@ -67,6 +78,13 @@ beforeEach(() => {
     created_at: collection.created_at,
     updated_at: collection.updated_at,
     paper_count: collection.paper_count,
+  }, {
+    id: secondCollection.id,
+    name: secondCollection.name,
+    description: secondCollection.description,
+    created_at: secondCollection.created_at,
+    updated_at: secondCollection.updated_at,
+    paper_count: secondCollection.paper_count,
   }];
   tagFixtures = [
     { id: "tag-1", name: "Systems", color: "#395b64", created_at: "2026-01-01", paper_count: 1 },
@@ -89,6 +107,13 @@ beforeEach(() => {
       }
       if (url === "/api/collections/collection-1/papers" && init?.method === "POST") {
         return response(collection);
+      }
+      if (url === "/api/collections/collection-2/papers" && init?.method === "POST") {
+        return response({
+          ...secondCollection,
+          paper_count: 1,
+          papers: [{ paper, position: 0, note: null, added_at: "2026-01-01 10:00:00" }],
+        });
       }
       if (url === "/api/collections/collection-1" && init?.method === "PATCH") {
         return response(collection);
@@ -630,14 +655,19 @@ test("adds the current paper to a collection from the paper header", async () =>
 
   fireEvent.click(trigger);
   const dialog = screen.getByRole("dialog", { name: "Add paper to collection" });
+  expect(within(dialog).getByText("Already in")).toBeInTheDocument();
+  expect(within(dialog).getByRole("link", { name: "Database Survey" }))
+    .toHaveAttribute("href", "/collections/collection-1");
+  expect(within(dialog).getByRole("option", { name: "Database Survey (Already added)" }))
+    .toBeDisabled();
   fireEvent.change(within(dialog).getByRole("combobox", { name: "Collection for current paper" }), {
-    target: { value: "collection-1" },
+    target: { value: "collection-2" },
   });
   fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
 
   await waitFor(() => {
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      "/api/collections/collection-1/papers",
+      "/api/collections/collection-2/papers",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ paper_ids: ["paper-1"] }),
@@ -645,8 +675,11 @@ test("adds the current paper to a collection from the paper header", async () =>
     );
   });
   expect(screen.queryByRole("dialog", { name: "Add paper to collection" })).not.toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Database Survey" }))
-    .toHaveAttribute("href", "/collections/collection-1");
+  expect(screen.getByRole("link", { name: "Reading Queue" }))
+    .toHaveAttribute("href", "/collections/collection-2");
+  fireEvent.click(trigger);
+  expect(within(screen.getByRole("dialog", { name: "Add paper to collection" }))
+    .getByRole("option", { name: "Reading Queue (Already added)" })).toBeDisabled();
 });
 
 test("links to collection management when no collection exists", async () => {

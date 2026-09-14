@@ -21,6 +21,7 @@ export interface Paper {
   updated_at: string;
   metadata_sources: Record<string, string>;
   tag_ids: string[];
+  collection_ids: string[];
   artifacts: ArtifactAvailability;
 }
 

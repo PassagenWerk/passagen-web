@@ -24,6 +24,7 @@ function makePaper(id: string, title: string): Paper {
     updated_at: "2026-01-01 10:00:00",
     metadata_sources: {},
     tag_ids: [],
+    collection_ids: ["col-1"],
     artifacts: { summary: true, outline: false, pdf: true },
   };
 }
