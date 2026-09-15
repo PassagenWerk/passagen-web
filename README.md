@@ -9,6 +9,7 @@ README 中的仓库链接指向 GitHub；在 GitLab 或 Gitea 镜像中，对应
 ## 功能
 
 - 浏览、搜索、筛选和排序本地论文库。
+- 经二次确认安全删除论文及其受管 PDF、生成 artifact 和库内关系。
 - 上传 PDF，启动、查看和恢复 processing run。
 - 对 Metadata、Abstract clean、Summary 和 Outline 执行定向 reprocess。
 - 并排阅读 Summary、Outline 和 PDF evidence page。

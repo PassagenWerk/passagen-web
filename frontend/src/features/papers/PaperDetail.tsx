@@ -42,6 +42,7 @@ interface PaperDetailProps {
   onOpenPdf: () => void;
   focused: boolean;
   onExitFocus: () => void;
+  onDeleted?: () => Promise<void>;
   paperPath?: string;
   collectionAskScope?: Extract<AskScope, { kind: "collection" }>;
 }
@@ -62,6 +63,7 @@ export function PaperDetail({
   onOpenPdf,
   focused,
   onExitFocus,
+  onDeleted,
   paperPath,
   collectionAskScope,
 }: PaperDetailProps) {
@@ -169,7 +171,7 @@ export function PaperDetail({
                 collections={collections}
                 collectionIds={paper.collection_ids}
               />
-              <PaperLibraryEditor key={paper.id} paper={paper} />
+              <PaperLibraryEditor key={paper.id} paper={paper} onDeleted={onDeleted} />
               {paper.status === "outlined" ? (
                 <StageReprocessButton
                   key={`metadata-reprocess-${paper.id}`}

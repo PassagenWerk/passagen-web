@@ -2,13 +2,20 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 
 import {
+  deletePaper,
   updatePaperMetadata,
   type MetadataUpdate,
   type Paper,
 } from "../../api/papers";
 import { useEscapeClose } from "../../components/useEscapeClose";
 
-export function PaperLibraryEditor({ paper }: { paper: Paper }) {
+export function PaperLibraryEditor({
+  paper,
+  onDeleted,
+}: {
+  paper: Paper;
+  onDeleted?: () => Promise<void>;
+}) {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(paper.title ?? "");
   const [venue, setVenue] = useState(paper.venue ?? "");
@@ -35,6 +42,10 @@ export function PaperLibraryEditor({ paper }: { paper: Paper }) {
       setOpen(false);
       trigger.current?.focus();
     },
+  });
+  const destroy = useMutation({
+    mutationFn: () => deletePaper(paper.id),
+    onSuccess: onDeleted,
   });
 
   function saveMetadata() {
@@ -77,6 +88,26 @@ export function PaperLibraryEditor({ paper }: { paper: Paper }) {
           </div>
           <button type="button" onClick={saveMetadata} disabled={metadata.isPending || !title.trim()}>Save metadata</button>
           <SaveStatus pending={metadata.isPending} saved={metadataSaved} error={metadata.error} />
+          {onDeleted ? (
+            <div className="editor-heading">
+              <strong>Delete paper</strong>
+              <span>
+                Remove {paper.tag_ids.length} tag assignment(s), {paper.collection_ids.length}
+                collection membership(s), conversations, and all managed artifacts.
+              </span>
+              <button
+                className="danger-button"
+                type="button"
+                disabled={destroy.isPending}
+                onClick={() => {
+                  if (window.confirm(`Delete paper "${paper.title ?? paper.original_filename}"? This cannot be undone.`)) {
+                    destroy.mutate();
+                  }
+                }}
+              >{destroy.isPending ? "Deleting..." : "Delete paper"}</button>
+              {destroy.error ? <span className="form-status is-error">Delete failed: {destroy.error.message}</span> : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

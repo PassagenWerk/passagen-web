@@ -174,6 +174,18 @@ export function LibraryPage({
     void navigate({ pathname: `/papers/${paperId}`, search: next.toString() });
   }
 
+  async function handlePaperDeleted() {
+    queryClient.removeQueries({ queryKey: ["paper", paperId] });
+    onExitReading();
+    await navigate({ pathname: "/", search: search.toString() });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["papers"] }),
+      queryClient.invalidateQueries({ queryKey: ["tags"] }),
+      queryClient.invalidateQueries({ queryKey: ["collections"] }),
+      queryClient.invalidateQueries({ queryKey: ["collection"] }),
+    ]);
+  }
+
   useEffect(() => {
     function handleNavigation(event: KeyboardEvent) {
       const target = event.target;
@@ -254,6 +266,7 @@ export function LibraryPage({
         onOpenPdf={onFocusReading}
         focused={focused}
         onExitFocus={exitFocus}
+        onDeleted={handlePaperDeleted}
       />
     </div>
   );

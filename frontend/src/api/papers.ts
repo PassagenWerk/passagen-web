@@ -124,6 +124,13 @@ export function updatePaperMetadata(paperId: string, update: MetadataUpdate): Pr
   });
 }
 
+export async function deletePaper(paperId: string): Promise<void> {
+  const response = await fetch(`/api/papers/${encodeURIComponent(paperId)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw await responseError(response);
+}
+
 export function updatePaperTags(paperId: string, tagIds: string[]): Promise<Paper> {
   return requestJson<Paper>(`/api/papers/${encodeURIComponent(paperId)}/tags`, {
     method: "PUT",

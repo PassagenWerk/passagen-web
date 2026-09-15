@@ -171,6 +171,26 @@ def test_paper_detail_and_not_found_error_are_stable(data_dir: Path) -> None:
     assert missing.json()["error"]["code"] == "not_found"
 
 
+def test_delete_paper_removes_managed_files_and_library_membership(data_dir: Path) -> None:
+    _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
+    _insert_paper(data_dir, "paper-b", title="Beta", year=2025, venue="OSDI")
+    pdf = b"%PDF-1.7\ncontent\n%%EOF\n"
+    _insert_artifact(data_dir, "paper-a", "original_pdf", "objects/a.pdf", pdf)
+    catalog = CatalogService(data_dir / "passagen.db", data_dir)
+    collection = catalog.create_collection("Queue")
+    catalog.add_collection_papers(collection.id, ["paper-a", "paper-b"])
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        deleted = client.delete("/api/papers/paper-a")
+        missing = client.get("/api/papers/paper-a")
+
+    assert deleted.status_code == 204
+    assert missing.status_code == 404
+    assert not (data_dir / "objects/a.pdf").exists()
+    members = catalog.get_collection(collection.id).papers
+    assert [(member.paper_id, member.position) for member in members] == [("paper-b", 0)]
+
+
 def test_summary_is_validated_before_it_is_returned(data_dir: Path) -> None:
     _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
     _insert_artifact(

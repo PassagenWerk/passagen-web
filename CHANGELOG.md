@@ -5,6 +5,13 @@ All notable changes to Passagen Web are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Added confirmed paper deletion from the library metadata editor, backed by a safe API that
+  removes managed files and relationships while rejecting active processing or generation work.
+
 ## [0.7.2] - 2026-09-14
 
 Requires `passagen-core` `0.7.x` and Passagen Schema version 10.

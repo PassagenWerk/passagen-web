@@ -135,6 +135,12 @@ def get_paper(
     )
 
 
+@router.delete("/{paper_id}", status_code=204)
+def delete_paper(paper_id: str, catalog: CatalogDependency) -> Response:
+    catalog.delete_paper(paper_id)
+    return Response(status_code=204)
+
+
 @router.patch("/{paper_id}/metadata", response_model=PaperResponse)
 def update_paper_metadata(
     paper_id: str, payload: PaperMetadataUpdateRequest, catalog: CatalogDependency
