@@ -12,6 +12,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Added confirmed paper deletion from the library metadata editor, backed by a safe API that
   removes managed files and relationships while rejecting active processing or generation work.
 
+### Fixed
+
+- Removed deleted papers from the actionable failed-paper retry list while preserving their
+  failures in historical processing run details.
+
 ## [0.7.2] - 2026-09-14
 
 Requires `passagen-core` `0.7.x` and Passagen Schema version 10.

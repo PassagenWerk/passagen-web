@@ -19,6 +19,7 @@ class RunPaperFailureResponse(BaseModel):
     paper_id: str
     category: str
     message: str
+    paper_exists: bool
 
 
 class RunResultResponse(BaseModel):

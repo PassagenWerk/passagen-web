@@ -169,6 +169,39 @@ test("processing workspace lists pending papers and recent runs", async () => {
   });
 });
 
+test("does not offer deleted papers from historical failures for retry", async () => {
+  const deletedFailure = {
+    ...failedRun,
+    result: {
+      ...failedRun.result,
+      failed: [
+        {
+          paper_id: "paper-deleted",
+          category: "metadata",
+          message: "Duplicate",
+          paper_exists: false,
+        },
+      ],
+    },
+  };
+  vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/health") return response({ status: "ok", database: "available" });
+    if (url === "/api/collections" || url === "/api/tags") return response([]);
+    if (url.startsWith("/api/papers?")) {
+      return response({ items: [pendingPaper], total: 1, limit: 200, offset: 0 });
+    }
+    if (url.startsWith("/api/processing-runs?")) return response({ items: [deletedFailure] });
+    return Promise.resolve(new Response(null, { status: 404 }));
+  });
+
+  renderApp();
+
+  expect(await screen.findByText("No failed papers in recent runs.")).toBeInTheDocument();
+  expect(screen.queryByText("paper-deleted")).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Retry all failed" })).not.toBeInTheDocument();
+});
+
 test("uploads PDF files and reports the import summary", async () => {
   renderApp();
   await screen.findByRole("heading", { name: "Import PDFs" });

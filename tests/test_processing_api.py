@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from passagen.domain import Paper, PaperStatus
 from passagen.processing import ProcessingService
 from passagen.providers import ProviderHealthSnapshot
-from passagen.stages.updating import UpdateEvent, UpdateResult
+from passagen.stages.updating import UpdateEvent, UpdateFailure, UpdateResult
 from passagen.storage.repository import register_pdf
 
 from passagen_web.app import create_app
@@ -101,6 +101,28 @@ def test_create_run_returns_202_and_completes(
         assert abstract.json()["from_stage"] == "abstract"
         abstract_run = wait_for_status(client, abstract.json()["id"], {"completed"})
         assert abstract_run["status"] == "completed"
+
+
+def test_historical_failure_marks_a_deleted_paper_as_missing(
+    data_dir: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paper_id = add_paper(data_dir, "failed.pdf")
+
+    def failed_update(*_args: object, **_kwargs: object) -> UpdateResult:
+        result = UpdateResult(target_status=PaperStatus.OUTLINED)
+        result.failures.append(UpdateFailure(paper_id, "Duplicate", category="metadata"))
+        return result
+
+    monkeypatch.setattr("passagen.processing.service.update_papers", failed_update)
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        created = client.post("/api/processing-runs", json={"paper_ids": [paper_id]}).json()
+        run = wait_for_status(client, created["id"], {"completed"})
+        assert run["result"]["failed"][0]["paper_exists"] is True
+
+        assert client.delete(f"/api/papers/{paper_id}").status_code == 204
+        historical = client.get(f"/api/processing-runs/{created['id']}").json()
+
+    assert historical["result"]["failed"][0]["paper_exists"] is False
 
 
 def test_create_run_conflict_returns_409(data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:

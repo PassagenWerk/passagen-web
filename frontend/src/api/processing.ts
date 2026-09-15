@@ -7,6 +7,7 @@ export interface RunPaperFailure {
   paper_id: string;
   category: string;
   message: string;
+  paper_exists?: boolean;
 }
 
 export interface RunResult {

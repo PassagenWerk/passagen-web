@@ -2,6 +2,7 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query
 from passagen.processing import ProcessingRun, ProgressEvent
+from passagen.storage.repository import get_paper
 
 from passagen_web.config import Settings
 from passagen_web.dependencies import ProcessingDependency, SettingsDependency
@@ -41,7 +42,10 @@ def list_processing_runs(
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> ProcessingRunListResponse:
     runs = processing.list_runs(status=status, paper_id=paper_id, limit=limit)
-    return ProcessingRunListResponse(items=[_run_response(run, settings) for run in runs])
+    paper_exists: dict[str, bool] = {}
+    return ProcessingRunListResponse(
+        items=[_run_response(run, settings, paper_exists) for run in runs]
+    )
 
 
 @router.get("/{run_id}", response_model=ProcessingRunResponse)
@@ -68,14 +72,28 @@ def _sanitize(message: str, settings: Settings) -> str:
 
 
 def _failure_response(
-    paper_id: str, category: str, message: str, settings: Settings
+    paper_id: str,
+    category: str,
+    message: str,
+    settings: Settings,
+    paper_exists: dict[str, bool],
 ) -> RunPaperFailureResponse:
+    if paper_id not in paper_exists:
+        paper_exists[paper_id] = get_paper(settings.database_path, paper_id) is not None
     return RunPaperFailureResponse(
-        paper_id=paper_id, category=category, message=_sanitize(message, settings)
+        paper_id=paper_id,
+        category=category,
+        message=_sanitize(message, settings),
+        paper_exists=paper_exists[paper_id],
     )
 
 
-def _run_response(run: ProcessingRun, settings: Settings) -> ProcessingRunResponse:
+def _run_response(
+    run: ProcessingRun,
+    settings: Settings,
+    paper_exists: dict[str, bool] | None = None,
+) -> ProcessingRunResponse:
+    existence_cache = paper_exists if paper_exists is not None else {}
     result = run.result
     return ProcessingRunResponse(
         id=run.id,
@@ -93,11 +111,23 @@ def _run_response(run: ProcessingRun, settings: Settings) -> ProcessingRunRespon
                 updated=result.updated,
                 skipped=result.skipped,
                 failed=[
-                    _failure_response(failure.paper_id, failure.category, failure.message, settings)
+                    _failure_response(
+                        failure.paper_id,
+                        failure.category,
+                        failure.message,
+                        settings,
+                        existence_cache,
+                    )
                     for failure in result.failed
                 ],
                 warnings=[
-                    _failure_response(warning.paper_id, warning.category, warning.message, settings)
+                    _failure_response(
+                        warning.paper_id,
+                        warning.category,
+                        warning.message,
+                        settings,
+                        existence_cache,
+                    )
                     for warning in result.warnings
                 ],
             )

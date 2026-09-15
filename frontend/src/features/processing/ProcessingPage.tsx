@@ -55,7 +55,9 @@ export function ProcessingPage() {
     (paper) => paper.status !== "outlined",
   );
   const paperById = new Map((papers.data?.items ?? []).map((paper) => [paper.id, paper]));
-  const failures = latestFailures(runs.data ?? []);
+  const failures = latestFailures(runs.data ?? []).filter(
+    (failure) => failure.paper_exists !== false,
+  );
 
   return (
     <div className="processing-page">
