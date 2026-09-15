@@ -55,6 +55,15 @@ export interface NoteResponse {
   content: string;
 }
 
+export interface CitationResponse {
+  paper_id: string;
+  format: "bibtex";
+  content: string;
+  source: "doi" | "arxiv" | "local_metadata";
+  authoritative: boolean;
+  warnings: string[];
+}
+
 export interface MetadataUpdate {
   title?: string;
   venue?: string;
@@ -106,6 +115,12 @@ export function fetchOutline(paperId: string): Promise<OutlineResponse> {
 
 export function fetchNote(paperId: string): Promise<NoteResponse> {
   return requestJson<NoteResponse>(`/api/papers/${encodeURIComponent(paperId)}/note`);
+}
+
+export function fetchCitation(paperId: string): Promise<CitationResponse> {
+  return requestJson<CitationResponse>(
+    `/api/papers/${encodeURIComponent(paperId)}/citation?format=bibtex`,
+  );
 }
 
 export function updatePaperNote(paperId: string, content: string): Promise<NoteResponse> {

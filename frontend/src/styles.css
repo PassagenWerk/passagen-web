@@ -251,6 +251,8 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); font: 9px var(--font-mono
 .collection-action-panel label > span { color: var(--metadata); font: 600 8px var(--font-sans); text-transform: uppercase; letter-spacing: .08em; }
 .collection-action-panel select { min-width: 0; border: 1px solid var(--line); padding: 7px; color: var(--ink); background: var(--paper); font: 10px var(--font-sans); }
 .collection-action-panel > span { color: var(--muted); font: 10px/1.4 var(--font-sans); }
+.citation-action-panel { width: min(560px, calc(100vw - 44px)); border-color: var(--line); background: var(--paper); }
+.citation-content { max-height: 260px; margin: 0; overflow: auto; border: 1px solid var(--soft-line); padding: 10px; background: var(--surface); font: 10px/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
 .collection-memberships { display: grid; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--soft-line); font: 10px/1.4 var(--font-sans); }
 .collection-memberships strong { color: var(--metadata); font-size: 8px; text-transform: uppercase; letter-spacing: .08em; }
 .collection-memberships a { color: var(--green); }

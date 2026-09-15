@@ -1,7 +1,7 @@
 import logging
 import uuid
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query, Request, Response, UploadFile
 from fastapi.responses import FileResponse
@@ -15,12 +15,14 @@ from passagen.catalog import (
     TagMatch,
     validate_summary_json,
 )
+from passagen.citations import CitationService
 from passagen.stages.abstract_fixing import load_cleaned_abstract
 from passagen.stages.scanning import import_files
 
 from passagen_web.dependencies import CatalogDependency, SettingsDependency
 from passagen_web.schemas.papers import (
     ArtifactAvailability,
+    CitationResponse,
     NoteResponse,
     OutlineResponse,
     PaperMetadataUpdateRequest,
@@ -139,6 +141,27 @@ def get_paper(
 def delete_paper(paper_id: str, catalog: CatalogDependency) -> Response:
     catalog.delete_paper(paper_id)
     return Response(status_code=204)
+
+
+@router.get("/{paper_id}/citation", response_model=CitationResponse)
+def get_citation(
+    paper_id: str,
+    settings: SettingsDependency,
+    format: Annotated[Literal["bibtex"], Query()] = "bibtex",
+) -> CitationResponse:
+    del format
+    result = CitationService(
+        settings.database_path,
+        timeout_seconds=settings.core.providers.crossref.timeout_seconds,
+    ).get_bibtex(paper_id)
+    return CitationResponse(
+        paper_id=result.paper_id,
+        format=result.format,
+        content=result.content,
+        source=result.source.value,
+        authoritative=result.authoritative,
+        warnings=list(result.warnings),
+    )
 
 
 @router.patch("/{paper_id}/metadata", response_model=PaperResponse)

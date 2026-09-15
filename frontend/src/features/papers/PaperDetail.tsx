@@ -17,6 +17,7 @@ import { useEscapeClose } from "../../components/useEscapeClose";
 import { AskPanel, type AskScope } from "../ask/AskPanel";
 import { PdfReader } from "../reader/PdfReader";
 import { PaperCollectionPicker } from "./PaperCollectionPicker";
+import { PaperCitation } from "./PaperCitation";
 import { PaperLibraryEditor } from "./PaperLibraryEditor";
 import {
   PaperProcessingStatus,
@@ -165,6 +166,7 @@ export function PaperDetail({
               </div>
             ) : null}
             <div className="paper-header-actions">
+              <PaperCitation key={`citation-${paper.id}`} paperId={paper.id} />
               <PaperCollectionPicker
                 key={`collection-${paper.id}`}
                 paperId={paper.id}

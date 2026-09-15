@@ -253,6 +253,30 @@ def test_note_can_be_read_saved_and_cleared(data_dir: Path) -> None:
     assert cleared.json() == {"paper_id": "paper-a", "content": ""}
 
 
+def test_citation_uses_local_metadata_when_paper_has_no_doi(data_dir: Path) -> None:
+    _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        response = client.get("/api/papers/paper-a/citation", params={"format": "bibtex"})
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "paper_id": "paper-a",
+        "format": "bibtex",
+        "content": (
+            "@misc{author2024alpha,\n"
+            "  author = {Ada Author},\n"
+            "  title = {Alpha},\n"
+            "  year = {2024},\n"
+            "  howpublished = {SOSP},\n"
+            "}\n"
+        ),
+        "source": "local_metadata",
+        "authoritative": False,
+        "warnings": [],
+    }
+
+
 def test_missing_artifact_returns_404(data_dir: Path) -> None:
     _insert_paper(data_dir, "paper-a", title="Alpha", year=2024, venue="SOSP")
 

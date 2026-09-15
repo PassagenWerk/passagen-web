@@ -54,6 +54,15 @@ class NoteResponse(BaseModel):
     content: str = Field(description="User-authored Markdown note")
 
 
+class CitationResponse(BaseModel):
+    paper_id: str
+    format: str
+    content: str
+    source: str
+    authoritative: bool
+    warnings: list[str]
+
+
 class PaperNoteUpdateRequest(BaseModel):
     content: Annotated[str, Field(max_length=1_000_000)]
 
