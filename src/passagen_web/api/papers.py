@@ -15,7 +15,7 @@ from passagen.catalog import (
     TagMatch,
     validate_summary_json,
 )
-from passagen.citations import CitationService
+from passagen.citations import CitationResult, CitationService
 from passagen.stages.abstract_fixing import load_cleaned_abstract
 from passagen.stages.scanning import import_files
 
@@ -154,6 +154,24 @@ def get_citation(
         settings.database_path,
         timeout_seconds=settings.core.providers.crossref.timeout_seconds,
     ).get_bibtex(paper_id)
+    return _citation_response(result)
+
+
+@router.post("/{paper_id}/citation/refresh", response_model=CitationResponse)
+def refresh_citation(
+    paper_id: str,
+    settings: SettingsDependency,
+    format: Annotated[Literal["bibtex"], Query()] = "bibtex",
+) -> CitationResponse:
+    del format
+    result = CitationService(
+        settings.database_path,
+        timeout_seconds=settings.core.providers.crossref.timeout_seconds,
+    ).get_bibtex(paper_id, refresh=True)
+    return _citation_response(result)
+
+
+def _citation_response(result: CitationResult) -> CitationResponse:
     return CitationResponse(
         paper_id=result.paper_id,
         format=result.format,
@@ -161,6 +179,9 @@ def get_citation(
         source=result.source.value,
         authoritative=result.authoritative,
         warnings=list(result.warnings),
+        cached=result.cached,
+        updated_at=result.updated_at,
+        remote_checked_at=result.remote_checked_at,
     )
 
 

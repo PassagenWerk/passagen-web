@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 
-import { fetchCitation } from "../../api/papers";
+import { fetchCitation, refreshCitation } from "../../api/papers";
 import { useEscapeClose } from "../../components/useEscapeClose";
 
 const sourceLabels = {
@@ -11,6 +11,7 @@ const sourceLabels = {
 };
 
 export function PaperCitation({ paperId }: { paperId: string }) {
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
@@ -21,6 +22,14 @@ export function PaperCitation({ paperId }: { paperId: string }) {
     enabled: open,
     staleTime: Number.POSITIVE_INFINITY,
     retry: false,
+  });
+  const refresh = useMutation({
+    mutationFn: () => refreshCitation(paperId),
+    onSuccess: (result) => {
+      queryClient.setQueryData(["citation", paperId], result);
+      setCopied(false);
+      setCopyError(false);
+    },
   });
   useEscapeClose(open, () => {
     setOpen(false);
@@ -63,10 +72,17 @@ export function PaperCitation({ paperId }: { paperId: string }) {
           <div className="editor-heading">
             <strong>BibTeX</strong>
             {citation.data ? (
-              <span>
-                {sourceLabels[citation.data.source]}
-                {citation.data.authoritative ? " / authoritative" : " / review before use"}
-              </span>
+              <>
+                <span>
+                  {sourceLabels[citation.data.source]}
+                  {citation.data.authoritative ? " / authoritative" : " / review before use"}
+                </span>
+                {citation.data.updated_at ? (
+                  <span>
+                    Saved <time dateTime={citation.data.updated_at}>{new Date(citation.data.updated_at).toLocaleString()}</time>
+                  </span>
+                ) : null}
+              </>
             ) : null}
           </div>
           {citation.isPending ? <span>Retrieving citation...</span> : null}
@@ -79,7 +95,19 @@ export function PaperCitation({ paperId }: { paperId: string }) {
               {citation.data.warnings.map((warning) => (
                 <span className="form-status" key={warning}>{warning}</span>
               ))}
-              <button type="button" onClick={() => void copy()}>Copy BibTeX</button>
+              <div className="citation-actions">
+                <button type="button" onClick={() => void copy()}>Copy BibTeX</button>
+                <button
+                  type="button"
+                  disabled={refresh.isPending}
+                  onClick={() => refresh.mutate()}
+                >
+                  {refresh.isPending ? "Refreshing..." : "Refresh citation"}
+                </button>
+              </div>
+              {refresh.error ? (
+                <span className="form-status is-error">Refresh failed: {refresh.error.message}</span>
+              ) : null}
               {copied ? <span className="form-status is-saved">Copied.</span> : null}
               {copyError ? (
                 <span className="form-status is-error">Clipboard access failed.</span>

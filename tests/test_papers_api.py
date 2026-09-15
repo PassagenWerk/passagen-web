@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -258,23 +259,24 @@ def test_citation_uses_local_metadata_when_paper_has_no_doi(data_dir: Path) -> N
 
     with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
         response = client.get("/api/papers/paper-a/citation", params={"format": "bibtex"})
+        cached = client.get("/api/papers/paper-a/citation", params={"format": "bibtex"})
+        refreshed = client.post("/api/papers/paper-a/citation/refresh", params={"format": "bibtex"})
 
     assert response.status_code == 200
-    assert response.json() == {
-        "paper_id": "paper-a",
-        "format": "bibtex",
-        "content": (
-            "@misc{author2024alpha,\n"
-            "  author = {Ada Author},\n"
-            "  title = {Alpha},\n"
-            "  year = {2024},\n"
-            "  howpublished = {SOSP},\n"
-            "}\n"
-        ),
-        "source": "local_metadata",
-        "authoritative": False,
-        "warnings": [],
-    }
+    body = response.json()
+    assert re.match(r"@misc\{author2024alpha-[0-9a-f]{8},", body["content"])
+    assert body["paper_id"] == "paper-a"
+    assert body["format"] == "bibtex"
+    assert body["source"] == "local_metadata"
+    assert body["authoritative"] is False
+    assert body["warnings"] == []
+    assert body["cached"] is False
+    assert body["updated_at"] is not None
+    assert body["remote_checked_at"] is None
+    assert cached.json()["cached"] is True
+    assert refreshed.status_code == 200
+    assert refreshed.json()["cached"] is False
+    assert refreshed.json()["content"] == body["content"]
 
 
 def test_missing_artifact_returns_404(data_dir: Path) -> None:

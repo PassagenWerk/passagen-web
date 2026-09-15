@@ -62,6 +62,9 @@ export interface CitationResponse {
   source: "doi" | "arxiv" | "local_metadata";
   authoritative: boolean;
   warnings: string[];
+  cached: boolean;
+  updated_at: string | null;
+  remote_checked_at: string | null;
 }
 
 export interface MetadataUpdate {
@@ -120,6 +123,13 @@ export function fetchNote(paperId: string): Promise<NoteResponse> {
 export function fetchCitation(paperId: string): Promise<CitationResponse> {
   return requestJson<CitationResponse>(
     `/api/papers/${encodeURIComponent(paperId)}/citation?format=bibtex`,
+  );
+}
+
+export function refreshCitation(paperId: string): Promise<CitationResponse> {
+  return requestJson<CitationResponse>(
+    `/api/papers/${encodeURIComponent(paperId)}/citation/refresh?format=bibtex`,
+    { method: "POST" },
   );
 }
 

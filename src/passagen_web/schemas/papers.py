@@ -61,6 +61,9 @@ class CitationResponse(BaseModel):
     source: str
     authoritative: bool
     warnings: list[str]
+    cached: bool
+    updated_at: str | None
+    remote_checked_at: str | None
 
 
 class PaperNoteUpdateRequest(BaseModel):

@@ -13,7 +13,7 @@ README 中的仓库链接指向 GitHub；在 GitLab 或 Gitea 镜像中，对应
 - 上传 PDF，启动、查看和恢复 processing run。
 - 对 Metadata、Abstract clean、Summary 和 Outline 执行定向 reprocess。
 - 并排阅读 Summary、Outline 和 PDF evidence page。
-- 在阅读页获取并复制 BibTeX；优先使用 DOI metadata，远端失败时自动使用本地元数据。
+- 在阅读页获取、持久化、刷新并复制 BibTeX；优先使用 DOI metadata，远端失败时自动使用本地元数据。
 - 编辑受保护的用户元数据，管理标签和有序集合。
 - 对单篇论文或整个 collection 进行持久化对话问答，回答带可验证 citation 并导航到对应
   论文/PDF 页。

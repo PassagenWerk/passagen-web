@@ -30,7 +30,10 @@ export function PaperLibraryEditor({
 
   async function refresh(updated: Paper) {
     queryClient.setQueryData(["paper", paper.id], updated);
-    await queryClient.invalidateQueries({ queryKey: ["papers"] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["papers"] }),
+      queryClient.invalidateQueries({ queryKey: ["citation", paper.id] }),
+    ]);
   }
 
   const metadata = useMutation({
