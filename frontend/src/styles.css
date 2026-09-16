@@ -221,6 +221,7 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); font: 9px var(--font-mono
 .detail-empty h3 { margin: 0 0 9px; color: var(--ink); font: 400 23px var(--font-paper); }
 .detail-empty p { margin: 0; font-size: 12px; line-height: 1.6; }
 .paper-header { flex: 0 0 auto; padding: 18px 30px 15px; border-bottom: 1px solid var(--soft-line); }
+.paper-header:has(.paper-action-panel) { position: relative; z-index: 9; }
 .paper-kicker { margin-bottom: 13px; color: var(--accent); }
 .paper-header h1 { max-width: none; margin: 0; font: 600 clamp(25px, 2.1vw, 36px)/1.08 var(--font-paper); letter-spacing: -.015em; }
 .detail-authors { margin: 9px 0 13px; color: var(--muted); font: 14px/1.45 var(--font-paper); }
