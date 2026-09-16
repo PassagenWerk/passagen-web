@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from passagen.catalog import CatalogService
 from passagen.storage.database import connect_database
 
 from passagen_web.app import create_app
@@ -119,4 +120,60 @@ def test_collection_payload_and_domain_errors_are_stable(data_dir: Path) -> None
     assert blank.status_code == 400
     assert blank.json()["error"]["code"] == "invalid_request"
     assert empty_patch.status_code == 422
+    assert missing.status_code == 404
+
+
+def test_collection_markdown_documents_can_be_read_edited_and_deleted(data_dir: Path) -> None:
+    _insert_paper(data_dir, "paper-a", "Alpha")
+    _insert_paper(data_dir, "paper-b", "Beta")
+    catalog = CatalogService(data_dir / "passagen.db", data_dir)
+    collection = catalog.create_collection("External research")
+    catalog.add_collection_papers(collection.id, ["paper-a"])
+    document = catalog.create_collection_document(
+        collection.id,
+        title="Imported brief",
+        content_markdown="# Brief\n\nInitial content.",
+        source="mcp",
+        external_id="brief-1",
+    )
+    catalog.remove_collection_paper(collection.id, "paper-a")
+    catalog.add_collection_papers(collection.id, ["paper-b"])
+
+    with TestClient(create_app(Settings.from_data_dir(data_dir))) as client:
+        listed = client.get(f"/api/collections/{collection.id}/documents")
+        web_created = client.post(
+            f"/api/collections/{collection.id}/documents",
+            json={"title": "Web note", "content_markdown": "# Draft"},
+        )
+        detail = client.get(f"/api/collections/{collection.id}/documents/{document.id}")
+        updated = client.patch(
+            f"/api/collections/{collection.id}/documents/{document.id}",
+            json={
+                "title": "Reviewed brief",
+                "content_markdown": "# Brief\n\nEdited content.",
+                "expected_revision": 1,
+            },
+        )
+        stale = client.patch(
+            f"/api/collections/{collection.id}/documents/{document.id}",
+            json={"content_markdown": "Stale edit", "expected_revision": 1},
+        )
+        deleted = client.delete(f"/api/collections/{collection.id}/documents/{document.id}")
+        missing = client.get(f"/api/collections/{collection.id}/documents/{document.id}")
+
+    assert listed.status_code == 200
+    assert listed.json()[0]["id"] == document.id
+    assert listed.json()[0]["title"] == "Imported brief"
+    assert listed.json()[0]["papers"] == [{"id": "paper-a", "title": "Alpha"}]
+    assert listed.json()[0]["paper_changes"]["added"] == [{"id": "paper-b", "title": "Beta"}]
+    assert listed.json()[0]["paper_changes"]["removed"] == [{"id": "paper-a", "title": "Alpha"}]
+    assert "content_markdown" not in listed.json()[0]
+    assert web_created.status_code == 201
+    assert web_created.json()["source"] == "web"
+    assert web_created.json()["papers"] == [{"id": "paper-b", "title": "Beta"}]
+    assert detail.json()["content_markdown"] == "# Brief\n\nInitial content."
+    assert updated.json()["title"] == "Reviewed brief"
+    assert updated.json()["revision"] == 2
+    assert stale.status_code == 409
+    assert deleted.status_code == 204
     assert missing.status_code == 404

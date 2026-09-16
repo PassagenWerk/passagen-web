@@ -426,6 +426,31 @@ def test_report_submit_history_detail_and_custom(data_dir: Path) -> None:
         ).json()
         assert custom_detail["record"]["user_prompt"] == "Compare the evaluation setups."
 
+        client.delete(f"/api/collections/{collection_id}/papers/paper-c")
+        documents = client.get(f"/api/collections/{collection_id}/documents").json()
+        generated = next(item for item in documents if item["id"] == report_id)
+        assert generated["title"] == "Generated title"
+        assert generated["document_type"] == "generated"
+        assert generated["editable"] is True
+        assert generated["paper_changes"]["removed"] == [
+            {"id": "paper-c", "title": "Graph Partitioner"}
+        ]
+        edited = client.patch(
+            f"/api/collections/{collection_id}/documents/{report_id}",
+            json={
+                "title": "Edited generated title",
+                "content_markdown": "# Edited generated title\n\nCurated text.",
+                "expected_revision": 1,
+            },
+        )
+        assert edited.status_code == 200
+        assert edited.json()["revision"] == 2
+        document_detail = client.get(
+            f"/api/collections/{collection_id}/documents/{report_id}"
+        ).json()
+        assert document_detail["title"] == "Edited generated title"
+        assert document_detail["content_markdown"] == ("# Edited generated title\n\nCurated text.")
+
 
 def test_collection_run_history(data_dir: Path) -> None:
     client = make_client(data_dir)

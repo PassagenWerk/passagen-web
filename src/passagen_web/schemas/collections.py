@@ -47,3 +47,52 @@ class CollectionPapersRequest(BaseModel):
 
 class CollectionOrderRequest(BaseModel):
     paper_ids: list[str]
+
+
+class CollectionDocumentPaperResponse(BaseModel):
+    id: str
+    title: str | None
+
+
+class CollectionDocumentPaperChangesResponse(BaseModel):
+    added: list[CollectionDocumentPaperResponse]
+    removed: list[CollectionDocumentPaperResponse]
+    order_changed: bool
+
+
+class CollectionDocumentSummaryResponse(BaseModel):
+    id: str
+    collection_id: str
+    title: str
+    document_type: str
+    kind: str
+    status: str
+    editable: bool
+    source: str
+    external_id: str | None
+    revision: int | None
+    papers: list[CollectionDocumentPaperResponse]
+    paper_changes: CollectionDocumentPaperChangesResponse
+    created_at: str
+    updated_at: str
+
+
+class CollectionDocumentResponse(CollectionDocumentSummaryResponse):
+    content_markdown: str | None
+
+
+class CollectionDocumentCreateRequest(BaseModel):
+    title: Annotated[str, Field(min_length=1, max_length=200)]
+    content_markdown: Annotated[str, Field(max_length=1_000_000)] = ""
+
+
+class CollectionDocumentUpdateRequest(BaseModel):
+    title: Annotated[str, Field(min_length=1, max_length=200)] | None = None
+    content_markdown: Annotated[str, Field(max_length=1_000_000)] | None = None
+    expected_revision: Annotated[int, Field(ge=1)]
+
+    @model_validator(mode="after")
+    def require_change(self) -> Self:
+        if not ({"title", "content_markdown"} & self.model_fields_set):
+            raise ValueError("at least one document field is required")
+        return self

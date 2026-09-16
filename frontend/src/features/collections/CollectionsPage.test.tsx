@@ -42,6 +42,47 @@ const collectionDetail = {
   ],
 };
 
+const collectionDocument = {
+  id: "document-1",
+  collection_id: "col-1",
+  title: "Imported brief",
+  document_type: "manual" as const,
+  kind: "markdown",
+  status: "ready",
+  editable: true,
+  source: "mcp",
+  external_id: "brief-1",
+  revision: 1,
+  papers: [{ id: "paper-a", title: "Fast Scheduler" }],
+  paper_changes: {
+    added: [{ id: "paper-b", title: "Better Compiler" }],
+    removed: [],
+    order_changed: false,
+  },
+  created_at: "2026-01-02 10:00:00",
+  updated_at: "2026-01-02 10:00:00",
+  content_markdown: "# Imported brief\n\nInitial content.",
+};
+
+const generatedDocument = {
+  ...collectionDocument,
+  id: "report-1",
+  title: "Generated comparison",
+  document_type: "generated" as const,
+  kind: "comparison",
+  status: "completed",
+  editable: true,
+  source: "generated",
+  external_id: null,
+  revision: 1,
+  papers: [
+    { id: "paper-a", title: "Fast Scheduler" },
+    { id: "paper-b", title: "Better Compiler" },
+  ],
+  paper_changes: { added: [], removed: [], order_changed: false },
+  content_markdown: "# Generated comparison\n\nCompared results.",
+};
+
 function response(body: unknown, status = 200): Promise<Response> {
   return Promise.resolve(
     new Response(JSON.stringify(body), {
@@ -70,7 +111,7 @@ describe("CollectionsPage research desk", () => {
   beforeEach(() => {
     vi.stubGlobal(
       "fetch",
-      vi.fn((input: RequestInfo | URL) => {
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
         if (url === "/api/collections") return response([{ ...collectionDetail, papers: undefined }]);
         if (url === "/api/collections/col-1") return response(collectionDetail);
@@ -80,6 +121,46 @@ describe("CollectionsPage research desk", () => {
         }
         if (url === "/api/collections/col-1/reports") return response({ items: [] });
         if (url === "/api/conversations?collection_id=col-1") return response({ items: [] });
+        if (url === "/api/collections/col-1/documents" && init?.method === "POST") {
+          return response({
+            ...collectionDocument,
+            id: "document-2",
+            title: JSON.parse(String(init.body)).title,
+            source: "web",
+            content_markdown: "",
+            paper_changes: { added: [], removed: [], order_changed: false },
+          }, 201);
+        }
+        if (url === "/api/collections/col-1/documents") {
+          return response([
+            { ...collectionDocument, content_markdown: undefined },
+            { ...generatedDocument, content_markdown: undefined },
+          ]);
+        }
+        if (url === "/api/collections/col-1/documents/document-1" && init?.method === "PATCH") {
+          const update = JSON.parse(String(init.body));
+          return response({ ...collectionDocument, ...update, revision: 2 });
+        }
+        if (url === "/api/collections/col-1/documents/document-1") {
+          return response(collectionDocument);
+        }
+        if (url === "/api/collections/col-1/documents/document-2") {
+          return response({
+            ...collectionDocument,
+            id: "document-2",
+            title: "Web working notes",
+            source: "web",
+            content_markdown: "",
+            paper_changes: { added: [], removed: [], order_changed: false },
+          });
+        }
+        if (url === "/api/collections/col-1/documents/report-1" && init?.method === "PATCH") {
+          const update = JSON.parse(String(init.body));
+          return response({ ...generatedDocument, ...update, revision: 2 });
+        }
+        if (url === "/api/collections/col-1/documents/report-1") {
+          return response(generatedDocument);
+        }
         return Promise.resolve(new Response(null, { status: 404 }));
       }),
     );
@@ -95,6 +176,10 @@ describe("CollectionsPage research desk", () => {
     fireEvent.click(screen.getByRole("link", { name: "Open research desk" }));
 
     expect(await screen.findByRole("heading", { name: "Research desk" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "New Markdown" })).toHaveAttribute(
+      "href",
+      "/collections/col-1#collection-documents",
+    );
     expect(container.querySelector(".collection-research-desk")?.className).toContain("is-motion-forward");
     expect(screen.getByRole("complementary", { name: "Collection papers" })).toBeTruthy();
     expect(screen.queryByRole("navigation")).toBeNull();
@@ -144,5 +229,66 @@ describe("CollectionsPage research desk", () => {
     expect(screen.getByRole("complementary", { name: "Collection papers" })).toBeTruthy();
     expect(screen.getByRole("link", { name: /Better Compiler/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Back to Systems reading list" })).toBeTruthy();
+  });
+
+  test("edits and previews an externally added Markdown document", async () => {
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Imported brief", level: 3 })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Document title" }), {
+      target: { value: "Reviewed brief" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Document Markdown" }), {
+      target: { value: "# Reviewed\n\nEdited content." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save document" }));
+
+    expect(await screen.findByText("Saved revision 2")).toBeTruthy();
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/collections/col-1/documents/document-1",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          title: "Reviewed brief",
+          content_markdown: "# Reviewed\n\nEdited content.",
+          expected_revision: 1,
+        }),
+      }),
+    );
+  });
+
+  test("adds a Web Markdown document", async () => {
+    renderPage();
+
+    fireEvent.change(await screen.findByRole("textbox", { name: "New document title" }), {
+      target: { value: "Web working notes" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add document" }));
+
+    expect(await screen.findByRole("heading", { name: "Web working notes", level: 3 })).toBeTruthy();
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/collections/col-1/documents",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ title: "Web working notes", content_markdown: "" }),
+      }),
+    );
+  });
+
+  test("lists generated reports with manual documents and their paper snapshot", async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: /Generated comparison/ }));
+
+    expect(await screen.findByRole("heading", { name: "Generated comparison", level: 3 })).toBeTruthy();
+    expect(screen.getByText("2 papers at creation")).toBeTruthy();
+    expect(screen.getByText("Matches current collection")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Document Markdown" }), {
+      target: { value: "# Edited comparison" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save document" }));
+    expect(await screen.findByText("Saved revision 2")).toBeTruthy();
   });
 });

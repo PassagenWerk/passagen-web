@@ -1,16 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
   createCollection,
+  createCollectionDocument,
+  deleteCollectionDocument,
   deleteCollection,
   fetchCollection,
+  fetchCollectionDocument,
+  fetchCollectionDocuments,
   fetchCollections,
   removeCollectionPaper,
   reorderCollection,
   updateCollection,
+  updateCollectionDocument,
   type Collection,
+  type CollectionDocumentSummary,
 } from "../../api/collections";
 import { fetchTags } from "../../api/papers";
 import { AskPanel } from "../ask/AskPanel";
@@ -223,7 +230,10 @@ export function CollectionsPage() {
                   <h1>Research desk</h1>
                   <p>{detail.data.description || `Synthesize, compare, and question ${detail.data.name}.`}</p>
                 </div>
-                <Link className="primary-button" to={`/collections/${collectionId}`}>Manage collection</Link>
+                <div className="collection-header-actions">
+                  <Link className="secondary-button" to={`/collections/${collectionId}`}>Manage collection</Link>
+                  <Link className="primary-button" to={`/collections/${collectionId}#collection-documents`}>New Markdown</Link>
+                </div>
               </header>
               <div className={`collection-intelligence-layout ${askFocused ? "is-ask-focus" : ""} ${documentFocused ? "is-document-focus" : ""}`}>
                 {documentFocused ? (
@@ -364,6 +374,7 @@ export function CollectionsPage() {
               </div>
               <div className="collection-header-actions">
                 <Link className="secondary-button" to={`/collections/${detail.data.id}/research`}>Open research desk</Link>
+                <Link className="secondary-button" to={`/collections/${detail.data.id}#collection-documents`}>New Markdown</Link>
                 <Link className="primary-button" to={`/?addToCollection=${detail.data.id}`}>Add papers</Link>
               </div>
             </header>
@@ -377,6 +388,7 @@ export function CollectionsPage() {
                   {save.isSuccess ? <span className="form-status is-saved">Saved</span> : null}
                   {save.error ? <span className="form-status is-error">{save.error.message}</span> : null}
                 </form>
+                <CollectionDocuments collectionId={detail.data.id} />
                 <div className="collection-members">
                   <div className="collection-members-heading"><span>Order</span><span>Paper</span><span>Actions</span></div>
                   {detail.data.papers.map((member, index) => (
@@ -413,6 +425,236 @@ export function CollectionsPage() {
         ) : null}
       </section>
     </div>
+  );
+}
+
+function CollectionDocuments({ collectionId }: { collectionId: string }) {
+  const queryClient = useQueryClient();
+  const documents = useQuery({
+    queryKey: ["collection-documents", collectionId],
+    queryFn: () => fetchCollectionDocuments(collectionId),
+    retry: false,
+  });
+  const [selectedId, setSelectedId] = useState<string>();
+  const [newTitle, setNewTitle] = useState("");
+
+  useEffect(() => {
+    if (window.location.hash !== "#collection-documents") return;
+    window.requestAnimationFrame(() => {
+      document.getElementById("collection-documents")?.scrollIntoView({ block: "start" });
+      document.querySelector<HTMLInputElement>('input[aria-label="New document title"]')?.focus();
+    });
+  }, [collectionId]);
+  const create = useMutation({
+    mutationFn: () => createCollectionDocument(collectionId, newTitle, ""),
+    onSuccess: (document) => {
+      setNewTitle("");
+      queryClient.setQueryData(["collection-document", collectionId, document.id], document);
+      queryClient.setQueryData<CollectionDocumentSummary[]>(
+        ["collection-documents", collectionId],
+        (current) => [document, ...(current ?? [])],
+      );
+      setSelectedId(document.id);
+    },
+  });
+
+  useEffect(() => {
+    if (selectedId && documents.data?.some((document) => document.id === selectedId)) return;
+    setSelectedId(documents.data?.[0]?.id);
+  }, [documents.data, selectedId]);
+
+  return (
+    <section id="collection-documents" className="collection-documents" aria-labelledby="collection-documents-heading">
+      <header>
+        <div>
+          <span>Durable material</span>
+          <h2 id="collection-documents-heading">Collection documents</h2>
+        </div>
+        <p>Manual Markdown and generated research documents, with the paper set captured at creation.</p>
+      </header>
+      <form
+        className="collection-document-create"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (newTitle.trim()) create.mutate();
+        }}
+      >
+        <label>
+          <span>New Markdown document</span>
+          <input
+            aria-label="New document title"
+            value={newTitle}
+            onChange={(event) => setNewTitle(event.target.value)}
+            placeholder="Document title..."
+          />
+        </label>
+        <button type="submit" disabled={!newTitle.trim() || create.isPending}>
+          {create.isPending ? "Adding..." : "Add document"}
+        </button>
+        {create.error ? <span className="form-status is-error">{create.error.message}</span> : null}
+      </form>
+      {documents.isPending ? <div className="panel-message">Loading documents...</div> : null}
+      {documents.error ? <div className="panel-message is-error">{documents.error.message}</div> : null}
+      {documents.data?.length === 0 ? (
+        <div className="panel-message"><strong>No collection documents.</strong><span>Add Markdown here, connect an MCP service, or generate a research document.</span></div>
+      ) : null}
+      {documents.data?.length ? (
+        <div className="collection-document-workspace">
+          <nav aria-label="Collection documents">
+            {documents.data.map((document) => (
+              <button
+                type="button"
+                key={document.id}
+                className={document.id === selectedId ? "is-active" : ""}
+                onClick={() => setSelectedId(document.id)}
+              >
+                <strong>{document.title}</strong>
+                <span>{document.document_type === "generated" ? document.kind : document.source} / {document.status}</span>
+                {(document.paper_changes.added.length > 0 || document.paper_changes.removed.length > 0 || document.paper_changes.order_changed) ? (
+                  <em>Paper list changed</em>
+                ) : null}
+              </button>
+            ))}
+          </nav>
+          {selectedId ? (
+            <CollectionDocumentEditor
+              collectionId={collectionId}
+              document={documents.data.find((item) => item.id === selectedId)!}
+              onDeleted={() => setSelectedId(undefined)}
+            />
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function CollectionDocumentEditor({
+  collectionId,
+  document,
+  onDeleted,
+}: {
+  collectionId: string;
+  document: CollectionDocumentSummary;
+  onDeleted: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const detail = useQuery({
+    queryKey: ["collection-document", collectionId, document.id],
+    queryFn: () => fetchCollectionDocument(collectionId, document.id),
+    retry: false,
+  });
+  const [title, setTitle] = useState(document.title);
+  const [markdown, setMarkdown] = useState("");
+  const [preview, setPreview] = useState(true);
+
+  useEffect(() => {
+    if (!detail.data) return;
+    setTitle(detail.data.title);
+    setMarkdown(detail.data.content_markdown ?? "");
+    setPreview(true);
+  }, [detail.data]);
+
+  const save = useMutation({
+    mutationFn: () => updateCollectionDocument(collectionId, document.id, {
+      title,
+      content_markdown: markdown,
+      expected_revision: detail.data!.revision!,
+    }),
+    onSuccess: async (updated) => {
+      queryClient.setQueryData(["collection-document", collectionId, document.id], updated);
+      await queryClient.invalidateQueries({ queryKey: ["collection-documents", collectionId] });
+      await queryClient.invalidateQueries({ queryKey: ["collection-reports", collectionId] });
+    },
+  });
+  const destroy = useMutation({
+    mutationFn: () => deleteCollectionDocument(collectionId, document.id),
+    onSuccess: async () => {
+      queryClient.removeQueries({ queryKey: ["collection-document", collectionId, document.id] });
+      onDeleted();
+      await queryClient.invalidateQueries({ queryKey: ["collection-documents", collectionId] });
+    },
+  });
+  const unchanged = detail.data
+    ? title === detail.data.title && markdown === detail.data.content_markdown
+    : true;
+
+  if (detail.isPending) return <div className="panel-message">Opening document...</div>;
+  if (detail.error) return <div className="panel-message is-error">{detail.error.message}</div>;
+  return (
+    <article className="collection-document-editor">
+      <div className="collection-document-toolbar">
+        {detail.data.editable ? (
+          <div className="abstract-version-toggle" aria-label="Document mode">
+            <button type="button" aria-pressed={!preview} onClick={() => setPreview(false)}>Edit</button>
+            <button type="button" aria-pressed={preview} onClick={() => setPreview(true)}>Preview</button>
+          </div>
+        ) : <span className="ask-source-badge">Generated / {detail.data.kind}</span>}
+        <div>
+          {detail.data.editable ? (
+            <button
+              type="button"
+              onClick={() => save.mutate()}
+              disabled={save.isPending || unchanged || !title.trim()}
+            >
+              {save.isPending ? "Saving..." : "Save document"}
+            </button>
+          ) : null}
+          <button
+            className="danger-button"
+            type="button"
+            disabled={destroy.isPending || ["queued", "running"].includes(detail.data.status)}
+            onClick={() => {
+              if (window.confirm(`Delete ${detail.data!.title}?`)) destroy.mutate();
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+      <DocumentPaperSnapshot document={detail.data} />
+      {preview ? (
+        <>
+          <h3>{title}</h3>
+          <div className="markdown collection-document-preview">
+            <ReactMarkdown>{markdown || "_Empty document._"}</ReactMarkdown>
+          </div>
+        </>
+      ) : (
+        <div className="collection-document-fields">
+          <label><span>Title</span><input aria-label="Document title" value={title} onChange={(event) => setTitle(event.target.value)} /></label>
+          <label><span>Markdown</span><textarea aria-label="Document Markdown" value={markdown} onChange={(event) => setMarkdown(event.target.value)} /></label>
+        </div>
+      )}
+      {save.error ? <span className="form-status is-error">Not saved: {save.error.message}. Reload before retrying if another editor changed this document.</span> : null}
+      {save.isSuccess ? <span className="form-status is-saved">Saved revision {detail.data?.revision}</span> : null}
+      {destroy.error ? <span className="form-status is-error">Not deleted: {destroy.error.message}</span> : null}
+    </article>
+  );
+}
+
+function DocumentPaperSnapshot({ document }: { document: CollectionDocumentSummary }) {
+  const changed = document.paper_changes.added.length > 0
+    || document.paper_changes.removed.length > 0
+    || document.paper_changes.order_changed;
+  return (
+    <section className={`document-paper-snapshot ${changed ? "is-changed" : ""}`} aria-label="Document paper snapshot">
+      <div>
+        <strong>{document.papers.length} papers at creation</strong>
+        <span>{changed ? "Collection papers changed" : "Matches current collection"}</span>
+      </div>
+      <div className="document-paper-tags">
+        {document.papers.map((paper) => <span key={paper.id}>{paper.title ?? paper.id}</span>)}
+        {document.papers.length === 0 ? <span>No papers</span> : null}
+      </div>
+      {changed ? (
+        <div className="document-paper-diff">
+          {document.paper_changes.added.map((paper) => <span className="is-added" key={paper.id}>+ {paper.title ?? paper.id}</span>)}
+          {document.paper_changes.removed.map((paper) => <span className="is-removed" key={paper.id}>- {paper.title ?? paper.id}</span>)}
+          {document.paper_changes.order_changed ? <span>Order changed</span> : null}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
