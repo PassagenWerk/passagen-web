@@ -111,10 +111,10 @@ docker compose exec passagen-web passagen --data-dir /data check
 推荐固定完整版本：
 
 ```bash
-docker pull sycstudio/passagen:0.9.0
+docker pull sycstudio/passagen:0.9.1
 ```
 
-- `0.9.0`：固定完整版本
+- `0.9.1`：固定完整版本
 - `0.9`：当前 0.9 系列版本
 - `latest`：最新稳定版本
 

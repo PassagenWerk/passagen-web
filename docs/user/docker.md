@@ -34,7 +34,7 @@ curl -fsSL https://raw.githubusercontent.com/PassagenWerk/passagen-web/main/.env
 编辑 `.env`：
 
 ```dotenv
-PASSAGEN_IMAGE=docker.io/sycstudio/passagen:0.9.0
+PASSAGEN_IMAGE=docker.io/sycstudio/passagen:0.9.1
 GROBID_IMAGE=docker.io/lfoppiano/grobid:0.9.1-crf
 PASSAGEN_API_KEY=your-api-key
 PASSAGEN_BIND=127.0.0.1

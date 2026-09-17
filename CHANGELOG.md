@@ -5,6 +5,15 @@ All notable changes to Passagen Web are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-09-17
+
+Requires `passagen-core` `0.9.x` and Passagen Schema version 13.
+
+### Fixed
+
+- Updated Docker Hub overview publishing to the Node 24-compatible description action and
+  documented the repository-admin token scope required by Docker Hub.
+
 ## [0.9.0] - 2026-09-17
 
 Requires `passagen-core` `0.9.x` and Passagen Schema version 13.
