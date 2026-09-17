@@ -81,7 +81,9 @@ sycstudio/passagen:latest
 Docker Hub 目标 repository 是 `sycstudio/passagen`。在 GitHub repository secrets 中配置：
 
 - `DOCKERHUB_USERNAME`：有权写入该 repository 的 Docker Hub 用户。
-- `DOCKERHUB_TOKEN`：该用户的 Docker Hub access token。
+- `DOCKERHUB_TOKEN`：该用户具有 `read/write/delete` scope 的 Docker Hub access token。用户还
+  必须对 `sycstudio/passagen` 具有 Admin 权限，workflow 才能在推送镜像后更新 Docker Hub
+  Overview；只有镜像写权限的 token 会在 description 步骤返回 `Forbidden`。
 
 更新 Core/CLI minor 版本时，必须在发布 Web tag 前同步修改 workflow 的默认 `CORE_REF` 和
 `CLI_REF`。已有 Web tag 可以手动运行 workflow，并分别指定 `release_tag`、`core_ref` 和
