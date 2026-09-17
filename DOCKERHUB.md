@@ -3,6 +3,10 @@
 Passagen 是面向学术论文库的本地 Web 应用，可用于导入和处理 PDF、搜索论文、阅读 Summary、
 Outline 与原始 PDF，以及进行单篇论文和 Collection 级别的问答与研究分析。
 
+当前 `0.9` 系列新增统一的 Collection document workspace，可创建和编辑手工 Markdown 文档，
+也可在同一界面阅读和修订生成型 Research Documents，并查看保存时 paper snapshot 与当前集合
+成员的差异。
+
 镜像包含：
 
 - Passagen Web API
