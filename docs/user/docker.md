@@ -8,7 +8,7 @@ Passagen Web 发布到 `docker.io/sycstudio/passagen`。仓库中的 Compose 配
 
 - `passagen-web`：Web API 和已经编译的前端，只向宿主机发布 8765 端口。
 - `passagen`：与 Web/Core 同版本的 CLI，安装在 Web 镜像的可执行 `PATH` 中。
-- `passagen-mcp-server`：可选的独立只读 companion image，不包含在 Web 镜像中。
+- `passagen-mcp-server`：可选的独立 companion image，默认只读，不包含在 Web 镜像中。
 - `grobid`：PDF header 和全文 TEI 解析服务，只在 Compose 网络内暴露 8070 端口。
 - `docker-compose.yaml`：普通用户使用的 pull-based 部署配置。
 - `.env.example`：镜像版本、访问地址、论文库路径和 secret 的环境变量样例。
@@ -34,7 +34,7 @@ curl -fsSL https://raw.githubusercontent.com/PassagenWerk/passagen-web/main/.env
 编辑 `.env`：
 
 ```dotenv
-PASSAGEN_IMAGE=docker.io/sycstudio/passagen:0.8.0
+PASSAGEN_IMAGE=docker.io/sycstudio/passagen:0.9.0
 GROBID_IMAGE=docker.io/lfoppiano/grobid:0.9.1-crf
 PASSAGEN_API_KEY=your-api-key
 PASSAGEN_BIND=127.0.0.1

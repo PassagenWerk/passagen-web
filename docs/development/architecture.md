@@ -38,6 +38,10 @@ partial coverage 和 reuse 判定全部留在 Core，Web 从不重算 fingerprin
 `interrupt_active_runs` 把遗留 run、pending answer 和 queued/running report 一致标记为
 interrupted/failed。
 
+Collection document API 将手工 Markdown 与 generated report 投影为统一列表和详情 contract。
+创建手工文档时保存当前 paper snapshot；更新必须携带 expected revision，成员差异与 stale
+判定由 Core 计算。前端 document workspace 不直接区分底层 storage table。
+
 Conversation API 接受 `paper_id` 或 `collection_id` 之一；collection conversation 与 paper
 conversation 共用 turn、archive 和 QA record 搜索语义。
 

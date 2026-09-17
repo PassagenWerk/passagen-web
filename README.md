@@ -18,10 +18,11 @@ README 中的仓库链接指向 GitHub；在 GitLab 或 Gitea 镜像中，对应
 - 对单篇论文或整个 collection 进行持久化对话问答，回答带可验证 citation 并导航到对应
   论文/PDF 页。
 - Collection Research Desk：跨论文 synthesis、可持久化的 Research Documents、collection Ask、
-  可折叠 paper rail，以及适合长内容的全宽 reading/focus mode。
+  手工 Markdown 与生成文档的统一编辑/阅读工作区、paper snapshot 差异、可折叠 paper rail，
+  以及适合长内容的全宽 reading/focus mode。
 - 通过独立的 [Passagen MCP Server](https://github.com/PassagenWerk/passagen-mcp-server) 将同一
-  论文库以只读 tools/resources 提供给 LibreChat、Claude Desktop、Cursor、VS Code/Copilot、
-  自定义 research agent 和其他兼容 MCP 的 Agent Host。
+  论文库以默认只读、可显式启用组织写入的 tools/resources 提供给 LibreChat、Claude Desktop、
+  Cursor、VS Code/Copilot、自定义 research agent 和其他兼容 MCP 的 Agent Host。
 - 在桌面和移动浏览器中使用 Light/Dark Mode。
 
 ## Quick Start
@@ -73,11 +74,11 @@ uv run passagen-web serve --data-dir ../passagen-cli/data
 
 ## Agent 与 MCP
 
-[Passagen MCP Server](https://github.com/PassagenWerk/passagen-mcp-server) 是 Web 的只读
-companion service。Web 负责导入、处理、整理和生成研究内容；MCP Server 读取同一个 data
+[Passagen MCP Server](https://github.com/PassagenWerk/passagen-mcp-server) 是 Web 的独立
+companion service。Web 负责导入、处理和生成研究内容；MCP Server 默认只读同一个 data
 directory，让兼容 MCP 的 Agent Host 能发现论文和 collection、检索带页码的全文 evidence，
-并读取已有 synthesis/report。它可以与网页搜索、代码执行、写作和任务规划等其他 Agent
-tools 组合，但不会通过 MCP 修改论文库或触发 LLM generation。
+并读取已有 synthesis/report。可信部署可显式启用 collection、tag、paper-tag 和 Markdown
+document 写入，但不会导入/删除论文或触发 LLM generation。
 
 MCP Server 不打包进 Web 运行镜像，也不由 Web API 进程托管。推荐独立容器或进程部署，以便
 分别控制只读 volume、Bearer 认证、网络暴露和版本升级。Docker/源码连接方式、并发读取和

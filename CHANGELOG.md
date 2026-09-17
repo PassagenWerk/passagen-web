@@ -5,6 +5,27 @@ All notable changes to Passagen Web are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-09-17
+
+Requires `passagen-core` `0.9.x` and Passagen Schema version 13.
+
+### Added
+
+- Added a unified collection document workspace that lists manual Markdown documents alongside
+  generated research reports, with focused reading, paper snapshots, and current membership
+  change indicators.
+- Added creation, preview, revision-safe editing, and deletion for collection Markdown documents;
+  completed generated documents can be edited through the same workspace.
+
+### Changed
+
+- Updated the compatible Core/CLI release line and Docker release defaults to `0.9.0`.
+- Updated MCP companion guidance for projected reads and opt-in authenticated organization writes.
+
+### Fixed
+
+- Kept paper action panels above the PDF reader so menus and controls remain usable while reading.
+
 ## [0.8.0] - 2026-09-15
 
 Requires `passagen-core` `0.8.x` and Passagen Schema version 11.
